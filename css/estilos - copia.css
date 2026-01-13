@@ -1,0 +1,164 @@
+body
+{	
+    /*width: 900px;*/
+    /*padding-top: 36px;
+    padding-bottom: 36px;*/
+  	/*background-color: #7F7F7F;*/
+	/*background-color: #E1F7FE;*/
+	/*background-image:url(../imagenes/fondo2.jpg);*/
+	background-repeat:repeat;
+	
+	
+	
+	
+	/*margin:auto;*/
+	margin-left: auto;
+	margin-right: auto;
+	
+	
+	
+}
+
+
+.contenedor
+{
+	
+    /*width: 1200px;*/
+	width: 100%;
+	
+	
+	/*min-width:100px;*/
+	height:auto;/*1100*/
+	
+   /* background-image: none;*/
+	
+	
+    border-width: 0px;
+    border-color: #000000;
+    
+	/*background-color:rgb(204,204,204);*/
+	background-color:#007cba;
+	color:white;
+	
+	/*background-color: #E1F7FE;*/
+	/*background-color: #0764a0;*/
+	/*background: linear-gradient(#007fb4,#0764a0); /* Standard syntax */
+	/*background: #007fb4; /* For browsers that do not support gradients */
+   /* background: -webkit-linear-gradient(#007fb4, #0764a0); /* For Safari 5.1 to 6.0 */
+   /* background: -o-linear-gradient(#007fb4, #0764a0); /* For Opera 11.1 to 12.0 */
+    /*background: -moz-linear-gradient(#007fb4, #0764a0); /* For Firefox 3.6 to 15 */
+	
+    margin-left: auto;
+    margin-right: auto;
+   padding: 20px 20px 20px 20px;
+}
+
+tr.tablaTitulo td
+{	
+	/*background-color: yellow;*/
+	font-weight: bold;
+}
+
+tr.contraste td
+{
+	background-color:crimson;
+}
+
+.tabla
+{
+	display: table;
+	width: 100%;
+	
+}
+.tablaFila
+{
+	display: table-row;
+	
+	/*display: flex;*/
+   	/*align-items: center;*/
+}
+
+.tablaCelda
+{
+	display: table-cell;
+	vertical-align: middle;
+	padding: 3px;
+}
+.caption 
+{ 
+	display: table-caption; 
+	caption-side: bottom;
+	
+	
+}
+
+
+
+.alignDerecha
+{	
+	text-align: right;
+}
+
+.alignIzquierda
+{	
+	text-align: left;
+}
+.alignCentro
+{
+	text-align: center;
+}
+.anchoCompleto
+{
+	width: 100%;
+}
+
+.input5digitos
+{
+	width: 45px;
+}
+
+/*@media (min-width: 412px) and (max-width: 950px) /*  412x915*/
+/*@media only screen and (max-device-width: 950px) */
+/*@media screen  and (device-width: 360px)  and (device-height: 640px) and (-webkit-device-pixel-ratio: 2) */
+@media screen  and (max-device-width: 640px) and (-webkit-device-pixel-ratio: 2) 
+{
+	.contenedor
+	{
+		color:yellow;
+	}
+	input, td
+	{
+    	font-size: 50px;
+		
+  	}
+	
+	td
+	{
+		display: inline;
+	}
+	
+	
+	body
+	{
+	
+	}
+	
+	td label
+	{
+		color: white;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,83 @@
+a{
+    width: 100% !important;
+    height: 300px !important;
+}
+
+img{
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    overflow: hidden !important;
+}
+.gallery-title
+{
+    font-size: 36px !important;
+    color: #42B32F !important;
+    text-align: center !important;
+    font-weight: 500 !important;
+    margin-bottom: 70px !important;
+}
+.gallery-title:after {
+    content: "" !important;
+    position: absolute !important;
+    width: 7.5% !important;
+    left: 46.5% !important;
+    height: 45px !important;
+    border-bottom: 1px solid #5e5e5e !important;
+}
+.filter-button
+{
+    font-size: 18px !important;
+    border: 1px solid #42B32F !important;
+    border-radius: 5px !important;
+    text-align: center !important;
+    color: #42B32F !important;
+    margin-bottom: 30px !important;
+
+}
+.filter-button:hover
+{
+    font-size: 18px !important;
+    border: 1px solid #42B32F !important;
+    border-radius: 5px !important;
+    text-align: center !important;
+    color: #ffffff !important;
+    background-color: #42B32F !important;
+
+}
+.filter-button.active
+{
+    background-color: #42B32F !important;
+    color: white;
+}
+.port-image
+{
+    width: 100% !important;
+}
+
+.gallery_product
+{
+    margin-bottom: 30px !important;
+	-webkit-animation-duration: 1s !important;
+            animation-duration: 1s !important;
+            -webkit-animation-fill-mode: both !important;
+            animation-fill-mode: both !important;
+}
+
+.block{
+    opacity: 0 !important;
+}
+
+@-webkit-keyframes fadeIn {
+    0% {opacity: 0 !important;}
+    100% {opacity: 1 !important;}
+}
+@keyframes fadeIn {
+    0% {opacity: 0 !important;}
+    100% {opacity: 1 !important;}
+}
+.fadeIn {
+    -webkit-animation-name: fadeIn !important;
+    animation-name: fadeIn !important;
+}
+

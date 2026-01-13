@@ -1,0 +1,81 @@
+<?php 
+
+class cabeceraFactura extends PDF_Rotate 
+{
+// Cabecera de página
+	function Header()
+	{		
+		$altura=10;
+		$margenInicial=20;
+		$margenLineaDerecha=190;
+		
+		if (isset($GLOBALS['informePFoPago'])&&$GLOBALS['informePFoPago']=="informePFoPago")
+		{ 			
+			$margenInicial=10;
+			$margenLineaDerecha = 200;
+		}
+		
+		
+		unset ($GLOBALS['informePFoPago']);
+		
+		//$margenInicial=10;
+		
+		$margen=$margenInicial;
+		//$pdf->Text($margen,$altura,$datosPresupuesto[0]["fecha"]->format('d/m/Y'));
+
+		//$pdf->SetTextColor(13,140,252);
+
+		$this->Image('imagenes/Clayma CMYK.jpg',$margen,$altura,35);
+
+
+		$this->SetFont('Arial','',6);
+		//$pdf->SetTextColor(colorNegroR,colorNegroG,colorNegroB);
+	
+		/*$this->RotatedText($margenInicial-12,210,utf8_decode("C/ Torneros, 12 P.I. Los Ángeles. 28906 Getafe (Madrid). Tel.: 91 684 37 37 Fax: 91 684 34 07
+Cibeles Mailing S.A. A-81339186"),90);*/
+	
+	
+		//$altura = 290;
+		$altura = 280;
+		//$this->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+		$this->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+		$this->SetLineWidth(0.8);
+		$this->Line($margen, $altura, $margenLineaDerecha, $altura);
+		
+		$altura += 2; 
+		$this->SetFont('Arial','B',10);
+		$this->SetXY($margen,$altura);	
+		
+		
+		//$this->SetTextColor(colorAzulR,colorAzulG,colorAzulB);
+		$this->SetTextColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+		
+		$this->MultiCell(0,4,utf8_decode('C/ Torneros, 12 P.I. Los Ángeles. 28906 Getafe (Madrid). Tel.: 91 684 37 37 Fax: 91 684 34 07 Clasificación y Manipulados S.A. A-80499221'),0,'C',false);
+						 
+		$this->SetTextColor(colorNegroR,colorNegroG,colorNegroB);	
+		$this->SetFont('Arial','',6);
+		$altura -= 7; 
+		//$this->Text($margen,290,$this->GroupPageNo().'/'.$this->PageGroupAlias());
+		$this->SetXY($margenInicial,$altura);	
+		$this->Cell(0,5,utf8_decode('Página ').$this->PageNo().'/{nb}',0,0,'C');
+		
+		
+		
+		
+	}
+
+	// Pie de página
+	function Footer()
+	{
+		// Posición: a 1,5 cm del final
+		/*$this->SetY(-15);
+		$this->Image('imagenes/pieInforme.jpg',0,269,220);
+		// Arial italic 8
+		$this->SetFont('Arial','I',8);
+		// Número de página
+		$this->SetXY(0,260);
+		$this->Cell(0,10,utf8_decode('Página '.$this->PageNo().'/{nb}'),0,0,'R');*/
+	}
+}
+
+?>

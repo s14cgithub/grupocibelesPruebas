@@ -1,0 +1,2 @@
+sqlcmd -S sqlCibeles3 -iC:\xampp\htdocs\gestionGrupocibelesPreproduccion\consultas\traspasoClientes_accessAsql.sql
+sqlcmd -S sqlCibeles3 -iC:\xampp\htdocs\gestionGrupocibelesPreproduccion\consultas\traspasoClientesClayma_accessAsql.sql

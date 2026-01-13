@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<dwsync>
+<file name="scripts.js" server="hermessobres.es//httpdocs/aplicacionesWeb/presupuestoDeSobres/" local="132137138735015181" remote="132137138400000000" Dst="2" />
+<file name="scripts.js" server="hermessobres.es//httpdocs/aplicacionesWeb/maquetas/" local="132158587138916197" remote="132158586600000000" Dst="2" />
+<file name="scripts.js" server="//172.26.0.17/gestionGrupocibeles/" local="132822238366973803" remote="132822238360000000" Dst="1" />
+<file name="js_admClientes.js" server="//172.26.0.17/gestionGrupocibeles/" local="133330184735531835" remote="133330184730000000" Dst="2" />
+<file name="js_presupuestosAlta.js" server="//172.26.0.17/gestionGrupocibeles/" local="132908547940171507" remote="132908547940000000" Dst="1" />
+<file name="js_franqueoGrabacion.js" server="//172.26.0.17/gestionGrupocibeles/" local="133171333613261872" remote="133171333610000000" Dst="1" />
+<file name="js_presupuestosListado.js" server="//172.26.0.17/gestionGrupocibeles/" local="133112599345011425" remote="133112599340000000" Dst="2" />
+<file name="js_global.js" server="//172.26.0.17/gestionGrupocibeles/" local="133208384782900007" remote="133208348780000000" Dst="2" />
+<file name="js_provisionFondos.js" server="//172.26.0.17/gestionGrupocibeles/" local="132866257117693386" remote="132866257110000000" Dst="1" />
+<file name="js_admEmisionFacturaPendiente.js" server="//172.26.0.17/gestionGrupocibeles/" local="132866413841340656" remote="132866413840000000" Dst="1" />
+<file name="js_facturas.js" server="//172.26.0.17/gestionGrupocibeles/" local="133106515854826742" remote="133106515850000000" Dst="2" />
+<file name="js_certGrabar.js" server="//172.26.0.17/gestionGrupocibeles/" local="132874835325406732" remote="132874835320000000" Dst="1" />
+<file name="js_facturasEspeciales.js" server="//172.26.0.17/gestionGrupocibeles/" local="132875702102709146" remote="132875702100000000" Dst="1" />
+<file name="js_admContabilidad.js" server="//172.26.0.17/gestionGrupocibeles/" local="133222271246879851" remote="133222271240000000" Dst="1" />
+<file name="js_ot.js" server="//172.26.0.17/gestionGrupocibeles/" local="133210976074535376" remote="133210976070000000" Dst="1" />
+<file name="js_admFacturacion.js" server="//172.26.0.17/gestionGrupocibeles/" local="133196311160713784" remote="133196275160000000" Dst="2" />
+<file name="js_facturasSinCobrar.js" server="//172.26.0.17/gestionGrupocibeles/" local="132893954208922915" remote="132893954200000000" Dst="1" />
+<file name="js_facturasSinCobrarTotal.js" server="//172.26.0.17/gestionGrupocibeles/" local="132854185372933523" remote="132854185370000000" Dst="1" />
+<file name="js_abonos.js" server="//172.26.0.17/gestionGrupocibeles/" local="132901681279279972" remote="132901681270000000" Dst="1" />
+<file name="js_presupuestosOtDetalle.js" server="//172.26.0.17/gestionGrupocibeles/" local="132901834329432790" remote="132901834320000000" Dst="1" />
+<file name="js_clientesListado.js" server="//172.26.0.17/gestionGrupocibeles/" local="133083201571451316" remote="133083201570000000" Dst="2" />
+<file name="js_prefacturaMensual.js" server="//172.26.0.17/gestionGrupocibeles/" local="133119577005813307" remote="133119577000000000" Dst="1" />
+<file name="js_facturasCorreos.js" server="//172.26.0.17/gestionGrupocibeles/" local="133070266185836753" remote="133070266180000000" Dst="2" />
+<file name="js_noFactura.js" server="//172.26.0.17/gestionGrupocibeles/" local="133045160691624096" remote="133045160690000000" Dst="2" />
+<file name="js_facturasCorreosPendientes.js" server="//172.26.0.17/gestionGrupocibeles/" local="132913049578746580" remote="132913049570000000" Dst="1" />
+<file name="js_provisionFondosPendiente.js" server="//172.26.0.17/gestionGrupocibeles/" local="132955256815091551" remote="132955256810000000" Dst="2" />
+<file name="js_facturasSincobrarTotal.js" server="//172.26.0.17/gestionGrupocibeles/" local="133112577397956877" remote="133112577390000000" Dst="2" />
+<file name="js_12.js" server="//172.26.0.17/gestionGrupocibeles/" local="132980261798451476" remote="132980297790000000" Dst="1" />
+<file name="js_traspasoCorreosACibeles.js" server="//172.26.0.17/gestionGrupocibeles/" local="132854188083282283" remote="132854188080000000" Dst="1" />
+<file name="js_comprasTercerosListado.js" server="//172.26.0.17/gestionGrupocibeles/" local="133197295937911456" remote="133197295930000000" Dst="1" />
+<file name="js_comprasTercerosContabilidad.js" server="//172.26.0.17/gestionGrupocibeles/" local="133080585948297211" remote="133080585940000000" Dst="2" />
+<file name="js_comprasTerceros.js" server="//172.26.0.17/gestionGrupocibeles/" local="133082331529969167" remote="133082331520000000" Dst="2" />
+<file name="js_proveedores.js" server="//172.26.0.17/gestionGrupocibeles/" local="133107370163371754" remote="133107370160000000" Dst="2" />
+<file name="js_facturasEspecialesAfacturas.js" server="//172.26.0.17/gestionGrupocibeles/" local="132854185093849033" remote="132854185090000000" Dst="1" />
+<file name="js_Index.js" server="//172.26.0.17/gestionGrupocibeles/" local="132854093118737970" remote="132854093110000000" Dst="1" />
+<file name="js_importarExcelIndra.js" server="//172.26.0.17/gestionGrupocibeles/" local="133246513654237443" remote="133246513650000000" Dst="2" />
+<file name="js_almacenProducto.js" server="//172.26.0.17/gestionGrupocibeles/" local="133299230018696905" remote="133299230010000000" Dst="2" />
+<file name="js_principal.js" server="//172.26.0.17/gestionGrupocibeles/" local="133319979251538442" remote="133319979250000000" Dst="2" />
+<file name="js_almacenPreEntrada.js" server="//172.26.0.17/gestionGrupocibeles/" local="133322496907768477" remote="133322496900000000" Dst="2" />
+<file name="js_clientesDatosEnvioFacturas.js" server="//172.26.0.17/gestionGrupocibeles/" local="133335552599714002" remote="133335552590000000" Dst="2" />
+</dwsync>

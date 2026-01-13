@@ -1,0 +1,1 @@
+sqlcmd -S sqlCibeles3 -iC:\xampp\htdocs\gestionGrupocibelesPreproduccion\consultas\importarFacturas2018Correos.sql
