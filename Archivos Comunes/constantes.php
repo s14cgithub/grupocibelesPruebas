@@ -12,7 +12,7 @@ $anchoWeb=100;
 
 define('versionCibeles',"2.02");
 
-define('fechaCambioVerifactu',"2025-11-27");
+define('fechaCambioVerifactu',"2025-09-27");
 define('urlCodigoQrVerifactu',"https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?");
 
 

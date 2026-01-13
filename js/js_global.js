@@ -23,7 +23,7 @@ var arrayCombinaciones = [];
 var numColumnas =0;
 var listadoTipos = [];
 var camposAmostrar1="";
-var fechaCambioVerifactu = "2025-11-27";
+var fechaCambioVerifactu = "2025-09-27";
 
 function cargarComerciales()				
 {
