@@ -15,77 +15,67 @@ if(isset($_POST["accion"])&$_POST["accion"]=="copiarPresupuesto")
 	
 	
 	$secuencialInicio = substr($primerPresupuesto,4); //001
-	$secuencialFinal = substr($ultimoPresupuesto,4); //070
-	
-	
+	$secuencialFinal = substr($ultimoPresupuesto,4); //070	
 	
 	$numeroInicioViejo = intval($primerPresupuesto);//2202001
 	$numeroFinalViejo = intval($ultimoPresupuesto); //2202070
 	
 	$numeroInicioNuevo = intval($ano.$mes.$secuencialInicio); //2203001
-	$numeroFinalNuevo = intval($ano.$mes.$secuencialFinal);   //2203070
-	
+	$numeroFinalNuevo = intval($ano.$mes.$secuencialFinal);   //2203070	
 	
 	$contadorNuevo=$numeroInicioNuevo; //2203001
 	
-	$Errores="Los siguientes presupuestos ya existen";
-	
-	/*while ($contadorNuevo<=$numeroFinalNuevo)//se comprueba que los presupuestos nuevos no existen
-	{
-		$resultado = verPresupuesto($conexion,$contadorNuevo);
-		//echo ("\n".$contadorNuevo);
-		if (count($resultado)>0)
-		{
-			$Errores = $Errores."\n".$contadorNuevo;
-			
-		}
-		$contadorNuevo++;
-	}
-	
-	if ($Errores!="Error: los siguientes presupuestos ya existen")
-	{
-		echo $Errores;
-	}
-	else*/
-	{
+	$errores="";
+
 		 
-		$anioFecha = "20".$ano;	//2022
-		$fechaInicio= "01-".$mes."-".$anioFecha;					
-		$fechaFin =  date("t-m-Y", strtotime($fechaInicio));
-		
-		$fechaAceptacion = $fechaInicio;					
-		$fechaCompromiso = $fechaFin;
-		
-		//LOG
-		$usuario = $_SESSION['usuario'];
-		$descripcion = log_creacion;
-		$tabla = presupuesto_tabla;
-		$datosAntiguos = '';
-		$columna = presupuesto_Presupuesto;
-		$idRegistro = 0;
-		
-		
-		$contadorNuevo=$numeroInicioNuevo;	
-		$contadorViejo = $numeroInicioViejo;
+	$anioFecha = "20".$ano;	//2022
+	$fechaInicio= "01-".$mes."-".$anioFecha;					
+	$fechaFin =  date("t-m-Y", strtotime($fechaInicio));
+	
+	$fechaAceptacion = $fechaInicio;					
+	$fechaCompromiso = $fechaFin;
+
+
+
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = [
+		'presupuesto'
+	];
+	$joins = array();	
+	$filtrosOperadores = array();
+	$order = array();
+	
+	$resultado = array();
+	$resultado2 = array();
+	
+	$contadorNuevo=$numeroInicioNuevo;	
+	$contadorViejo = $numeroInicioViejo;
+
+	if($secuencialInicio<=100 && $secuencialFinal<=100)
+	{
 		while ($contadorNuevo<=$numeroFinalNuevo)
 		{
+			$filtros = [
+			'presupuesto' => $contadorNuevo				
+			];
+			$res = cargarPresupuestos($conn,$bbddSql, $campos, $joins, $filtros,$filtrosOperadores, $order);		
 			
-			$resultado2 = verPresupuesto($conexion,$contadorNuevo);
-			//echo ("\n".$contadorNuevo);
-			if (count($resultado2)>0)
+			//$resultado['prueba1'] = count($res['datos']);
+			//echo json_encode($res['datos']);
+			
+			if (count($res['datos'])>0)
 			{
-				
-					$Errores = $Errores."\n".$contadorNuevo;
+					$errores = $errores."\n".$contadorNuevo;
 			}
 			else
-			{
-				echo copiarPresupuestoMensual($conexion, $contadorViejo, $contadorNuevo, $fechaInicio, $fechaAceptacion, $fechaFin, $fechaCompromiso);	
-				copiarDetallePresupuesto($conexion,$contadorViejo,$contadorNuevo);
-
-
-				
-
-				
+			{	
+				$resultado =  insertarPresupuestoMensualCopia($conn,$bbddSql, strval($contadorViejo), strval($contadorNuevo), $fechaInicio, $fechaAceptacion, $fechaFin, $fechaCompromiso);	
+				$resultado2 = insertarDetallePresupuesto_Select($conn,$bbddSql, strval($contadorViejo), strval($contadorNuevo));
 			}
 			
 			$contadorNuevo++;
@@ -96,42 +86,40 @@ if(isset($_POST["accion"])&$_POST["accion"]=="copiarPresupuesto")
 			$datosNuevos = $contadorNuevo;		
 			$presupuesto = $contadorNuevo;
 			
-			
-			//echo insertarRegistro ($conexion, $usuario, $descripcion,$datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);
-			
+			$datos = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_creacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => '',
+			'datosNuevos' => $datosNuevos,
+			'columna' => presupuesto_Presupuesto,
+			'idRegistro' => 0 
+		);
+
+			insertarRegistro($conn,$bbddSql, $datos);
 			
 			
 		}
-		if ($Errores!="Los siguientes presupuestos ya existen")
+		if ($errores!='')
 		{
-			echo $Errores;
-		}
-
-		
+			$errores = "Los siguientes presupuesto ya existen.\n".$errores;
+			$resultado['error'] = $errores;
+			$resultado['ok'] = false;
+		}		
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	else
+	{
+		$resultado['error'] = "el presupuesto no puede ser mayor de 100";
+		$resultado['ok'] = false;		
+	}
 
-	
-	
-		
-		
+	sqlsrv_close($conn);
+
+	echo json_encode(array(
+    'resultado' => $resultado,
+    'resultado2' => $resultado2
+));
 	
 }
-
 
 ?>

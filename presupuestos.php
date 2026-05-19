@@ -1,4 +1,4 @@
-<?php 
+<?php  //NUEVA VERSION
 
 session_start(); 
 $_SESSION['titulo']="PRESUPUESTOS";

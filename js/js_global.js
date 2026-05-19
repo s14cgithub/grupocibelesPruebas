@@ -23,7 +23,40 @@ var arrayCombinaciones = [];
 var numColumnas =0;
 var listadoTipos = [];
 var camposAmostrar1="";
-var fechaCambioVerifactu = "2025-09-27";
+var fechaCambioVerifactu = "2025-11-27";
+
+
+setInterval(function () {
+
+    var xhr = new XMLHttpRequest();
+
+    xhr.open("POST", "ajax/comprobarSesion.php", true);
+
+    xhr.onreadystatechange = function () {
+
+        if (xhr.readyState == 4 && xhr.status == 200) {
+
+            try {
+
+                var res = JSON.parse(xhr.responseText);
+
+                if (!res.activa) {
+
+                    alert("La sesión ha caducado.");
+
+                    window.location.href = "index.php";
+                }
+
+            } catch (e) {
+
+                window.location.href = "index.php";
+            }
+        }
+    };
+
+    xhr.send();
+
+}, 300000);
 
 function cargarComerciales()				
 {
@@ -717,15 +750,129 @@ function mostrarCargarListadoPresupuesto()
 		}
 	}						
 }
+/////////////////////////////
+function cargarSubprocesos(nombreCampo,tipo=0)//js_presupeustosAlta
+{
 
-function cargarSubprocesosGuardados()//js_presupuestosAlta				
+	if (nombreCampo!="")
+	{
+		idInputListado = nombreCampo;
+	}
+	//alert("entra");
+	peticionUnica1=crearComunicacion(peticionUnica1);
+							
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarSubProcesos;
+		peticionUnica1.open("POST","ajax/cargarSubProcesos.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarSubProcesos(tipo);
+		peticionUnica1.send(query_string);						
+	}
+}
+
+function consultaCargarSubProcesos(tipo)
+{	
+	var consulta = "accion=cargarSubProcesos";	
+
+	var campos = [
+		'id',
+		'proceso',
+		'descripcion'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	var filtros;
+	if (tipo==1)
+	{
+		filtros = {
+    	idTipoProceso: valorTipo,
+		idDepartamento: valorDepartamento
+		};
+	}
+	else
+	{
+		filtros = {
+    	idTipoProceso: document.getElementById("tipoProceso").value,
+		idDepartamento: document.getElementById("departamentoProceso").value
+		};
+	}
+	
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+
+	var order = [
+    	{ campo: 'proceso', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	return consulta;	
+}
+
+function mostrarCargarSubProcesos()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{				
+				var datos = res.datos;				
+				
+				if (datos != "")
+				{					
+					if (datos.length<=0)
+					{
+						//alert("No hay ningun registro");
+						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
+					}
+					else
+					{							
+						var contenido = "";
+						var contador = 0;
+
+						while  (contador<datos.length)
+						{
+								
+							if (datos[contador]["descripcion"]==null || datos[contador]["descripcion"]=="" || datos[contador]["descripcion"]== "null")
+							{
+								contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+'</option>';
+							}
+							else
+							{
+								contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+ " --- " + datos[contador]["descripcion"]+'</option>';	
+							}
+
+							contador++;
+						}
+							
+						document.getElementById(idInputListado).innerHTML = contenido;						
+					}
+				}
+				else
+				{
+					document.getElementById(idInputListado).innerHTML = "";
+				}
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
+/* --:: USAR LA FUNCION cargarSubprocesos()
+function cargarSubprocesosGuardados()
 {
 	peticionUnica0=crearComunicacion(peticionUnica0);
 							
 	if(peticionUnica0)
 	{							
 		peticionUnica0.onreadystatechange = mostrarCargarSubprocesosGuardados;
-		peticionUnica0.open("POST","ajax/mostrarSubProcesos.php",false);
+		peticionUnica0.open("POST","ajax/cargarSubProcesos.php",false);
 		peticionUnica0.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarSubprocesosGuardados();
 		peticionUnica0.send(query_string);						
@@ -805,7 +952,7 @@ function mostrarCargarSubprocesosGuardados()
 		}
 	}						
 }
-
+*/
 function cargarListadoNombreFranqueo(condicion='')	//js_global		
 {
 	peticionUnica0=crearComunicacion(peticionUnica0);
@@ -1147,7 +1294,36 @@ function cargarTipoProvisionFondo(idInput,condicion)//js_presupuestosAlta //js_p
 function consultaCargarTipoProvisionFondo(condicion)
 {	
 	var consulta = "accion=cargarTipoProvisionesFondos";
-	consulta += "&condicion=" + condicion;
+	
+
+	var campos = [
+		'id',
+		'tipo'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	if (condicion=="limitacionA")
+	{
+		var filtrosOperadores = [
+			{
+				campo1: 'id',
+				operador: '!=',
+				valor: 4
+			}
+		];
+
+		consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+	}
+
+	var order = [
+    	{ campo: 'id', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+
+
 	return consulta;	
 }
 
@@ -2853,39 +3029,44 @@ function mostrarCargarTamanios()
 	{
 		if(peticionUnica0.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica0.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
+				var datos = res.datos;				
 				
-				try 
-				{
-					datos = JSON.parse(peticionUnica0.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
-				
-				var contenido = "";
-				
-				var contador = 0;				
-				while  (contador<datos.length)
-				{  
-					contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["tamano"]+'</option>';
-					
-					contador++;	
-				}
-				
-				document.getElementById(idInputListado).innerHTML = contenido;
-				idInputListado="";
+				if (datos != "")
+				{					
+					if (datos.length<=0)
+					{
+						//alert("No hay ningun registro");
+						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
+					}
+					else
+					{				
+						var contenido = "";
+						var contador = 0;
+						while  (contador<datos.length)
+						{  
+							contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["tamano"]+'</option>';
+							
+							contador++;	
+						}
 						
+						document.getElementById(idInputListado).innerHTML = contenido;						
+					}
+				}
+				else
+				{
+					document.getElementById(idInputListado).innerHTML = "";
+				}
+				idInputListado="";						
 			}
-			peticionUnica0=null;			
+			peticionUnica0=null;
 		}
 	}						
 }
@@ -2917,35 +3098,43 @@ function mostrarCargarTipos()
 	{
 		if(peticionUnica0.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica0.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
+				var datos = res.datos;				
 				
-				try 
+				if (datos != "")
+				{					
+					if (datos.length<=0)
+					{
+						//alert("No hay ningun registro");
+						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
+					}
+					else
+					{	
+				
+						var contenido = "";
+						
+						var contador = 0;			
+						while  (contador<datos.length)
+						{  
+							contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["tipo"]+'</option>';
+							
+							contador++;	
+						}
+						
+						document.getElementById(idInputListado).innerHTML = contenido;
+					}
+				}
+				else
 				{
-					datos = JSON.parse(peticionUnica0.responseText);
+					document.getElementById(idInputListado).innerHTML = "";
 				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
-				
-				var contenido = "";
-				
-				var contador = 0;				
-				while  (contador<datos.length)
-				{  
-					contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["tipo"]+'</option>';
-					
-					contador++;	
-				}
-				
-				document.getElementById(idInputListado).innerHTML = contenido;
 				idInputListado="";
 						
 			}
@@ -2984,39 +3173,47 @@ function mostrarCargarAcabado()
 	{
 		if(peticionUnica0.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica0.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
+				var datos = res.datos;				
 				
-				try 
+				if (datos != "")
+				{					
+					if (datos.length<=0)
+					{
+						//alert("No hay ningun registro");
+						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
+					}
+					else
+					{	
+				
+						var contenido = "";
+						
+						var contador = 0;	
+						while  (contador<datos.length)
+						{  
+							contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["acabado"]+'</option>';
+							
+							contador++;	
+						}
+						
+						document.getElementById(idInputListado).innerHTML = contenido;
+					}
+				}
+				else
 				{
-					datos = JSON.parse(peticionUnica0.responseText);
+					document.getElementById(idInputListado).innerHTML = "";
 				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
-				
-				var contenido = "";
-				
-				var contador = 0;				
-				while  (contador<datos.length)
-				{  
-					contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["acabado"]+'</option>';
-					
-					contador++;	
-				}
-				
-				document.getElementById(idInputListado).innerHTML = contenido;
 				idInputListado="";
 						
 			}
-			peticionUnica0=null;			
+			peticionUnica0=null;						
 		}
 	}						
 }
@@ -3049,39 +3246,48 @@ function mostrarCargarGramaje()
 	{
 		if(peticionUnica0.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica0.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
+				var datos = res.datos;				
 				
-				try 
+				if (datos != "")
+				{					
+					if (datos.length<=0)
+					{
+						//alert("No hay ningun registro");
+						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
+					}
+					else
+					{	
+				
+						var contenido = "";
+						
+						var contador = 0;					
+						while  (contador<datos.length)
+						{  
+							contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["gramaje"]+'</option>';
+							
+							contador++;	
+						}
+				
+						document.getElementById(idInputListado).innerHTML = contenido;
+				
+					}
+				}
+				else
 				{
-					datos = JSON.parse(peticionUnica0.responseText);
+					document.getElementById(idInputListado).innerHTML = "";
 				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
-				
-				var contenido = "";
-				
-				var contador = 0;				
-				while  (contador<datos.length)
-				{  
-					contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["gramaje"]+'</option>';
-					
-					contador++;	
-				}
-				
-				document.getElementById(idInputListado).innerHTML = contenido;
 				idInputListado="";
 						
 			}
-			peticionUnica0=null;			
+			peticionUnica0=null;
 		}
 	}						
 }
@@ -3115,39 +3321,45 @@ function mostrarTipoImpresoras()
 	{
 		if(peticionUnica0.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica0.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
+				var datos = res.datos;				
 				
-				try 
-				{
-					datos = JSON.parse(peticionUnica0.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
-				
-				var contenido = "";
-				contenido += '<option value="0">_ninguno</option>';
-				var contador = 0;				
-				while  (contador<datos.length)
-				{  
-					contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["tipoImpresora"]+'</option>';
-					
-					contador++;	
-				}
-				
-				document.getElementById(idInputListado).innerHTML = contenido;
-				idInputListado="";
+				if (datos != "")
+				{					
+					if (datos.length<=0)
+					{
+						//alert("No hay ningun registro");
+						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
+					}
+					else
+					{				
+						var contenido = "";
+						contenido += '<option value="0">_ninguno</option>';
+						var contador = 0;				
+						while  (contador<datos.length)
+						{  
+							contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["tipoImpresora"]+'</option>';
+							
+							contador++;	
+						}
 						
+						document.getElementById(idInputListado).innerHTML = contenido;
+					}	
+				}			
+				else
+				{
+					document.getElementById(idInputListado).innerHTML = "";
+				}
+				idInputListado="";						
 			}
-			peticionUnica0=null;			
+			peticionUnica0=null;
 		}
 	}						
 }

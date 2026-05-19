@@ -9,32 +9,69 @@ if(isset($_POST["accion"])&$_POST["accion"]=="eliminarDetalle")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	$idDetalle = $_POST["idDetalle"];
-	$numPresupuesto = $_POST["numPresupuesto"];
 	
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
 	
-	$resultado = cargarUnDetallePresupuesto($conexion,$idDetalle);
+	$numPresupuesto=isset($_POST["numPresupuesto"])?$_POST["numPresupuesto"]:0;
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
 	
+
+
+	////////////////////////////////////
+	//LOG
+	$campos = [
+		'id',
+		'presupuesto',
+		'unidades',
+		'precio',
+		'descripcion',
+		'notaCibeles',
+		'orden',
+		'idConcepto',
+		'idTipo'
+	];
+
+	$joins2 = array();
+
+	$idDetalle2 = $filtros['id'];
+
+	$filtros2 = [
+		'id' => $idDetalle2
+	];
+
+	$filtrosOperadores2 = array();
+	$order2 = array();
+
+	$datosDetalles = cargarDetallesPresupuesto($conn, $bbddSql, $campos, $joins2, $filtros2, $filtrosOperadores2, $order2);
+
+	//echo json_encode($datosDetalles);
 	
-	$descripcion1 = "eliminacion";
-	$tabla = presupuestoDetalle_tabla;	
-	$idRegistro = $idDetalle;
-	$usuario = $_SESSION['usuario'];
-	$datosNuevos = "";
+	$datos2 = array(
+		'usuario' => $_SESSION['usuario'],
+		'descripcion' => log_eliminacion,
+		'tabla' => presupuestoDetalle_tabla,
+		'datosAntiguos' => "id: ".$datosDetalles['datos'][0][presupuestoDetalle_Id]."||Presupuesto: ".$datosDetalles['datos'][0][presupuestoDetalle_Presupuesto]."||Unidades: ".$datosDetalles['datos'][0][presupuestoDetalle_Unidad]."||Precio: ".$datosDetalles['datos'][0][presupuestoDetalle_Precio]."||Descripcion: ".$datosDetalles['datos'][0][presupuestoDetalle_ColumnaDescripcion]."||NotaCibeles: ".$datosDetalles['datos'][0][presupuestoDetalle_NotaCibeles]."||Orden: ".$datosDetalles['datos'][0][presupuestoDetalle_Orden]."||idConcepto: ".$datosDetalles['datos'][0][presupuestoDetalle_ColumnaConcepto]."||idTipo: ".$datosDetalles['datos'][0][presupuestoDetalle_idTipo],
+		'datosNuevos' => "",
+		'columna' => "todas",
+		'idRegistro' => $idDetalle2,
+		'presupuesto' => $numPresupuesto
+	);
+
+	insertarRegistro($conn,$bbddSql, $datos2);
+
+
+
+	$eliminarDetallePresupuesto = eliminarDetallePresupuesto($conn,$bbddSql, $filtros, $filtrosOperadores);
+	//echo $cargarClientes['sql'];
+	sqlsrv_close($conn);		
 	
-	$columna = "todas";
-	
-	$datosAntiguos = "id: ".$resultado[0][presupuestoDetalle_Id]."||Presupuesto: ".$resultado[0][presupuestoDetalle_Presupuesto]."||Unidades: ".$resultado[0][presupuestoDetalle_Unidad]."||Precio: ".$resultado[0][presupuestoDetalle_Precio]."||Descripcion: ".$resultado[0][presupuestoDetalle_ColumnaDescripcion]."||NotaCibeles: ".$resultado[0][presupuestoDetalle_NotaCibeles]."||Orden: ".$resultado[0][presupuestoDetalle_Orden]."||idConcepto: ".$resultado[0][presupuestoDetalle_ColumnaConcepto]."||idTipo: ".$resultado[0][presupuestoDetalle_idTipo];
-					
+	echo json_encode($eliminarDetallePresupuesto);	
 		
-	insertarRegistro ($conexion, $usuario, $descripcion1, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro, $numPresupuesto);	
-	
-	
-	
-	
-	echo eliminarDetallePresupuesto($conexion,$idDetalle);
-	
-	
 }
 
 ?>

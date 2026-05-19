@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="anularProvisionComercial")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarProvisionFondo")
 {
 	
 	session_start(); 
@@ -22,7 +22,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="anularProvisionComercial")
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];	
 
-	$res =  modificarProvisionFondo($conn_sis, $bbddSql, $datos, $filtros, $filtrosOperadores);
+	$res =  modificarProvisionFondo($conn,$bbddSql, $datos, $filtros, $filtrosOperadores);
 	
 	sqlsrv_close($conn);
 	

@@ -41,7 +41,31 @@ if ($_SESSION["usuario"]<>"")
 	echo '<table align="center" border="0"  class="sinBorde">';
 	
 	//$comerciales = cargarComerciales($conexion);
-	$comerciales = cargarPresupuestadores($conexion);
+	//$comerciales = cargarPresupuestadores($conexion);
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = [
+		'id',
+		'nombre',
+		'telefono',
+		'inicial'
+	];
+
+	$filtros = [
+			//'cliente' => 'EMPRESA SL'
+		];
+
+	$order = [
+			//['campo' => 'fecha', 'dir' => 'DESC'],
+			['campo' => 'nombre', 'dir' => 'ASC']
+		];
+	
+	$comerciales = cargarPresupuestadores($conn,$bbddSql, $campos, $filtros, $order);
+	
+	sqlsrv_close($conn);
 	
 	$numero = count($comerciales);
 	
@@ -66,9 +90,9 @@ if ($_SESSION["usuario"]<>"")
 	if ($_SESSION["permiso_presupuestoMensual"]==1 || $_SESSION["permiso_presupuestoMensual"]==2)
 	{
 		echo '<tr>';
-		echo '<td align="left">Mensual:</td><td><input type="checkbox" id="presu_mensual" name="presu_mensual" value="" onchange="visualizarCamposPresuMensual()"></input></td>';
+		echo '<td align="left">Mensual:</td><td colspan="2"><input type="checkbox" id="presu_mensual" name="presu_mensual" value="" onchange="visualizarCamposPresuMensual()"></input></td>';
 		//echo '<tbody id="inputMensuales"  style="visibility: hidden;display: none;">';
-		echo '<td id="labelNumPresuMensual"  style="visibility: hidden;display: none;">Nº Presupuesto</td><td id="tdNumPresuMensual" style="visibility: hidden;display: none;" colspan="3"><input type="text" id="numPresuMensual"></input><img src="imagenes/facepalm1.gif" loop=infinite style="width:25px !important; visibility: hidden;display: none;" id="imagen_numPresuMensual" /></td>';
+		echo '<td id="tdNumPresuMensual" style="visibility: hidden;display: none;" colspan="3">Nº Presu.<input type="text" id="numPresuMensual"></input><img src="imagenes/facepalm1.gif" loop=infinite style="width:25px !important; visibility: hidden;display: none;" id="imagen_numPresuMensual" /></td>';
 		echo '</tr>';
 	}
 	else
@@ -76,7 +100,8 @@ if ($_SESSION["usuario"]<>"")
 		echo '<tr style="visibility:hidden;display:none">';
 		echo '<td align="left">Mensual:</td><td><input type="checkbox" id="presu_mensual" name="presu_mensual" value="" onchange="visualizarCamposPresuMensual()"></input></td>';
 		//echo '<tbody id="inputMensuales"  style="visibility: hidden;display: none;">';
-		echo '<td id="labelNumPresuMensual"  style="visibility: hidden;display: none;">Nº Presupuesto</td><td id="tdNumPresuMensual" style="visibility: hidden;display: none;" colspan="3"><input type="text" id="numPresuMensual"></input><img src="imagenes/facepalm1.gif" loop=infinite style="width:25px !important; visibility: hidden;display: none;" id="imagen_numPresuMensual" /></td>';
+		//echo '<td></td>';
+		echo '<td id="tdNumPresuMensual" style="visibility: hidden;display: none;" colspan="3"><input type="text" id="numPresuMensual"></input><img src="imagenes/facepalm1.gif" loop=infinite style="width:25px !important; visibility: hidden;display: none;" id="imagen_numPresuMensual" /></td>';
 		echo '</tr>';
 	}
 	//echo '</tbody>';
@@ -101,44 +126,104 @@ if ($_SESSION["usuario"]<>"")
 	
 	echo '</td>';
 	//echo '<td colspan="2" style="text-align:center">Detallada:&nbsp&nbsp<input type="checkbox" id="detallada" name="detallada" value="detallada"></input></td>';
-	echo '<td style="text-align:right" >Fecha:</td><td colspan="2" style="text-align:right" ><input type="date" id="fechaCreacion" style="width:100%;" readonly></input></td>';
+	echo '<td colspan="3" style="text-align:right" >Fecha:<input type="date" id="fechaCreacion" style="" readonly></input></td>';
 	//echo '<td ROWSPAN="8" align="center" style="border: 1px solid grey;"><input type="image" id="modificarDetalle" value="" src="imagenes/modificar.png" style="width:15px;" onclick="modificarPresupuesto()" ></td></tr>';
 	
 	
 	//echo '</tr>';
 	echo '<tr>';
 	echo '<td>Clayma:</td>';
-	echo '<td  align="left" colspan="4"><input type="checkbox" id="clienteOrigen" name="clienteOrigen" value="" onchange="gestionDeCargarClientes()" style=""></input></td>';	
+	
+	echo '<td  align="left" colspan="2"><input type="checkbox" id="clienteOrigen" name="clienteOrigen" value="" onchange="gestionDeCargarClientes()" style=""></input></td>';	
 
+	echo '<td><label id="codigoCliente" name="codigoCliente"></label><label style="visibility:hidden" id="codigoSaldoCliente" name="codigoSaldoCliente"></label></td>';
 	
 	echo '<td  align="right">Trabajo Iniciado:  <input type="checkbox" id="trabajoIniciado" name="trabajoIniciado" value="" style=""></input></td>';
 
 	echo '</tr>';
-	$clientes = cargarClientes($conexion," where activo = 1 and codigo_saldo = codigo ");
-	$clientesClayma = cargarClientesClayma($conexion," where activo = 1");
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = ['subcliente','codigo','codigo_saldo'];
+
+	$filtros = [
+			'activo' => 1			
+		];
 	
+	$filtrosOperadores = array(
+    array(
+        'campo1' => 'codigo_saldo',
+        'operador' => '=',
+        'campo2' => 'codigo'
+    	)
+	);
+
+	$order = [
+			['campo' => 'nombre_empresa', 'dir' => 'ASC'],
+			['campo' => 'subcliente', 'dir' => 'ASC']
+		];
 	
-	$numero2 = count($clientes);
+	$clientes = cargarClientes($conn,$bbddSql, $campos, $filtros,$filtrosOperadores, $order);
+	sqlsrv_close($conn);
+
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = ['subcliente','codigo','codigo_saldo'];
+
+	$filtros = ['activo' => 1];
+	
+	$filtrosOperadores = array();
+
+	$order = [
+			['campo' => 'nombre_empresa', 'dir' => 'ASC'],
+			['campo' => 'subcliente', 'dir' => 'ASC']
+		];
+	
+	$clientesClayma = cargarClientesClayma($conn,$bbddSql, $campos, $filtros,$filtrosOperadores, $order);
+	sqlsrv_close($conn);
+
+	
+	$debug = false;
+
+	if ($debug) {
+    echo '<pre>';
+    print_r($clientes['sql']);
+    print_r($clientes['params']);
+	print_r($clientesClayma['sql']);
+    print_r($clientesClayma['params']);
+    echo '</pre>';
+
+	}
+
+
+	
+	$numero2 = count($clientes['datos']);
 	$listadoClientes = '';
-	
-	
-	
-	
 	
 	
 	
 	
 	echo '<tr>';
 	
-	echo '<td>Clientes:</td><td colspan="6"><input id="clientes" name="clientes" value="" onBlur="cargarDatosPresupuesto()" style="width:100%"></input></td>';
-	
+	echo '<td>Clientes:</td><td colspan="5"><input id="clientes" name="clientes" value="" onBlur="cargarDatosPresupuesto()" style="width:100%"></td>';
+	//echo '<td><input type="hidden" id="codigoCliente" name="codigoCliente"></td>';
+
 	for ($i = 0; $i < $numero2; $i++)
 	{
-		$nombreCliente = $clientes[$i]["subcliente"];			
+		$nombreCliente = $clientes['datos'][$i]["subcliente"];	
+		$codigo = 	$clientes['datos'][$i]["codigo"];	
+		$codigoSaldo = 	$clientes['datos'][$i]["codigo_saldo"];		
 		
 		$nombreCliente = str_replace('"', "'",$nombreCliente);
 		
-		$listadoClientes .= '{"label":"'.$nombreCliente.'", "value":"'.$nombreCliente.'" },';
+		//$listadoClientes .= '{"label":"'.$nombreCliente.'", "value":"'.$nombreCliente.'" },';
+		$listadoClientes .= '{"label":"'.$nombreCliente.'", "value":"'.$nombreCliente.'", "codigo":"'.$codigo.'", "codigoSaldo":"'.$codigoSaldo.'" },';
 		
 	}
 	$listadoClientes = substr($listadoClientes,0, strlen($listadoClientes)-1);	
@@ -147,15 +232,17 @@ if ($_SESSION["usuario"]<>"")
 	
 	
 	$listadoClientesClayma = '';
-	$numero2 = count($clientesClayma);
+	$numero2 = count($clientesClayma['datos']);
 	
 	for ($i = 0; $i < $numero2; $i++)
 	{
-		$nombreClienteClayma = $clientesClayma[$i]["subcliente"];			
-		
+		$nombreClienteClayma = $clientesClayma['datos'][$i]["subcliente"];		
+		$codigoClayma = $clientesClayma['datos'][$i]["codigo"];
+		$codigoSaldoClayma = $clientesClayma['datos'][$i]["codigo_saldo"];	
+
 		$nombreClienteClayma = str_replace('"', "'",$nombreClienteClayma);
 		
-		$listadoClientesClayma .= '{"label":"'.$nombreClienteClayma.'", "value":"'.$nombreClienteClayma.'" },';
+		$listadoClientesClayma .= '{"label":"'.$nombreClienteClayma.'", "value":"'.$nombreClienteClayma.'" , "codigo":"'.$codigoClayma.'", "codigoSaldo":"'.$codigoSaldoClayma.'" },';
 		
 	}
 	
@@ -168,14 +255,14 @@ if ($_SESSION["usuario"]<>"")
 	
 	echo '<tr>
 	<td>Cantidad:</td><td><input type="number" id="cantidadPresu"></input></td>
-	<td>Pedido Cliente:</td><td colspan="4"><input type="text" id="pedidoClientePresu" style="width:100%"></input></td>
+	<td style="text-align:right">Pedido Cliente:</td><td colspan="4"><input type="text" id="pedidoClientePresu" style="width:100%"></input></td>
 	
 	</tr>';
 	echo '<tr><td>Dirección:</td><td colspan="6"><input type="text" id="direccionPresu" style="width:100%"></input></td></tr>';
 	
 	echo '<tr>';
 	echo '<td>CP:</td><td><input type="text" id="cpPresu"></input></td>
-	<td>Población:</td><td colspan="4"><input type="text" id="poblacionPresu"  style="width:100%"></input></td>
+	<td style="text-align:right">Población:</td><td colspan="4"><input type="text" id="poblacionPresu"  style="width:100%"></input></td>
 	
 	</tr>';
 	
@@ -276,12 +363,32 @@ if ($_SESSION["usuario"]<>"")
 	
 	echo '<tbody id="anadirDetallesPresupuesto" style="visibility: hidden;display: none;">';
 	
-	$tiposProceso = cargarTipoDeProceso($conexion);
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = [
+		'id',
+		'tipoProceso'
+	];
+
+	$filtros = [						
+		];
+
+	$order = [
+			['campo' => 'tipoProceso', 'dir' => 'ASC']			
+		];
+	
+	$tiposProceso = cargarTipoDeProceso($conn,$bbddSql, $campos, $filtros, $order);
+	sqlsrv_close($conn);
+	
+	//$tiposProceso = cargarTipoDeProceso($conexion);
 	
 	$numero = count($tiposProceso);
 	
 	
-	echo '<tr><td><Tipo de Proceso:</td><td colspan="2"> <select name="tipoProceso" id="tipoProceso" onChange="cargarSubprocesos();">';
+	echo '<tr><td><Tipo de Proceso:</td><td colspan="2"> <select name="tipoProceso" id="tipoProceso" onChange="cargarSubprocesos(\'proceso\');">';
 	
 	for ($i = 0; $i < $numero; $i++)
 	{		
@@ -291,7 +398,7 @@ if ($_SESSION["usuario"]<>"")
 	echo '</select></td>
 	<td align="right">Departamento:</td>
 	<td colspan="1"> 
-	<select name="departamentoProceso" id="departamentoProceso" onChange="cargarSubprocesos();">';	
+	<select name="departamentoProceso" id="departamentoProceso" onChange="cargarSubprocesos(\'proceso\');">';	
 	echo '</select></td><td align="right">Exento de IVA:</td><td><input type="checkbox" id="exentoIVA"></input></td></tr>';
 	
 	echo '</select></td></tr>';
@@ -454,8 +561,8 @@ else
 						<label for="recipient-name" class="col-form-label"><h5>Valores de los nuevos Presupuestos</h5></label><br>
 						<label for="recipient-name" class="col-form-label">Año:</label>
 						<select id="anioCopiaModal" class="form-control">
-							<option value="26">2026</option>
-							<option value="25" selected>2025</option>	
+							<option value="26" selected>2026</option>
+							<option value="25">2025</option>	
 							<option value="24">2024</option>
 							<option value="23">2023</option>
 							<option value="22">2022</option>
@@ -742,9 +849,8 @@ else
 
 
 <form id="formPrevisualizar" name="formPrevisualizar" method="post"  target="_blank" action="previsualizarPresupuesto.php">
-	<input type="hidden" id="previsualizarNumPresupuesto" name="previsualizarNumPresupuesto" value=""></input>
-	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="previsualizarPresu"></input>
-	
+	<input type="hidden" id="previsualizarNumPresupuesto" name="previsualizarNumPresupuesto" value="">
+	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="previsualizarPresu">
 </form>
 
 <form id="formImprimirPresMensuales" name="formImprimirPresMensuales" method="post"  target="_blank" action="imprimirPresupuesto.php">
@@ -868,7 +974,18 @@ echo ("</html>");
 			clientesAutocompletar = [<?php echo $listadoClientesClayma; ?>];
 			$('#clientes').autocomplete({ 
 				 source: clientesAutocompletar,
-				 change: function (event, ui) {  } });
+				 select: function (event, ui) {
+					// Guardar el código en el input hidden
+					$('#codigoCliente').text(ui.item.codigo);
+					$('#codigoSaldoCliente').text(ui.item.codigoSaldo);
+				},
+				 change: function (event, ui) { 
+					if (!ui.item) {
+					$('#codigoCliente').text('0');
+					$('#codigoSaldoCliente').text('0');
+				}
+
+				  } });
 			
 			if (auxMTF=="3")
 			{
@@ -889,16 +1006,42 @@ echo ("</html>");
 			clientesAutocompletar = [<?php echo $listadoClientes; ?>];
 			$('#clientes').autocomplete({ 
 				 source: clientesAutocompletar,
-				 change: function (event, ui) {  } });
+				 select: function (event, ui) {
+					// Guardar el código en el input hidden
+					$('#codigoCliente').text(ui.item.codigo);
+					$('#codigoSaldoCliente').text(ui.item.codigoSaldo);
+				},
+				 change: function (event, ui) { 
+					if (!ui.item) {
+					$('#codigoCliente').text('0');
+					$('#codigoSaldoCliente').text('0');
+				}
+
+				  } });
 		}
 		
 		
 		document.getElementById("clientes").value = "";
+		document.getElementById("codigoCliente").innerHTML = "0";
+		document.getElementById("codigoSaldoCliente").innerHTML = "0";
 
 		
 		
 		
 		
+	}
+
+	function ponerCodigoClientePorNombre(nombreCliente) {
+		$('#codigoCliente').text('0');
+		$('#codigoSaldoCliente').text('0');
+
+		for (var i = 0; i < clientesAutocompletar.length; i++) {
+			if (clientesAutocompletar[i].value === nombreCliente) {
+				$('#codigoCliente').text(clientesAutocompletar[i].codigo || '');
+				$('#codigoSaldoCliente').text(clientesAutocompletar[i].codigo || '');
+				break;
+			}
+		}
 	}
 	
 	////////////////////////
@@ -908,26 +1051,26 @@ echo ("</html>");
 			 source: clientesAutocompletar,
 			 change: function (event, ui) {  } });	*/
 	
-	
-	cargarDepartamentosProceso();
-	cargarSubprocesos();
 	cargarFormasDePago();	
-	cargarTotalFranqueoIVA();
+	cargarDepartamentosProceso();
+	cargarSubprocesos("proceso");
+	cargarTotalFranqueoIVA();	
 	cargarTipoProvisionFondo('tipoProvisionFondo','limitacionA');
 	gestionDeCargarClientes();
-
-
-
 	cargarTamanios("tamanioDetalle");
 	cargarTamanios("tamanioFinalDetalle");
 	cargarTipos("tipoDetalle");
 	cargarAcabado("acabadoDetalle");
 	cargarGramaje("gramajeDetalle");
 	cargarTipoImpresoras("impresoraDetalle");
-
 	cargarGfTipoProceso("gf_tipoProceso");
-	cargarGFSubConcepto1("gf_material");
-	cargarSubConcepto2("gf_concepto");
+	//cargarGFSubConcepto1("gf_material");
+	//cargarSubConcepto2("gf_concepto");
+
+	
+	
+	
+	
 	
 
 	//cargarNombresCarpetasPresupuestos();
@@ -948,7 +1091,7 @@ echo ("</html>");
 		document.getElementById("numPresuBuscar").value = params.get("presupuesto");
 		buscarPresupuesto();
 	}
-	
+	//gestionDeCargarClientes();
 
 /*
 	function botonNuevaVersiongetion() {
@@ -992,6 +1135,9 @@ echo ("</html>");
   }
 });*/
 
+if (typeof iniciarComprobacionSesion === "function") {
+    iniciarComprobacionSesion();
+}
 	
 document.getElementById("button-up").addEventListener("click", scrollUp);
 </script>

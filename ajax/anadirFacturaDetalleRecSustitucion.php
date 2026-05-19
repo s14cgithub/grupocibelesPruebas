@@ -41,6 +41,17 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="anadirFacturaDetalleSustitucion
 	borrarDetallesTemporalesFacRec ($conexion,$idEmpleado);
 	
 	
+
+	//crear copia en abono con importe negativo
+
+	if ($clayma=="true")
+	{
+	}
+	else
+	{
+		crearFacturaNegativa();
+	}
+
 	
 	
 	

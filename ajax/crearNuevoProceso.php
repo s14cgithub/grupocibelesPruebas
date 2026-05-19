@@ -9,15 +9,17 @@ if(isset($_POST["accion"])&$_POST["accion"]=="crearProceso")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	$idTipo = $_POST["idTipo"];	
-	$proceso = $_POST["proceso"];	
-	$descripcion = $_POST["descripcion"];
-	$idDepartamento = $_POST["idDepartamento"];
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 	
-		
-	echo crearNuevoProcesoPresupuesto($conexion,$idTipo,$proceso,$descripcion,$idDepartamento);
+	$crearNuevoProcesoPresupuesto =  crearNuevoProcesoPresupuesto($conn,$bbddSql, $datos);
+
+	sqlsrv_close($conn);
 	
-	
+	echo json_encode($crearNuevoProcesoPresupuesto);
 }
 
 ?>

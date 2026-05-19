@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarListadoParaVerPresupuesto")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarListadoParaVerPresupuesto")
 {	
 	$numPresupuesto = $_POST["numPresupuesto"];
 	

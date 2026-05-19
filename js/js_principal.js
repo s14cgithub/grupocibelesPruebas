@@ -1,5 +1,9 @@
 var peticionUnica1 = null;
+//NUEVA VERSION
 
+
+//CODIGO ANTERIOR REVISADO
+//EL CODIGO SEGUIENTE ESTA SIN REVISAR
 
 function subirImagenAlmacen() //js_pdaProduccion
 {	

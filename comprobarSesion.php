@@ -1,11 +1,10 @@
-<?php 
-
-if ($_SESSION["usuario"]<>"")
-{
-}
-else
-{
-	header('Location: index.php');	
+<?php
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
 }
 
+if (!isset($_SESSION["usuario"]) || $_SESSION["usuario"] == "") {
+    header("Location: index.php");
+    exit;
+}
 ?>

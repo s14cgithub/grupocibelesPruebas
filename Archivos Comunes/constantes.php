@@ -151,6 +151,7 @@ define('presupuesto_notaCibeles','notaCibeles');
 define('presupuesto_pdfGenerado','pdfGenerado');
 define('presupuesto_numeroNoFactura','numNoFactura');
 define('presupuesto_trabajoIniciado','trabajoIniciado');
+define('presupuesto_clayma','clayma');
 
 
 define('presupuestoDetalle_tabla','presupuestos detalle');

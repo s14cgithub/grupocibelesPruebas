@@ -9,17 +9,20 @@ if(isset($_POST["accion"])&$_POST["accion"]=="copiarDetalle")
 		
 	
 	$viejoPresupuesto = $_POST["viejoPresupuesto"];
-	$nuevoPresupuesto = $_POST["nuevoPresupuesto"];
+	$nuevoPresupuesto = $_POST["nuevoPresupuesto"];	
+	
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+	//se copia en el presupuesto detalle
+	$copiaDetalles =  insertarDetallePresupuesto_Select($conn,$bbddSql, $viejoPresupuesto, $nuevoPresupuesto);
+	echo json_encode($copiaDetalles);
 	
 	
-	
-	$resultado = copiarDetallePresupuesto($conexion,$viejoPresupuesto,$nuevoPresupuesto);
-	
-	
-	cambiarDireccionadoPresupuesto($conexion,$nuevoPresupuesto);
+	//cambiarDireccionadoPresupuesto($conexion,$nuevoPresupuesto);
 	
 	
-	echo ($resultado);
+	sqlsrv_close($conn);
 	
 
 	

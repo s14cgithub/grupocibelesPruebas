@@ -27,14 +27,81 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirPresu")
 	$numPresupuesto = $_POST["imprimirProvisionFondoNumPresupuestoClayma"];
 	$numPresupuestoContador = $_POST["imprimirProvisionFondoContadorClayma"];	
 	
+
+
+	if (substr($numPresupuesto, 0,1)=="9")
+	{
+		$campos = ['fechaCreacion',
+		'nombre_empresaClayma',
+		'direccionClayma',
+		'codigo_postalClayma',
+		'localidadClayma',
+		'provinciaClayma',
+		'nifClayma',
+		'conceptoCampana',		
+		'importe'
+		];
+		$joins=['tabla6'];
+		$filtros = [
+			'presupuesto' => $numPresupuesto		
+		];
+		$filtrosOperadores = array(
+			array(
+				'campo1' => 'codigo_saldoClayma',
+				'operador' => '=',
+				'campo2' => 'codigoClayma'
+			)
+		);					
+	}
+	else 
+	{
+		$campos = ['fechaCreacion',
+		'nombre_empresaClayma',
+		'direccionClayma',
+		'codigo_postalClayma',
+		'localidadClayma',
+		'provinciaClayma',
+		'nifClayma',
+		'campana',	
+		'importe'
+		];
+		$joins=['tabla4', 'tabla6'];
+		$filtros = [
+			'presupuesto' => $numPresupuesto,
+			'contador' => $numPresupuestoContador		
+		];
+		$filtrosOperadores = array();					
+	}
+
+
+	$order=array();
+	$group=array();
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+	
+	$datosProvisionFondo = cargarProvisionDeFondos($conn,$bbddSql, $campos, $joins, $filtros,$filtrosOperadores,$group , $order);
+	
+	//echo $datosProvisionFondo["sql"];
+	sqlsrv_close($conn);
+
 	//echo "\n".$numPresupuesto;
 	//echo "\n".$numPresupuestoContador;
 	
-	$datosProvisionFondo = mostrarProvisionDeFondos2Clayma($conexion,$numPresupuesto,$numPresupuestoContador);
+	//$datosProvisionFondo = mostrarProvisionDeFondos2Clayma($conexion,$numPresupuesto,$numPresupuestoContador);
 	
 	
 	
-	$numPresupuesto = $numPresupuesto." - ".$numPresupuestoContador;
+	if ($numPresupuestoContador!="")
+	{
+		$numPresupuesto = $numPresupuesto." - ".$numPresupuestoContador;		
+	}
+	else
+	{
+		$numPresupuestoContador = "";
+	}
 	
 	//die $datosProvisionFondo;
 		
@@ -74,7 +141,7 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirPresu")
 	$pdf->SetFont('Arial','',8);
 	$altura = $altura + 8;
 	$pdf->SetXY($margen+155,$altura);
-	$pdf->Cell(35,5,"Fecha: ".$datosProvisionFondo[0]["fechaCreacion"]->format('d/m/Y'),0,1,'C',false);
+	$pdf->Cell(35,5,"Fecha: ".$datosProvisionFondo["datos"][0]["fechaCreacion"]->format('d/m/Y'),0,1,'C',false);
 	
 	
 	
@@ -101,10 +168,10 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirPresu")
 	
 	$pdf->SetFont('Arial','B',8);
 	$pdf->SetXY($margen+25,$altura-2);	
-	$pdf->MultiCell(0,4,utf8_decode($datosProvisionFondo[0]["subcliente"]),0,'L',false);
+	$pdf->MultiCell(0,4,utf8_decode($datosProvisionFondo["datos"][0]["nombre_empresa"]),0,'L',false);
 	
 	
-	$anchoDescripcion = $pdf->GetStringWidth($datosProvisionFondo[0]["subcliente"]);
+	$anchoDescripcion = $pdf->GetStringWidth($datosProvisionFondo["datos"][0]["nombre_empresa"]);
 	$numeroDeFilas = ceil ($anchoDescripcion / 175);
 	if ($numeroDeFilas<1)
 	{
@@ -123,15 +190,15 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirPresu")
 	
 	$pdf->SetFont('Arial','B',8);
 	$pdf->SetXY($margen+25,$altura);
-	$pdf->Cell(0,0,utf8_decode($datosProvisionFondo[0]["direccion"]),0,1,'L',false);
+	$pdf->Cell(0,0,utf8_decode($datosProvisionFondo["datos"][0]["direccion"]),0,1,'L',false);
 	
 	$altura = $altura + 5;
 	$pdf->SetXY($margen+25,$altura);
-	$pdf->Cell(0,0,$datosProvisionFondo[0]["codigo_postal"]." ".$datosProvisionFondo[0]["localidad"],0,1,'L',false);
+	$pdf->Cell(0,0,$datosProvisionFondo["datos"][0]["codigo_postal"]." ".$datosProvisionFondo["datos"][0]["localidad"],0,1,'L',false);
 	
 	$altura = $altura + 5;
 	$pdf->SetXY($margen+25,$altura);
-	$pdf->Cell(0,0,$datosProvisionFondo[0]["provincia"],0,1,'L',false);
+	$pdf->Cell(0,0,$datosProvisionFondo["datos"][0]["provincia"],0,1,'L',false);
 	
 	
 		
@@ -143,7 +210,7 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirPresu")
 	
 	$pdf->SetFont('Arial','B',8);
 	$pdf->SetXY($margen+25,$altura);
-	$pdf->Cell(0,0,$datosProvisionFondo[0]["nif_subcliente"],0,1,'L',false);
+	$pdf->Cell(0,0,$datosProvisionFondo["datos"][0]["nif"],0,1,'L',false);
 	
 	$altura = $altura + 5;
 	$pdf->Line($margen, $altura, 200, $altura);
@@ -158,7 +225,7 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirPresu")
 	
 	$pdf->SetFont('Arial','B',8);
 	$pdf->SetXY($margen+30,$altura-2.5);	
-	$pdf->MultiCell(0,5,utf8_decode($datosProvisionFondo[0]["campana"]),0,'C',false);
+	$pdf->MultiCell(0,5,utf8_decode($datosProvisionFondo["datos"][0]["campana"]),0,'C',false);
 	
 	
 	$altura = $altura + 15;
@@ -169,7 +236,7 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirPresu")
 	
 	$pdf->SetFont('Arial','B',10);
 	$pdf->SetXY($margen+120,$altura);	
-	$pdf->Cell(0,0,number_format($datosProvisionFondo[0]["importe"],2,',','.')." ".EURO,0,'R',false);
+	$pdf->Cell(0,0,number_format($datosProvisionFondo["datos"][0]["importe"],2,',','.')." ".EURO,0,'R',false);
 	
 	
 	$altura = $altura + 15;

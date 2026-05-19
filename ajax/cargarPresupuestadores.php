@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarPresupuestador")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarPresupuestador")
 {
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -9,10 +9,30 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarPresupuestador")
 		
 	
 	
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = [
+		't1.id',
+		't1.nombre',
+		't1.telefono',
+		't1.inicial'
+	];
+
+	$filtros = [
+			//'cliente' => 'EMPRESA SL'
+		];
+
+	$order = [
+			//['campo' => 'fecha', 'dir' => 'DESC'],
+			['campo' => 'nombre', 'dir' => 'ASC']
+		];
 	
+	$presupuestadores = cargarPresupuestadores($conn,$bbddSql, $campos, $filtros, $order);
 	
-	
-	$presupuestadores=cargarPresupuestadores($conexion);
+	sqlsrv_close($conn);
 	
 	if (count($presupuestadores)<=0)
 	{

@@ -8,232 +8,371 @@ if(isset($_POST["accion"])&$_POST["accion"]=="modificarRegistro")
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
+	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
 	
-	$presupuesto = $_POST["numPresupuesto"];
-	$comercial = $_POST["comercial"];
-	$detallada = $_POST["detallada"];
-	$cliente = $_POST["cliente"];
-	$campania = $_POST["campania"];
-	$campaniaObservacion = $_POST["campaniaObservacion"];
-	$cantidad = $_POST["cantidad"];
-	$pedCliente = $_POST["pedCliente"];
-	$direccion = $_POST["direccion"];
-	$cp = $_POST["cp"];
-	$poblacion = $_POST["poblacion"];
-	$formaPago = $_POST["formaPago"];
-	$persona = $_POST["persona"];
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
 	
-	$mostrarTotalPresupuesto = $_POST["mtp"];
-	$mostrarTotalFranqueo = $_POST["mtf"];
-	$mostrarTotalFranqueoImporte = $_POST["mtfImporte"];
-	
-	$notaPresupuesto = $_POST["nota"];
-	
-	
-	$origen = $_POST["origen"];
+
+	//LOG
+
+	/*
+	$campos2 = [
+		'idComercial',
+		'detallada',
+		'cliente',
+		'campana',
+		'cantidad',
+		'pedcli',
+		'direccion',
+		'cp',
+		'poblacion',
+		'idFormaPago',
+		'persona',
+		'idVisualizarTotalPresu',
+		'idVisualizarTotalFranqueo',
+		'importeFranqueo',
+		'notaCibeles',
+		'trabajoIniciado',
+		'clayma'
+	];
+	*/
+
+	$campos2 = array_keys($datos);
+
+	$joins2 = array();
+
+	$numPresupuesto = $filtros['presupuesto'];
+
+	$filtros2 = [
+		'presupuesto' => $numPresupuesto
+	];
+
+	$filtrosOperadores2 = array();
+	$order2 = array();
+
+	$cargarPresupuestos = cargarPresupuestos($conn,$bbddSql, $campos2, $joins2, $filtros2,$filtrosOperadores2, $order2);
+
+
+	$i = 0;
+	while ($i < count($campos2)) {
 		
-	$origenValor = 0;
-	if ($origen=="true")
-	{
-		$origenValor = 1;
+		$columna2 = $columna = $campos2[$i];
+		//$columna2=$columna;
+		//echo "\n".$columna;
+
+		if ($columna=='origen')
+		{
+			$columna2=='clayma';
+		}
+
+		if ($datos[$columna] != $cargarPresupuestos['datos'][0][$columna2])
+		{
+			$datos2 = array(
+				'usuario' => $_SESSION['usuario'],
+				'descripcion' => log_modificacion,
+				'tabla' => presupuesto_tabla ,
+				'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna2],
+				'datosNuevos' => $datos[$columna],
+				'columna' => $columna,
+				'idRegistro' => 0,
+				'presupuesto' => $numPresupuesto
+			);
+			insertarRegistro($conn,$bbddSql, $datos2);		
+		}
+
+		
+
+
+		//echo $campos[$i] . "<br>";
+		$i++;
 	}
 
-	$trabajoIniciado = $_POST["trabajoIniciado"];
-
-	$trabajoIniciadoValor = 0;
-	if ($trabajoIniciado=="true")
-	{
-		$trabajoIniciadoValor = 1;
-	}
-	
-	
-	/////////////////////////////////////////////
-	
-	$resultado = verPresupuesto($conexion,$presupuesto);
-	
-	$descripcion = "modificacion";
-	$tabla = presupuesto_tabla;
+	/*
 	$columna = presupuesto_ColumnaIdComercial;
-	//$idRegistro = $presupuesto;
-	$idRegistro = 0;
-	
-	$usuario = $_SESSION['usuario'];
-	
-	if ($comercial<>$resultado[0][$columna])
+	if ($datos['idComercial'] != $cargarPresupuestos['datos'][0][$columna])
 	{
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $comercial;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['idComercial'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
-	
+
 	$columna = presupuesto_ColumnaDetallada;
-	if ($detallada<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $detallada;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['detallada'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['detallada'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
+
 	$columna = presupuesto_ColumnaCliente;
-	if ($cliente<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $cliente;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['cliente'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['cliente'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
+
 	$columna = presupuesto_ColumnaCampana;
-	if ($campania<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $campania;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['campana'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['campana'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
+
 	$columna = presupuesto_ColumnaCantidad;
-	if ($cantidad<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $cantidad;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['cantidad'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['cantidad'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
-	
-	
+
 	$columna = presupuesto_ColumnaPedCliente;
-	if ($pedCliente<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $pedCliente;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['pedcli'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['pedcli'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
-	
+
 	$columna = presupuesto_ColumnaDireccion;
-	if ($direccion<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $direccion;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['direccion'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['direccion'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
-	
+
 	$columna = presupuesto_ColumnaCP;
-	if ($cp<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $cp;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['cp'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['cp'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
+
 	$columna = presupuesto_ColumnaPoblacion;
-	if ($poblacion<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $poblacion;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['poblacion'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['poblacion'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
+
 	$columna = presupuesto_ColumnaFormaPago;
-	if ($formaPago<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $formaPago;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['idFormaPago'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['idFormaPago'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-		
-	
+
 	$columna = presupuesto_ColumnaPersona;
-	if ($persona<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $persona;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['persona'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['persona'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
-	
+
 	$columna = presupuesto_ColumnaMostrarTotalPresu;
-	if ($mostrarTotalPresupuesto<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $mostrarTotalPresupuesto;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['idVisualizarTotalPresu'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['idVisualizarTotalPresu'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
-	
+
 	$columna = presupuesto_ColumnaMostrarTotalFranqueo;
-	if ($mostrarTotalFranqueo<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $mostrarTotalFranqueo;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['idVisualizarTotalFranqueo'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['idVisualizarTotalFranqueo'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
-	
-	
+
 	$columna = presupuesto_ColumnaImportelFranqueo;
-	if ($mostrarTotalFranqueoImporte<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $mostrarTotalFranqueoImporte;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['importeFranqueo'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['importeFranqueo'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
-	
-	
+
 	$columna = presupuesto_notaCibeles;
-	if ($notaPresupuesto<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $notaPresupuesto;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['notaCibeles'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['notaCibeles'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
 
 	$columna = presupuesto_trabajoIniciado;
-	if ($trabajoIniciadoValor<>$resultado[0][$columna])
-	{		
-		$datosAntiguos = $resultado[0][$columna];
-		$datosNuevos = $trabajoIniciadoValor;			
-		
-		insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$presupuesto);	
+	if ($datos['trabajoIniciado'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['trabajoIniciado'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
 	}
 	
-	//////////////////////////////////////////
+	$columna = presupuesto_clayma;
+	if ($datos['clayma'] != $cargarPresupuestos['datos'][0][$columna])
+	{
+		$datos2 = array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => log_modificacion,
+			'tabla' => presupuesto_tabla ,
+			'datosAntiguos' => $cargarPresupuestos['datos'][0][$columna],
+			'datosNuevos' => $datos['clayma'],
+			'columna' => $columna,
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		);
+		insertarRegistro($conn,$bbddSql, $datos2);		
+	}
+*/
+
+	$res =  modificarPresupuesto($conn,$bbddSql, $datos, $filtros,$filtrosOperadores);
 	
+	sqlsrv_close($conn);
 	
-	
-	
-	
-			
-		
-	modificarPresupuesto($conexion,$presupuesto,$comercial,$detallada,$cliente,$campania,$cantidad,$pedCliente,$direccion,$cp,$poblacion,$formaPago,$persona,$mostrarTotalPresupuesto,$mostrarTotalFranqueo,$mostrarTotalFranqueoImporte,$notaPresupuesto, $origenValor, $campaniaObservacion,$trabajoIniciadoValor);
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-			
-	
+	echo json_encode($res);
+
 }
 
 

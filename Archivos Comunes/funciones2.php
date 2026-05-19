@@ -193,6 +193,10 @@ function mostrarFacturas_Asdfdsa($conn_sis, $bbddSql, $campos, $filtros, $anioSe
     return $result;
 }
 
+function insertarFacturaNegativaDesdeSustitucion_Asdfdsa($conn_sis, $bbddSql, $anioSeleccionado, $datos)
+{
+}
+
 /*
 $conn = conectarSQL($datosBBDD);
 

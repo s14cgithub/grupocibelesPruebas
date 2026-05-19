@@ -5,59 +5,96 @@ session_start();
 
 require("comprobarSesion.php");
 
-if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu")
+if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="previsualizarPresu")
 //if(isset($_GET["imprimirAccion"])&$_GET["imprimirAccion"]=="imprimirPresu")
 {
 	$ruta = '/';
 	//require($ruta.$rutaCabecera);
 	require($ruta."Archivos Comunes/constantes.php");
-	require($ruta."Archivos Comunes/codigoInclude.php");
-		
+	require($ruta."Archivos Comunes/codigoInclude.php");		
 		
 	
 	require($ruta."FPDF/fpdf.php");
 	//require($ruta."FPDF1-84/fpdf.php");
 	
+	require($ruta."Archivos Comunes/cabeceraPieInforme.php");	
+
+
+	$numPresupuesto = $_POST['previsualizarNumPresupuesto'] ?  $_POST['previsualizarNumPresupuesto']: null;
+
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
+
+	$campos = [
+		'presupuesto',
+		'letra',
+		'codigoCliente',
+		'fecha',
+		'inicialComercial',
+		'cliente',
+		'persona',
+		'direccion',
+		'cp',
+		'poblacion',
+		'campanaObservacion',
+		'campana',
+		'cantidad',
+		'detallada',
+		'idVisualizarTotalPresu',
+		'idVisualizarTotalFranqueo',
+		'ivaFranqueo',
+		'importeFranqueo',
+		'textoFormaPago',
+		'nombreComercial',
+		'telefonoComercial'			
+		];
+		
+	$joins = ['tabla2', 'tabla3'];
+
+
+
+	$filtros = ['presupuesto' => $numPresupuesto];
+	$filtrosOperadores = array();
+	$order = array();
+
+	$datosPresupuesto = cargarPresupuestos($conn,$bbddSql, $campos, $joins, $filtros,$filtrosOperadores, $order);
 	
-	require($ruta."Archivos Comunes/cabeceraPieInforme.php");
 	
+	$campos2 = [
+		'concepto',
+		'idTipo',
+		'tipoProceso',
+		'proceso',
+		'unidades',
+		'precio',
+		'descripcion'
+		];
+
+	$joins2 = array();	
+	$filtros2 = ['presupuesto' => $numPresupuesto];
+	$filtrosOperadores2 = array();
+	$order2 = [
+			['campo' => 'ordenTipoProceso', 'dir' => 'ASC'],
+			['campo' => 'idTipo', 'dir' => 'ASC'],
+			['campo' => 'orden', 'dir' => 'ASC'],
+			['campo' => 'id', 'dir' => 'ASC']
+
+		];
+
+	$datosDetalles = cargarDetallesPresupuesto($conn,$bbddSql, $campos2, $joins2, $filtros2,$filtrosOperadores2, $order2);
+
+	$nombrePresupuestoCompleto = $datosPresupuesto["datos"][0]["presupuesto"]." ".$datosPresupuesto["datos"][0]["letra"];
+
+
+	$idCliente = $datosPresupuesto["datos"][0]["codigoCliente"] !=null ? $datosPresupuesto["datos"][0]["codigoCliente"]:"-1" ; //si es -1 meter el codigoCliente en la tabla
+
+	sqlsrv_close($conn);
+
 	
-	
-	$numPresupuesto = $_POST["previsualizarNumPresupuesto"];	
-	
-	
-	
-	$datosPresupuesto = verPresupuesto($conexion,$numPresupuesto);
-	$datosDetalles = cargarDetallesPresupuesto($conexion,$numPresupuesto);
-	
-	
-	$nombrePresupuestoCompleto = $datosPresupuesto[0]["presupuesto"]." ".$datosPresupuesto[0]["letra"];
-	
-	
-	if ($datosPresupuesto[0]["clayma"]=="0")
-	{
-		$datosCliente = verCodigoSaldoPorNombreCliente($conexion, $datosPresupuesto[0]["cliente"]);
-	}
-	else
-	{
-		$datosCliente = verCodigoSaldoPorNombreClienteClayma($conexion, $datosPresupuesto[0]["cliente"]);
-	}
-	
-	
-	$idCliente=0000;
-	if (count($datosCliente)>0)
-	{
-		$idCliente = $datosCliente[0]["codigo_saldo"];
-	}
-	
-	
-	
-	
-	
-	{
-			
-	
-	
+	{	
 	
 	$pdf = new PDF('P','mm','A4');
 
@@ -117,14 +154,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 	$alturaSiguientePagina=40;
 	$limiteAlturaDatos=250;
 	
-	$pdf->Text($margen,$altura,$datosPresupuesto[0]["fecha"]->format('d/m/Y'));
+	$pdf->Text($margen,$altura,$datosPresupuesto["datos"][0]["fecha"]->format('d/m/Y'));
 	
 	$pdf->SetTextColor(13,140,252);
 	$pdf->SetFont('Arial','B',10);
 	$pdf->Text($margen,$altura+5,"PRESUPUESTO:");
 	$pdf->SetTextColor(0,0,0);
 	$pdf->SetFont('Arial','B',10);
-	$pdf->Text($margen+30,$altura+5,$datosPresupuesto[0]["inicialComercial"]." - ".$datosPresupuesto[0]["presupuesto"]." ".$datosPresupuesto[0]["letra"]);
+	$pdf->Text($margen+30,$altura+5,$datosPresupuesto["datos"][0]["inicialComercial"]." - ".$datosPresupuesto["datos"][0]["presupuesto"]." ".$datosPresupuesto["datos"][0]["letra"]);
 		
 	
 	$altura += 7;
@@ -136,28 +173,28 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 	$altura -= 7;
 	$pdf->SetFont('Arial','',8);
 	$pdf->SetXY(110,$altura);
-	$pdf->MultiCell(80,5,utf8_decode($datosPresupuesto[0]["cliente"])."\n".utf8_decode($datosPresupuesto[0]["persona"])."\n".utf8_decode($datosPresupuesto[0]["direccion"])."\n".$datosPresupuesto[0]["cp"]." ".utf8_decode($datosPresupuesto[0]["poblacion"]),0,'L',false);
+	$pdf->MultiCell(80,5,utf8_decode($datosPresupuesto["datos"][0]["cliente"])."\n".utf8_decode($datosPresupuesto["datos"][0]["persona"])."\n".utf8_decode($datosPresupuesto["datos"][0]["direccion"])."\n".$datosPresupuesto["datos"][0]["cp"]." ".utf8_decode($datosPresupuesto["datos"][0]["poblacion"]),0,'L',false);
 	
 	
 	$pdf->SetTextColor(13,140,252);
 	$pdf->SetFont('Arial','B',14);
 		
 		
-	if ($datosPresupuesto[0]["campanaObservacion"]=="")
+	if ($datosPresupuesto["datos"][0]["campanaObservacion"]=="")
 	{
 		$altura = $altura + 34; //75
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosPresupuesto[0]["campana"]),0,1,'C',false);
+		$pdf->Cell(0,0,utf8_decode($datosPresupuesto["datos"][0]["campana"]),0,1,'C',false);
 	}
 	else
 	{
 		$altura = $altura + 28; 
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosPresupuesto[0]["campanaObservacion"]),0,1,'C',false);
+		$pdf->Cell(0,0,utf8_decode($datosPresupuesto["datos"][0]["campanaObservacion"]),0,1,'C',false);
 		
 		$altura = $altura + 7; 
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosPresupuesto[0]["campana"]),0,1,'C',false);
+		$pdf->Cell(0,0,utf8_decode($datosPresupuesto["datos"][0]["campana"]),0,1,'C',false);
 		
 		//$altura = $altura - 7; 
 	}
@@ -173,7 +210,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 	$pdf->SetTextColor(0,0,0);
 	$pdf->SetFont('Arial','B',10);
 	
-	$cantidad = $datosPresupuesto[0]["cantidad"];
+	$cantidad = $datosPresupuesto["datos"][0]["cantidad"];
 	
 	if ($cantidad=="null" || $cantidad==null || $cantidad==0 )
 	{
@@ -202,7 +239,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 	$pdf->SetFont('Arial','B',8);
 	
 	
-	$mostrarPrecio = $datosPresupuesto[0]["detallada"];
+	$mostrarPrecio = $datosPresupuesto["datos"][0]["detallada"];
 	
 	
 	if ($mostrarPrecio==0)
@@ -231,7 +268,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 	$totalImporte=0.00;
 	
 	
-	foreach ($datosDetalles as $row) 
+	foreach ($datosDetalles["datos"] as $row) 
 	{
 		
 		if ($row["idTipo"]!=$grupoAnterior)
@@ -366,7 +403,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 			
 			$alturaVieja=$altura;
 			
-			$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($row["descripcion"]));
+			$anchoDescripcion = $pdf->GetStringWidth(mb_convert_encoding($row["descripcion"], 'ISO-8859-1', 'UTF-8'));
 			$numeroDeFilas = $anchoDescripcion / ((125-10)-1);
 			if ($numeroDeFilas<1)
 			{
@@ -404,7 +441,8 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 			
 			$pdf->MultiCell(125-10,4,$temporal,0,'L',false);*/
 			
-			$pdf->MultiCell(125-10,4,reemplazarSimbolos($row["descripcion"]),0,'L',false);
+			//$pdf->MultiCell(125-10,4,utf8_decode($row["descripcion"]),0,'L',false);
+			$pdf->MultiCell(125-10,4,mb_convert_encoding($row["descripcion"], 'ISO-8859-1', 'UTF-8'),0,'L',false);
 			
 			$altura = $altura + (6*$numeroDeFilas);
 			
@@ -420,7 +458,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 	$pdf->SetY($altura);
 	
 	
-	$mostrarTotalPresupuesto = $datosPresupuesto[0]["idVisualizarTotalPresu"];
+	$mostrarTotalPresupuesto = $datosPresupuesto["datos"][0]["idVisualizarTotalPresu"];
 	
 	
 	
@@ -431,13 +469,13 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 		$pdf->Cell(0,5,utf8_decode("Total Presupuesto (IVA no incluido): ").number_format($totalImporte,2,',','.')." ".EURO,0,0,'R',false);		
 	}
 	
-	$mostrarTotalFranqueo = $datosPresupuesto[0]["idVisualizarTotalFranqueo"];
+	$mostrarTotalFranqueo = $datosPresupuesto["datos"][0]["idVisualizarTotalFranqueo"];
 	if ($mostrarTotalFranqueo>1)	
 	{
 		$altura = $altura + 5;//95
 		$pdf->SetY($altura);
 		$pdf->SetFont('Arial','B',10);
-		$pdf->Cell(0,5,utf8_decode($datosPresupuesto[0]["ivaFranqueo"]).": ". number_format($datosPresupuesto[0]["importeFranqueo"], 2, ',', '.') . " ".EURO,0,0,'R',false);		
+		$pdf->Cell(0,5,utf8_decode($datosPresupuesto["datos"][0]["ivaFranqueo"]).": ". number_format($datosPresupuesto["datos"][0]["importeFranqueo"], 2, ',', '.') . " ".EURO,0,0,'R',false);		
 	}
 	
 	
@@ -454,7 +492,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 	$pdf->Cell(0,5,"FORMA DE PAGO: ",0,0,'L',false);
 	$pdf->SetFont('Arial','B',8);
 	$pdf->SetXY($margen+28,$altura);
-	$pdf->Cell(0,5,utf8_decode($datosPresupuesto[0]["textoFormaPago"]),0,0,'L',false);
+	$pdf->Cell(0,5,utf8_decode($datosPresupuesto["datos"][0]["textoFormaPago"]),0,0,'L',false);
 	
 	$altura = $altura + 5;
 	$pdf->SetXY($margen,$altura);
@@ -468,7 +506,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="previsualizarPresu
 	
 	$pdf->SetXY($margen+30,$altura);
 	$pdf->SetFont('Arial','B',8);
-	$pdf->Cell(0,5,utf8_decode($datosPresupuesto[0]["nombreComercial"]." - ".$datosPresupuesto[0]["telefonoComercial"]),0,0,'L',false);
+	$pdf->Cell(0,5,utf8_decode($datosPresupuesto["datos"][0]["nombreComercial"]." - ".$datosPresupuesto["datos"][0]["telefonoComercial"]),0,0,'L',false);
 	
 	$pdf->SetXY($margen+120,$altura);
 	$pdf->MultiCell(50,5,utf8_decode("Alfonso Rodriguez Del Amo\nDirector Comercial"),0,'C',false);
