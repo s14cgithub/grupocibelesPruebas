@@ -28,7 +28,7 @@ function comprobarLogin() //js_Index
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarComprobarLogin;
-		peticionUnica1.open("POST","ajax/comprobarLogin.php",false);
+		peticionUnica1.open("POST","ajax/comprobarLogin.php",true);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 		var query_string = consultaComprobarLogin();
 		peticionUnica1.send(query_string);						
@@ -38,8 +38,16 @@ function comprobarLogin() //js_Index
 function consultaComprobarLogin()
 {	
 	var consulta = "accion=comprobarLogin";
-	consulta += "&usuario="+document.getElementById("usuario").value;
-	consulta += "&contrasena="+document.getElementById("contrasena").value;	
+
+
+	var filtros = {
+    	usuario: document.getElementById("usuario").value,
+		contrasena: document.getElementById("contrasena").value,
+
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+
 	return consulta;	
 }
 
@@ -49,7 +57,7 @@ function mostrarComprobarLogin()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			if (peticionUnica1.responseText.trim().substr(0,5)=="Error")
 			{
 				alert(peticionUnica1.responseText);
 			}
@@ -73,38 +81,10 @@ function mostrarComprobarLogin()
 	}						
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-function crearComunicacion(laPeticion)
-{				
-	try
-	{
-		// Creacion del objeto AJAX para navegadores no IE
-		laPeticion=new ActiveXObject("Msxml2e.XMLHTTP");
-	}
-	catch(e)
-	{
-		try
-		{
-			// Creacion del objet AJAX para IE
-			//laPeticion=new ActiveXObject("Microsoft.XMLHTTP");
-			laPeticion=new XMLHttpRequest();
-			}
-		catch(E)
-		{
-			if (!laPeticion && typeof XMLHttpRequest!='undefined') laPeticion=new XMLHttpRequest();
-		}
+function crearComunicacion(laPeticion="") {	
+	var laPeticion="";			
+	if (!laPeticion && typeof XMLHttpRequest !== 'undefined') {
+		laPeticion = new XMLHttpRequest();
 	}
 	
 	return laPeticion;

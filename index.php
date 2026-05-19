@@ -2,12 +2,17 @@
 
 <?php 
 
-//$_SESSION = array();
+/*
 session_unset();
-//session_destroy();
+session_start();
+*/
+
+/////////////
 
 session_start();
-
+session_unset();
+session_destroy();
+session_start();
 
 $_SESSION['titulo']="GESTIÓN GRUPOCIBELES";
 $_SESSION['usuario']="";
