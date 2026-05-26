@@ -220,7 +220,7 @@ echo ("</html>");
 			}
 			else if (trim($_SESSION["presupuestoListado_queBusca"])=="cliente")
 			{
-				echo ('document.getElementById("tipoBusquedaPresupuesto").checked=true;');
+				echo ('document.getElementById("tipoBusquedaCliente").checked=true;');
 			}
 			else 
 			{
@@ -228,11 +228,11 @@ echo ("</html>");
 			}
 
 			
-			if ($_SESSION["presupuestoListado_Bajada"]=="true")
+			if ($_SESSION["presupuestoListado_Bajada"]==1)
 			{
 				echo ('document.getElementById("busqBajada").checked=true;');
 			}
-			if ($_SESSION["presupuestoListado_Abierta"]=="true")
+			if ($_SESSION["presupuestoListado_Abierta"]==1)
 			{
 				echo ('document.getElementById("busqAbierta").checked=true;');
 			}

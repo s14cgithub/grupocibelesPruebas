@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="mostrarPresupuesto")
+if(isset($_POST["accion"]) && $_POST["accion"]=="mostrarPresupuesto")
 {
 	session_start(); 
 	$ruta = '../';	
@@ -8,41 +8,32 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarPresupuesto")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	
-	$orden = $_POST["orden"];
-	$desc = $_POST["desc"];
-	$texto =  $_POST["texto"];
-	$queBusca =  $_POST["queBusca"];
-	
-	$bajada = $_POST["bajada"];
-	$abierta = $_POST["abierta"];
-	
-	$meses = $_POST["meses"];
 
-	$fechaAceptacion=$_POST["fechaAceptacion"];
-	
-	
+	$campos=isset($_POST["campos"])?json_decode($_POST["campos"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$order=isset($_POST["order"])?json_decode($_POST["order"], true):array();
 
-
-	//guardar busqueda
-	$_SESSION["presupuestoListado_texto"] = $texto;
-	$_SESSION["presupuestoListado_queBusca"] = $queBusca;
-	$_SESSION["presupuestoListado_Bajada"] = $bajada;
-	$_SESSION["presupuestoListado_Abierta"] = $abierta;
-	$_SESSION["presupuestoListado_meses"] = $meses;
-	$_SESSION["presupuestoListado_orden"] = $orden;
-	$_SESSION["presupuestoListado_Desc"] = $desc;
-	$_SESSION["presupuestoListado_fechaAceptacion"] = $fechaAceptacion;
-
-
+	$_SESSION["presupuestoListado_texto"] = $filtros['texto'];
+	$_SESSION["presupuestoListado_queBusca"] = $filtros['queBusca'];
+	$_SESSION["presupuestoListado_Bajada"] = $filtros['bajada'];
+	$_SESSION["presupuestoListado_Abierta"] = $filtros['abierta'];
+	$_SESSION["presupuestoListado_meses"] = $filtros['meses'];
+	$_SESSION["presupuestoListado_fechaAceptacion"] = $filtros['fechaAceptacion'];	
+	$_SESSION["presupuestoListado_orden"] =  $order[0]['campo'];
+	$_SESSION["presupuestoListado_Desc"] = $order[0]['dir'];
 	
 
 
+	$conn1 = conectarSQL($conexion);
 
-	
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
+
+
 	$fecha = "";
 	//$meses=0;
 
+	$meses = $filtros['meses'];
 
 	if ($meses>0)
 	{
@@ -51,21 +42,15 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarPresupuesto")
 		$fechaInicio = date("01-m-Y",strtotime($fechaActual."- ".$meses." month")); 
 		$fecha = " fecha >='".$fechaInicio."'";
 	}
-	
-	
-	$resultado = mostrarPresupuestos1($conexion,$orden,$desc,$texto,$queBusca, $bajada, $abierta, $fecha,$fechaAceptacion);
-	
-	if (count($resultado)<=0)
-	{		
-		//siempre debe de haber un registro
-		echo  ("");
-	}	
-	else
-	{
-		echo  json_encode($resultado);
-		//echo $resultado;
-	}
-}
 
+	$filtros["fecha"] =  $fecha;
+
+	$cargarPresupuestos = cargarPresupuestosConNumFacturas($conn,$bbddSql, $campos, $filtros, $order);
+	
+	sqlsrv_close($conn);		
+	
+	echo json_encode($cargarPresupuestos);	
+	
+}
 
 ?>

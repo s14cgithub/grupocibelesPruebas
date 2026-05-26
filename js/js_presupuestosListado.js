@@ -1,7 +1,7 @@
 var peticionUnica1 = null;
 
 
-function cargarListadoPresupuesto1()//js_presupuestosListado
+function cargarListadoPresupuesto1()
 {	
 	peticionUnica1=crearComunicacion();
 
@@ -19,39 +19,46 @@ function consultaCargarListadoPresupuesto1()
 {	
 	var consulta = "accion=mostrarPresupuesto";	
 	
-	consulta += "&orden="+document.getElementById("columnas").value;
-	
-	if (document.getElementById("ordenDescendiente").checked)
-	{
-		consulta += "&desc=desc";
-	}
-	else
-	{
-		consulta += "&desc=asc";
-	}
-	
-	
-	consulta += "&texto="+document.getElementById("buscarTexto").value;
-	
-	if (document.getElementById("tipoBusquedaPresupuesto").checked)
-	{
-		consulta += "&queBusca=presupuesto";
-	}
-	else if (document.getElementById("tipoBusquedaCliente").checked)
-	{
-		consulta += "&queBusca=cliente";
-	}
-	else
-	{
-		consulta += "&queBusca=campana";
-	}
-	
-	consulta += "&bajada=" + document.getElementById("busqBajada").checked;
-	consulta += "&abierta=" + document.getElementById("busqAbierta").checked;
-	
-	consulta += "&meses=" + document.getElementById("buscarNumMeses").value;
-	consulta += "&fechaAceptacion=" + document.getElementById("buscarFechaAceptacion").value;
-	
+	var campos =[
+ 		'cliente',
+        'campana',
+        'numeroFacturaCompleto',
+		'numNoFactura',
+        'clayma',
+        'inicialComercial',
+        'presupuesto',
+        'fecha',
+        'otBajada',
+        'otAbierta',   
+        'fechaAceptacion',
+        'fechaCompromiso',
+        'fechaTerminado',
+        'activo',
+        'nombreComercial',
+        'telefonoComercial'
+		
+	];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+		bajada: document.getElementById("busqBajada").checked ? 1 : 0,
+		abierta: document.getElementById("busqAbierta").checked ? 1 : 0,
+		meses: document.getElementById("buscarNumMeses").value,
+		fechaAceptacion: document.getElementById("buscarFechaAceptacion").value,
+		texto: document.getElementById("buscarTexto").value,
+		queBusca: document.getElementById("tipoBusquedaPresupuesto").checked ? 'presupuesto' : document.getElementById("tipoBusquedaCliente").checked ? 'cliente' : 'campana'
+
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var order = [
+		{
+			campo: document.getElementById("columnas").value,
+			dir: document.getElementById("ordenDescendiente").checked ? 'DESC' : 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	
 	return consulta;	
 }
@@ -62,41 +69,39 @@ function mostrarCargarListadoPresupuesto1()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;	
-				if (peticionUnica1.responseText!="")
-				{
-					datos = JSON.parse(peticionUnica1.responseText);		
-				}					
-				
+			{			
+				var datos = res.datos;				
 				var contenido = "";
 				
-				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
-					contenido += '<th align="center">Presupuesto</th>';
-					//contenido += '<th>comercial</th>';			
-					contenido += '<th>Cliente</th>';
-					contenido += '<th>Campaña</th>';
-					contenido += '<th>Fecha Creacion</th>';
-					
-					if (permisos==2 || idUsuario==5 )
-					{
-						contenido += '<th>Ot Bajada</th>';
-						contenido += '<th>ot abierta</th>';
-						contenido += '<th>Terminado</th>';
-
-						contenido += '<th></th>';
-						contenido += '<th></th>';
-						contenido += '<th></th>';
-					}
 				
-					
+				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
+				contenido += '<th align="center">Presupuesto</th>';
+				//contenido += '<th>comercial</th>';			
+				contenido += '<th>Cliente</th>';
+				contenido += '<th>Campaña</th>';
+				contenido += '<th>Fecha Creacion</th>';
+				
+				if (permisos==2 || idUsuario==5 )
+				{
+					contenido += '<th>Ot Bajada</th>';
+					contenido += '<th>ot abierta</th>';
+					contenido += '<th>Terminado</th>';
 
-					contenido += '</tr>';
+					contenido += '<th></th>';
+					contenido += '<th></th>';
+					contenido += '<th></th>';
+				}
+			
+				
+
+				contenido += '</tr>';
 				
 				var contador = 0;	
 				var contraste='';
@@ -113,19 +118,15 @@ function mostrarCargarListadoPresupuesto1()
 					
 					contenido += '<tr '+contraste+'>';
 					
-					var anioDeFactura = datos[contador]["anioFactura"];
-					if (anioDeFactura!=null)
-					{
-						anioDeFactura = anioDeFactura - 2000;
-					}
 					
-					if (datos[contador]["numFactura"] != null && datos[contador]["clayma"]==0 )
+					
+					if (datos[contador]["numeroFacturaCompleto"] != null && datos[contador]["clayma"]==0 )
 					{
-						contenido += '<td align="right" style="background:green;" title="'+datos[contador]["numFactura"]+'/'+anioDeFactura+'-Cibeles"><span style="overflow:hidden; white-space: nowrap;">'+datos[contador]["inicialComercial"]+"-"+datos[contador]["presupuesto"]+'</span></td>';
+						contenido += '<td align="right" style="background:green;" title="'+datos[contador]["numeroFacturaCompleto"]+'-Cibeles"><span style="overflow:hidden; white-space: nowrap;">'+datos[contador]["inicialComercial"]+"-"+datos[contador]["presupuesto"]+'</span></td>';
 					}
-					else if (datos[contador]["numFactura"] != null && datos[contador]["clayma"]==1 )
+					else if (datos[contador]["numeroFacturaCompleto"] != null && datos[contador]["clayma"]==1 )
 					{
-						contenido += '<td align="right" style="background: #B87240" title="'+datos[contador]["numFactura"]+'/'+anioDeFactura+'-Clayma"><span style="overflow:hidden; white-space: nowrap;">'+datos[contador]["inicialComercial"]+"-"+datos[contador]["presupuesto"]+'</span></td>';
+						contenido += '<td align="right" style="background: #B87240" title="'+datos[contador]["numeroFacturaCompleto"]+'-Clayma"><span style="overflow:hidden; white-space: nowrap;">'+datos[contador]["inicialComercial"]+"-"+datos[contador]["presupuesto"]+'</span></td>';
 					}
 					else if (datos[contador]["numNoFactura"] != null)
 					{
@@ -212,24 +213,16 @@ function mostrarCargarListadoPresupuesto1()
 							contenido += '<td><input type="date" id="'+datos[contador]["presupuesto"]+'_fechaTerminado" value="'+datos[contador]["fechaTerminado"]["date"].substring(0,10)+'" max="'+fechaCompromiso2+'"  onChange="verificarFechaTerminado(this.value,this.max, this.id)" '+soloLectura+'></input></td>';
 						}
 
-						if (datos[contador]["activo"]=="1" && idUsuario!=5 && permisos == 2)
+						if (datos[contador]["activo"]=="1" && permisos == 2)
 						{
 							contenido += '<td><input type="image" id="'+datos[contador]["presupuesto"]+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarPresupuesto2('+datos[contador]["presupuesto"]+')"></td>';	
-						}
-						else if (datos[contador]["activo"]=="1" && permisos == 1 && idUsuario==5)
-						{
-							//contenido += '<td></td>';
-						}
+						}						
 						else
 						{
 							contenido += '<td></td>';
 						}
 
-
-
 						contenido += '<td><button type="button" class="btn btn-info" style="height: =5px;line-height: 5px;" id="'+datos[contador]["presupuesto"]+'_verPresupuesto" onclick="irAVerPresupuesto(this.id)" >PPTO</button></td>';
-
-
 
 						var fechaAceptacion="";					
 						var fechaCompromiso="";
@@ -253,14 +246,10 @@ function mostrarCargarListadoPresupuesto1()
 						}					
 
 
-						if (datos[contador]["activo"]=="1" && idUsuario!=5 && permisos == 2)
+						if (datos[contador]["activo"]=="1" && permisos == 2)
 						{
 							contenido += '<td><button type="button" class="btn btn-info" data-toggle="modal" data-target="#orderTrabajoModal" data-whatever="@mdo"  style="height: =5px;line-height: 5px;" onClick="pasarDatosPresupuesto(\''+datos[contador]["presupuesto"]+'\',\''+fechaAceptacion+'\',\''+fechaCompromiso+'\')">OT</button></td>';	
-						}
-						else if (datos[contador]["activo"]=="1" && permisos == 1 && idUsuario==5)
-						{
-							//contenido += '<td></td>';
-						}
+						}						
 						else
 						{
 							contenido += '<td></td>';
@@ -287,7 +276,7 @@ function modificarPresupuesto2(presupuesto1)//js_presupuestosListado
 		if(peticionUnica1)
 		{							
 			peticionUnica1.onreadystatechange = mostrarModificarPresupuesto2;
-			peticionUnica1.open("POST","ajax/modificarPresupuesto2.php",false);
+			peticionUnica1.open("POST","ajax/modificarPresupuesto.php",false);
 			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 			var query_string = consultaModificarPresupuesto2(presupuesto1);
 			peticionUnica1.send(query_string);						
@@ -296,33 +285,15 @@ function modificarPresupuesto2(presupuesto1)//js_presupuestosListado
 
 function consultaModificarPresupuesto2(presupuesto1)
 {	
-	var consulta = "accion=modificarRegistro2";
-	
-	consulta+="&numPresupuesto="+presupuesto1;
-	
-	if (document.getElementById(presupuesto1+"_otBajada").checked == true)
-	{
-		consulta+="&otBajada=1";
-	}
-	else
-	{
-		consulta+="&otBajada=0";
-	}
-	
-	if (document.getElementById(presupuesto1+"_otAbierta").checked == true)
-	{
-		consulta+="&otAbierta=1";
-	}
-	else
-	{
-		consulta+="&otAbierta=0";
-	}	
+	var consulta = "accion=modificarRegistro";
 	
 	var temporalFin = document.getElementById(presupuesto1+"_fechaTerminado").value;
 	
+	var fechaTerminado1 = "";
+
 	if (temporalFin==null || temporalFin=="null" || temporalFin=="")
 	{
-		consulta+="&fechaTerminado=";
+		fechaTerminado1 = "";
 	}
 	else
 	{
@@ -330,10 +301,25 @@ function consultaModificarPresupuesto2(presupuesto1)
 		var mesFin = temporalFin.substr(temporalFin.indexOf('-')+1,temporalFin.length  - temporalFin.lastIndexOf('-') -1);
 		var diaFin = temporalFin.substr(temporalFin.lastIndexOf('-')+1);
 
-		consulta+="&fechaTerminado=" + diaFin + "/" + mesFin + "/" + anioFin;	
+		fechaTerminado1 = diaFin + "/" + mesFin + "/" + anioFin;	
 	}	
+
+
+	var datos = {		
+		otBajada: document.getElementById(presupuesto1+"_otBajada").checked == true ? 1 : 0,
+		otAbierta: document.getElementById(presupuesto1+"_otAbierta").checked == true ? 1 : 0,
+		fechaTerminado: fechaTerminado1				
+	};
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	presupuesto: presupuesto1
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));	
 	
-	return consulta;	
+	return consulta;
+
 }
 
 function mostrarModificarPresupuesto2()
@@ -342,12 +328,14 @@ function mostrarModificarPresupuesto2()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
+			{			
 				alert("Presupuesto Modificado");				
 			}
 			peticionUnica1=null;
@@ -385,7 +373,7 @@ function mostrarDatosPresupuesto(numPresu)//js_presupuestosListado
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarMostrarDatosPresupuesto;
-		peticionUnica1.open("POST","ajax/mostrarDatosPresupuesto.php",false);
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaMostrarDatosPresupuesto(numPresu);
 		peticionUnica1.send(query_string);
@@ -394,11 +382,34 @@ function mostrarDatosPresupuesto(numPresu)//js_presupuestosListado
 
 function consultaMostrarDatosPresupuesto(numPresu)
 {	
-	var consulta = "accion=mostrarDatosPresupuesto";	
+	var consulta = "accion=cargarPresupuestos";	
 	
-	consulta +="&numPresupuesto="+numPresu;
+	var campos = [
+		'fechaAceptacion',
+		'fechaCompromiso'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	/*
+	var joins = [
+		'tabla5',
+		'tabla6'
+	];
+	
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+*/
+
+	var filtros = {
+    	presupuesto: numPresu		
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
 	
 	return consulta;	
+
+	
 }
 
 function mostrarMostrarDatosPresupuesto()
@@ -407,25 +418,19 @@ function mostrarMostrarDatosPresupuesto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+					
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
-				
+			{
+				var datos = res.datos;	
+			
 				campo1=true;
-				
+			
 				if (datos.length<=0)
 				{
 					campo1 = "false";
@@ -442,8 +447,9 @@ function mostrarMostrarDatosPresupuesto()
 					}					
 				
 				}
-						
 			}
+						
+			
 			peticionUnica1=null;			
 		}
 	}						
@@ -490,4 +496,113 @@ function irAVerPresupuesto(presupuesto1)//js_presupuestoListado
 function gestionExportarExcelPresupuestos()
 {
 	document.getElementById("formExcelPresupuestosListado").submit();
+}
+
+function modificarPresupuesto3()
+{
+	if (document.getElementById("fechaAceptacion").value=="")
+	{
+		alert("Introducir fecha de Aceptacion");
+		document.getElementById("fechaAceptacion").focus();
+	}
+	else if (document.getElementById("fechaCompromiso").value=="")
+	{
+		alert("Introducir fecha de Compromiso");
+		document.getElementById("fechaCompromiso").focus();
+	}
+	else
+	{		
+		peticionUnica1=crearComunicacion(peticionUnica1);
+
+		if(peticionUnica1)
+		{							
+			peticionUnica1.onreadystatechange = mostrarModificarPresupuesto3;
+			peticionUnica1.open("POST","ajax/modificarPresupuesto.php",false);
+			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+			var query_string = consultaModificarPresupuesto3();
+			peticionUnica1.send(query_string);						
+		}
+	}
+}
+
+function consultaModificarPresupuesto3()
+{	
+	var consulta = "accion=modificarRegistro";	
+
+	var paraFecha = document.getElementById("fechaAceptacion").value;
+	var anioFin = "";
+	var mesFin = "";
+	var diaFin = "";
+
+	var fechaAceptacion1 = "";
+	
+	if (paraFecha==null || paraFecha=="null" || paraFecha=="")
+	{
+		fechaAceptacion1 = "";
+	}
+	else
+	{
+		anioFin = paraFecha.substr(0, paraFecha.indexOf('-'));
+		mesFin = paraFecha.substr(paraFecha.indexOf('-')+1,paraFecha.length  - paraFecha.lastIndexOf('-') -1);
+		diaFin = paraFecha.substr(paraFecha.lastIndexOf('-')+1);
+
+		fechaAceptacion1 = diaFin + "/" + mesFin + "/" + anioFin;	
+	}
+
+	paraFecha = document.getElementById("fechaCompromiso").value;
+	var fechaCompromiso1 = "";
+	
+	if (paraFecha==null || paraFecha=="null" || paraFecha=="")
+	{
+		fechaCompromiso1 = "";
+	}
+	else
+	{
+		anioFin = paraFecha.substr(0, paraFecha.indexOf('-'));
+		mesFin = paraFecha.substr(paraFecha.indexOf('-')+1,paraFecha.length  - paraFecha.lastIndexOf('-') -1);
+		diaFin = paraFecha.substr(paraFecha.lastIndexOf('-')+1);
+
+		fechaCompromiso1 =  diaFin + "/" + mesFin + "/" + anioFin;	
+	}
+
+
+	var datos = {		
+		fechaAceptacion: fechaAceptacion1,
+		fechaCompromiso: fechaCompromiso1			
+	};
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	presupuesto: document.getElementById("numPresuModal").innerHTML
+	};	
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));	
+	
+	return consulta;	
+}
+
+function mostrarModificarPresupuesto3()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{	
+				peticionUnica1=null;
+				//cargarListadoPresupuesto1();
+				
+				document.getElementById("imprimirNumOT").value =document.getElementById("numPresuModal").innerHTML;
+				document.getElementById("formImprimirOT").submit();
+				
+			}
+			peticionUnica1=null;
+		}
+	}						
 }

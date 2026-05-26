@@ -14,17 +14,10 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	session_start(); 
 
 
-	$texto = $_SESSION["presupuestoListado_texto"];
-	$queBusca = $_SESSION["presupuestoListado_queBusca"];
-	$bajada = $_SESSION["presupuestoListado_Bajada"];
-	$abierta = $_SESSION["presupuestoListado_Abierta"];
-	$meses = $_SESSION["presupuestoListado_meses"];
-	$orden = $_SESSION["presupuestoListado_orden"];
-	$desc = $_SESSION["presupuestoListado_Desc"];
-	$fechaAceptacion = $_SESSION["presupuestoListado_fechaAceptacion"];
+
 
 	$fecha = "";
-	//$meses=0;
+	$meses = $_SESSION["presupuestoListado_meses"];
 
 
 	if ($meses>0)
@@ -34,13 +27,60 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 		$fechaInicio = date("01-m-Y",strtotime($fechaActual."- ".$meses." month")); 
 		$fecha = " fecha >='".$fechaInicio."'";
 	}
+
+	$campos = array();
+	$campos = [
+		'cliente',
+        'campana',
+        'numeroFacturaCompleto',
+		'numNoFactura',
+        'clayma',
+        'inicialComercial',
+        'presupuesto',
+        'fecha',
+        'otBajada',
+        'otAbierta',   
+        'fechaAceptacion',
+        'fechaCompromiso',
+        'fechaTerminado',
+        'activo',
+        'nombreComercial',
+        'telefonoComercial',
+		'letra',
+		'notaCibeles',
+		'campana2',
+		'fechaInicioReal',
+		'cantidad',
+		'cantidad2',
+		'noSeFacturaObservaciones'
+	];
 	
 	
-		
 	
+	$filtros = array();
+	$filtros["texto"] =  $_SESSION["presupuestoListado_texto"];
+	$filtros["queBusca"] =  $_SESSION["presupuestoListado_queBusca"];
+	$filtros["bajada"] =  $_SESSION["presupuestoListado_Bajada"];
+	$filtros["abierta"] =  $_SESSION["presupuestoListado_Abierta"];
+	$filtros["meses"] =  $_SESSION["presupuestoListado_meses"];
+	$filtros["fechaAceptacion"] =  $_SESSION["presupuestoListado_fechaAceptacion"];
+	$filtros["fecha"] =  $fecha;
+
 	
-	$resultado = mostrarPresupuestos1($conexion,$orden,$desc,$texto,$queBusca, $bajada, $abierta, $fecha,$fechaAceptacion);
+	$order = array();
+	$order[] = array(
+		'campo' => $_SESSION["presupuestoListado_orden"],
+		'dir' => $_SESSION["presupuestoListado_Desc"]
+	);
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
 	
+	$resultado = cargarPresupuestosConNumFacturas($conn,$bbddSql, $campos, $filtros, $order);
+	
+	sqlsrv_close($conn);
 	
 /**
  * PHPExcel
@@ -112,42 +152,38 @@ $objPHPExcel->setActiveSheetIndex(0)
 			->setCellValue('N1', 'CLAYMA')	
 			->setCellValue('O1', 'NUMERO NO FACTURA')	
 			->setCellValue('P1', 'NO SE FACTURA - OBSERVACIONES')	
-			->setCellValue('Q1', 'NUMERO FACTURA')	
-			->setCellValue('R1', 'AÑO FACTURA')	
-			->setCellValue('S1', 'OT BAJADA')
-			->setCellValue('T1', 'OT ABIERTA');
+			->setCellValue('Q1', 'FACTURA')			
+			->setCellValue('R1', 'OT BAJADA')
+			->setCellValue('S1', 'OT ABIERTA');
 				
 	
 
 	
 $contador=2;
-while($contador-2 < count($resultado))
+while($contador-2 < count($resultado['datos']))
 {
+	//echo "numNoFactura: ".$resultado['datos'][$contador-2]["otAbierta"];//->format('d/m/Y');
 	$objPHPExcel->setActiveSheetIndex(0)
-            ->setCellValue('A'.$contador, $resultado[$contador-2]["presupuesto"])
-			->setCellValue('B'.$contador, $resultado[$contador-2]["letra"])
-            ->setCellValue('C'.$contador, $resultado[$contador-2]["cliente"])
-			->setCellValue('D'.$contador, $resultado[$contador-2]["notaCibeles"])
-			->setCellValue('E'.$contador, $resultado[$contador-2]["campana"])
-			->setCellValue('F'.$contador, $resultado[$contador-2]["campana2"])
-			->setCellValue('G'.$contador, $resultado[$contador-2]["fecha"])
-			->setCellValue('H'.$contador, $resultado[$contador-2]["fechaAceptacion"])
-			->setCellValue('I'.$contador, $resultado[$contador-2]["fechaCompromiso"])
-			->setCellValue('J'.$contador, $resultado[$contador-2]["fechaTerminado"])
-			->setCellValue('K'.$contador, $resultado[$contador-2]["fechaInicioReal"])
-			->setCellValue('L'.$contador, $resultado[$contador-2]["cantidad"])
-			->setCellValue('M'.$contador, $resultado[$contador-2]["cantidad2"])
-			->setCellValue('N'.$contador, $resultado[$contador-2]["clayma"])
-			->setCellValue('O'.$contador, $resultado[$contador-2]["numNoFactura"])
-			->setCellValue('P'.$contador, $resultado[$contador-2]["noSeFacturaObservaciones"])
-			->setCellValue('Q'.$contador, $resultado[$contador-2]["numFactura"])
-			->setCellValue('R'.$contador, $resultado[$contador-2]["anioFactura"])
-			->setCellValue('S'.$contador, $resultado[$contador-2]["otBajada"])
-			->setCellValue('T'.$contador, $resultado[$contador-2]["otAbierta"]);
+            ->setCellValue('A'.$contador, $resultado['datos'][$contador-2]["presupuesto"])
+			->setCellValue('B'.$contador, $resultado['datos'][$contador-2]["letra"])
+            ->setCellValue('C'.$contador, $resultado['datos'][$contador-2]["cliente"])
+			->setCellValue('D'.$contador, $resultado['datos'][$contador-2]["notaCibeles"])
+			->setCellValue('E'.$contador, $resultado['datos'][$contador-2]["campana"])
+			->setCellValue('F'.$contador, $resultado['datos'][$contador-2]["campana2"])
+			->setCellValue('G'.$contador, $resultado['datos'][$contador-2]["fecha"])
+			->setCellValue('H'.$contador, $resultado['datos'][$contador-2]["fechaAceptacion"])
+			->setCellValue('I'.$contador, $resultado['datos'][$contador-2]["fechaCompromiso"])
+			->setCellValue('J'.$contador, $resultado['datos'][$contador-2]["fechaTerminado"])
+			->setCellValue('K'.$contador, $resultado['datos'][$contador-2]["fechaInicioReal"])
+			->setCellValue('L'.$contador, $resultado['datos'][$contador-2]["cantidad"])
+			->setCellValue('M'.$contador, $resultado['datos'][$contador-2]["cantidad2"])
+			->setCellValue('N'.$contador, $resultado['datos'][$contador-2]["clayma"])
+			->setCellValue('O'.$contador, $resultado['datos'][$contador-2]["numNoFactura"])
+			->setCellValue('P'.$contador, $resultado['datos'][$contador-2]["noSeFacturaObservaciones"])
+			->setCellValue('Q'.$contador, $resultado['datos'][$contador-2]["numeroFacturaCompleto"])			
+			->setCellValue('R'.$contador, $resultado['datos'][$contador-2]["otBajada"])
+			->setCellValue('S'.$contador, $resultado['datos'][$contador-2]["otAbierta"]);
 			
-		
-			
-	
 	$contador++;
 }
 	
@@ -163,8 +199,12 @@ $objPHPExcel->getActiveSheet()->setTitle('Simple');
 // Set active sheet index to the first sheet, so Excel opens this as the first sheet
 $objPHPExcel->setActiveSheetIndex(0);
 
-$nombreArchivo = 'Presupuestos'.date('d/m/Y').'.xls';
+$nombreArchivo = 'Presupuestos'.date('d/m/Y').'.xlsx';
 	
+if (ob_get_length()) {
+    ob_end_clean();
+}
+
 // Redirect output to a client’s web browser (Excel2007)
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');
