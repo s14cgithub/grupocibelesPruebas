@@ -1278,7 +1278,7 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
         'departamento' => 't4.departamento',
         'tamanoFinal' => 't11.tamano as tamanoFinal',
         'tipo' => 't7.tipo',
-        'tamano' => 't6.tamano',
+        'tamano' => 't6.tamano',        
         'gramaje' => 't9.gramaje',
         'precioMaterialPapel' => 't5.precio as precioMaterialPapel',
         'tipoImpresora' => 't10.tipoImpresora',
@@ -1353,7 +1353,7 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
     
     // ---------- FILTROS ----------
     $condicion = array();
-    $params = array();    
+    $params = array();
 
     if (isset($filtros['id'])) {
         $condicion[] = 't1.id = ?';
@@ -1363,11 +1363,28 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
         $condicion[] = 't1.presupuesto = ?';
         $params[] = $filtros['presupuesto'];
     }
+    if (isset($filtros['tamano_id'])) {
+        $condicion[] = 't6.id = ?';
+        $params[] = $filtros['tamano_id'];
+    }
+    if (isset($filtros['tipo_id'])) {
+        $condicion[] = 't7.id = ?';
+        $params[] = $filtros['tipo_id'];
+    }
+    if (isset($filtros['acabado_id'])) {
+        $condicion[] = 't8.id = ?';
+        $params[] = $filtros['acabado_id'];
+    }
+     if (isset($filtros['gramaje_id'])) {
+        $condicion[] = 't9.id = ?';
+        $params[] = $filtros['gramaje_id'];
+    }
+
 
     $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=');
 
     $camposComparablesPermitidos = array(
-   // 'codigo_saldo' => 't1.codigo_saldo',
+    //'codigo_saldo' => 't1.codigo_saldo',
     //'codigo' => 't1.codigo'    
     );
 
@@ -1412,7 +1429,7 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
         'ordenTipoProceso' => 't2.orden',
         'idTipo' => 't1.idTipo',
         'orden' => ' t1.orden',
-        'departamento' => 't4.departamento'
+        'departamento' => 't4.departamento'        
     );
 
     $sqlOrder = '';
@@ -3859,6 +3876,348 @@ function cargarSubConceptos2GF($conn_sis, $bbddSql, $campos, $filtros,$filtrosOp
 }
 
 
+function cargarRegistrosHoraInformatica($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id'           
+    );
+
+    //t2: presupuestadores
+    
+
+    if (!is_array($campos) || empty($campos)) {
+        return array(
+            'error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    //JOINS
+
+    $joinsPermitidos = [
+        //'tabla2' => "left join [".$bbddSql."].[dbo].[presupuestos detalle] as t2 on t2.id = SUBSTRING(t1.codigoBarras,1,len(t1.codigoBarras)-8)",
+        //'tabla3' => "left join [".$bbddSql."].[dbo].[procesosTipos] as t3 on t3.id = t2.idTipo",
+        //'tabla4' => "left join [".$bbddSql."].[dbo].[procesos] as t4 on t4.id = t2.idConcepto",
+        //'tabla5' => "left join [".$bbddSql."].[dbo].[procesos] as t5 on t5.id = t1.sinProceso_idConcepto",
+        //'tabla6' => "left join [".$bbddSql."].[dbo].[L_gf_subconcepto2] as t6 on t6.id = t1.idGFSubconjunto2",
+        //'tabla7' => "left join [".$bbddSql."].[dbo].[L_gf_subconcepto1] as t7 on t6.idSubconcepto1 = t7.id",
+        //'tabla8' => "left join [".$bbddSql."].[dbo].[L_gf_concepto] as t8 on t7.idConcepto = t8.id",
+        //'tabla9' => "left join [".$bbddSql."].[dbo].[L_impresoras] as t9 on t1.idImpresoras = t9.id",
+        //'tabla10' => "left join [".$bbddSql."].[dbo].[L_papelTamanio] as t10 on t1.idPapelTamano = t10.id",
+        //'tabla11' => "left join [".$bbddSql."].[dbo].[L_papelTipo] as t11 on t1.idPapelTipo = t11.id",
+        //'tabla12' => "left join [".$bbddSql."].[dbo].[L_papelAcabado] as t12 on t1.idPapelAcabado = t12.id",
+        //'tabla13' => "left join [".$bbddSql."].[dbo].[L_papelGramaje] as t13 on t1.idPapelGramaje = t13.id",
+        //'tabla14' => "left join [".$bbddSql."].[dbo].[L_papelOrigen] as t14 on t1.idPapelOrigen = t14.id",
+
+    ];
+
+    $sqlJoins = '';
+
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+    
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();    
+
+    if (isset($filtros['idPapelTamano'])) {
+        $condicion[] = 't1.idPapelTamano = ?';
+        $params[] = $filtros['idPapelTamano'];
+    }
+    if (isset($filtros['idPapelTipo'])) {
+        $condicion[] = 't1.idPapelTipo = ?';
+        $params[] = $filtros['idPapelTipo'];
+    }
+    if (isset($filtros['idPapelAcabado'])) {
+        $condicion[] = 't1.idPapelAcabado = ?';
+        $params[] = $filtros['idPapelAcabado'];
+    }
+    if (isset($filtros['idPapelGramaje'])) {
+        $condicion[] = 't1.idPapelGramaje = ?';
+        $params[] = $filtros['idPapelGramaje'];
+    }
+
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+    //'presupuestoNoMensual' => 'SUBSTRING(t1.presupuesto, LEN(t1.presupuesto) - 2, 3)'
+    //'codigo' => 't1.codigo'    
+    );
+         
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            // campo vs campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
+
+            // campo vs valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        //'nombre_empresa'     => 't1.nombre_empresa',
+        //'subcliente'     => 't1.subcliente'          
+    );
+
+    $sqlOrder = '';
+
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[registroHoras] AS t1
+        $sqlJoins        
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    //echo $consulta;   
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+    
+    return array(
+    'error' => '',
+    'datos' => $result,
+    'sql' => $consulta,
+     'params' => $params
+    );
+}
+
+function cargarTamaniosConversorPapel($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'idTamanioInicio' => 't1.idTamanioInicio',
+        'idTamanioFinal' => 't1.idTamanioFinal',
+        'valor' => 't1.valor'
+    );
+
+    //t2: L_papelTamanio
+    //t3: L_papelTamanio
+    
+
+    if (!is_array($campos) || empty($campos)) {
+        return array(
+            'error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    //JOINS
+
+    $joinsPermitidos = [
+        'tabla2' => "inner join [".$bbddSql."].[dbo].[L_papelTamanio] as t2 on t1.idTamanioInicio = t2.id",
+        'tabla3' => "inner join [".$bbddSql."].[dbo].[L_papelTamanio] as t3 on t1.idTamanioFinal = t3.id"
+        
+    ];
+
+    $sqlJoins = '';
+
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+    
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();    
+
+    if (isset($filtros['idPapelTamano'])) {
+        $condicion[] = 't1.idPapelTamano = ?';
+        $params[] = $filtros['idPapelTamano'];
+    }
+
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+    //'presupuestoNoMensual' => 'SUBSTRING(t1.presupuesto, LEN(t1.presupuesto) - 2, 3)'
+    //'codigo' => 't1.codigo'    
+    );
+         
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            // campo vs campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
+
+            // campo vs valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'tamanioInicio' => 't2.tamano',
+        'tamanioFinal' => 't3.tamano'
+    );
+
+    $sqlOrder = '';
+
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[L_papelTamanioConversor] AS t1
+        $sqlJoins        
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    //echo $consulta;   
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+    
+    return array(
+    'error' => '',
+    'datos' => $result,
+    'sql' => $consulta,
+     'params' => $params
+    );
+}
+
+
 //INSERT
 function insertarPresupuesto($conn_sis, $bbddSql, $datos)
 {
@@ -4472,6 +4831,376 @@ function insertarProvisionFondo($conn_sis, $bbddSql, $datos)
     );
 }
 
+function insertarTamanioPapel($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'tamano' => 'tamano'
+          
+    );    
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'datos vacios',
+            'ok' => false
+        );
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => 'camposSQL vacios',
+            'ok' => false
+        );
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[L_papelTamanio]
+        (".implode(', ', $camposSQL).")
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    sqlsrv_free_stmt($resultado);
+    /*
+    $consultaId = "SELECT SCOPE_IDENTITY() AS id";
+    $stmtId = sqlsrv_query($conn_sis, $consultaId);
+
+    $idInsertado = null;
+
+    if ($stmtId !== false) {
+        $filaId = sqlsrv_fetch_array($stmtId, SQLSRV_FETCH_ASSOC);
+        if ($filaId && isset($filaId['id'])) {
+            $idInsertado = $filaId['id'];
+        }
+        sqlsrv_free_stmt($stmtId);
+    }
+    */
+    return array(
+        'error' => '',
+        'ok' => true,
+        //'id' => $idInsertado,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function insertarTamanioConversor($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'idTamanioInicio' => 'idTamanioInicio',
+        'idTamanioFinal' => 'idTamanioFinal',
+        'valor' => 'valor'
+          
+    );    
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'datos vacios',
+            'ok' => false
+        );
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => 'camposSQL vacios',
+            'ok' => false
+        );
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[L_papelTamanioConversor]
+        (".implode(', ', $camposSQL).")
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    sqlsrv_free_stmt($resultado);
+    /*
+    $consultaId = "SELECT SCOPE_IDENTITY() AS id";
+    $stmtId = sqlsrv_query($conn_sis, $consultaId);
+
+    $idInsertado = null;
+
+    if ($stmtId !== false) {
+        $filaId = sqlsrv_fetch_array($stmtId, SQLSRV_FETCH_ASSOC);
+        if ($filaId && isset($filaId['id'])) {
+            $idInsertado = $filaId['id'];
+        }
+        sqlsrv_free_stmt($stmtId);
+    }
+    */
+    return array(
+        'error' => '',
+        'ok' => true,
+        //'id' => $idInsertado,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function insertarTipoPapel($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'tipo' => 'tipo'          
+    );    
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'datos vacios',
+            'ok' => false
+        );
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => 'camposSQL vacios',
+            'ok' => false
+        );
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[L_papelTipo]
+        (".implode(', ', $camposSQL).")
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    sqlsrv_free_stmt($resultado);
+    /*
+    $consultaId = "SELECT SCOPE_IDENTITY() AS id";
+    $stmtId = sqlsrv_query($conn_sis, $consultaId);
+
+    $idInsertado = null;
+
+    if ($stmtId !== false) {
+        $filaId = sqlsrv_fetch_array($stmtId, SQLSRV_FETCH_ASSOC);
+        if ($filaId && isset($filaId['id'])) {
+            $idInsertado = $filaId['id'];
+        }
+        sqlsrv_free_stmt($stmtId);
+    }
+    */
+    return array(
+        'error' => '',
+        'ok' => true,
+        //'id' => $idInsertado,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function insertarAcabadoPapel($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'acabado' => 'acabado'          
+    );    
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'datos vacios',
+            'ok' => false
+        );
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => 'camposSQL vacios',
+            'ok' => false
+        );
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[L_papelAcabado]
+        (".implode(', ', $camposSQL).")
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    sqlsrv_free_stmt($resultado);
+    /*
+    $consultaId = "SELECT SCOPE_IDENTITY() AS id";
+    $stmtId = sqlsrv_query($conn_sis, $consultaId);
+
+    $idInsertado = null;
+
+    if ($stmtId !== false) {
+        $filaId = sqlsrv_fetch_array($stmtId, SQLSRV_FETCH_ASSOC);
+        if ($filaId && isset($filaId['id'])) {
+            $idInsertado = $filaId['id'];
+        }
+        sqlsrv_free_stmt($stmtId);
+    }
+    */
+    return array(
+        'error' => '',
+        'ok' => true,
+        //'id' => $idInsertado,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function insertarGramajePapel($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'gramaje' => 'gramaje'          
+    );    
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'datos vacios',
+            'ok' => false
+        );
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => 'camposSQL vacios',
+            'ok' => false
+        );
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[L_papelGramaje]
+        (".implode(', ', $camposSQL).")
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    sqlsrv_free_stmt($resultado);
+    /*
+    $consultaId = "SELECT SCOPE_IDENTITY() AS id";
+    $stmtId = sqlsrv_query($conn_sis, $consultaId);
+
+    $idInsertado = null;
+
+    if ($stmtId !== false) {
+        $filaId = sqlsrv_fetch_array($stmtId, SQLSRV_FETCH_ASSOC);
+        if ($filaId && isset($filaId['id'])) {
+            $idInsertado = $filaId['id'];
+        }
+        sqlsrv_free_stmt($stmtId);
+    }
+    */
+    return array(
+        'error' => '',
+        'ok' => true,
+        //'id' => $idInsertado,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+
 
 //UPDATE
 function modificarDetallePresupuesto($conn_sis, $bbddSql, $datos, $filtros, $filtrosOperadores)
@@ -4913,6 +5642,627 @@ function modificarProvisionFondo($conn_sis, $bbddSql, $datos, $filtros, $filtros
     );
 }
 
+function modificarTamanioPapel($conn_sis, $bbddSql, $datos, $filtros, $filtrosOperadores)
+{
+    // ---------- CAMPOS PERMITIDOS ----------
+    $camposPermitidos = array(       
+        'tamano' => 't1.tamano'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'modificarProvisionFondos: datos vacios',
+            'ok' => false
+        );
+    }
+
+    // ---------- SET ----------
+    $set = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $set[] = $camposPermitidos[$campo] . ' = ?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($set)) {
+        return array(
+            'error' => 'modificarTamanioPapel: no hay campos validos para actualizar',
+            'ok' => false
+        );
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+
+    if (!empty($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id',
+       // 'activo' => 't1.activo'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            // campo vs campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
+
+            // campo vs valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    if (empty($condicion)) {
+        return array(
+            'error' => 'modificarTamanioPapel: update sin WHERE bloqueado por seguridad',
+            'ok' => false,            
+            'params' => $params
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        UPDATE t1
+        SET " . implode(', ', $set) . "
+        FROM [".$bbddSql."].[dbo].[L_papelTamanio] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    // filas afectadas
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+
+function modificarTamanioConversor($conn_sis, $bbddSql, $datos, $filtros, $filtrosOperadores)
+{
+    // ---------- CAMPOS PERMITIDOS ----------
+    $camposPermitidos = array(       
+        'idTamanioInicio' => 't1.idTamanioInicio',
+        'idTamanioFinal' => 'idTamanioFinal',
+        'valor' => 'valor'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'modificarTamanioConversor: datos vacios',
+            'ok' => false
+        );
+    }
+
+    // ---------- SET ----------
+    $set = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $set[] = $camposPermitidos[$campo] . ' = ?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($set)) {
+        return array(
+            'error' => 'modificarTamanioPapel: no hay campos validos para actualizar',
+            'ok' => false
+        );
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+
+    if (!empty($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id',
+       // 'activo' => 't1.activo'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            // campo vs campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
+
+            // campo vs valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    if (empty($condicion)) {
+        return array(
+            'error' => 'modificarTamanioConversor: update sin WHERE bloqueado por seguridad',
+            'ok' => false,            
+            'params' => $params
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        UPDATE t1
+        SET " . implode(', ', $set) . "
+        FROM [".$bbddSql."].[dbo].[L_papelTamanioConversor] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    // filas afectadas
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function modificarTipoPapel($conn_sis, $bbddSql, $datos, $filtros, $filtrosOperadores)
+{
+    // ---------- CAMPOS PERMITIDOS ----------
+    $camposPermitidos = array(       
+        'tipo' => 't1.tipo'        
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'modificarTipo: datos vacios',
+            'ok' => false
+        );
+    }
+
+    // ---------- SET ----------
+    $set = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $set[] = $camposPermitidos[$campo] . ' = ?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($set)) {
+        return array(
+            'error' => 'modificarTipo: no hay campos validos para actualizar',
+            'ok' => false
+        );
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+
+    if (!empty($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id',
+       // 'activo' => 't1.activo'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            // campo vs campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
+
+            // campo vs valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    if (empty($condicion)) {
+        return array(
+            'error' => 'modificarTipo: update sin WHERE bloqueado por seguridad',
+            'ok' => false,            
+            'params' => $params
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        UPDATE t1
+        SET " . implode(', ', $set) . "
+        FROM [".$bbddSql."].[dbo].[L_papelTipo] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    // filas afectadas
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function modificarAcabadoPapel($conn_sis, $bbddSql, $datos, $filtros, $filtrosOperadores)
+{
+    // ---------- CAMPOS PERMITIDOS ----------
+    $camposPermitidos = array(       
+        'acabado' => 't1.acabado'        
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'modificarAcabado: datos vacios',
+            'ok' => false
+        );
+    }
+
+    // ---------- SET ----------
+    $set = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $set[] = $camposPermitidos[$campo] . ' = ?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($set)) {
+        return array(
+            'error' => 'modificarAcabado: no hay campos validos para actualizar',
+            'ok' => false
+        );
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+
+    if (!empty($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id',
+       // 'activo' => 't1.activo'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            // campo vs campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
+
+            // campo vs valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    if (empty($condicion)) {
+        return array(
+            'error' => 'modificarTipo: update sin WHERE bloqueado por seguridad',
+            'ok' => false,            
+            'params' => $params
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        UPDATE t1
+        SET " . implode(', ', $set) . "
+        FROM [".$bbddSql."].[dbo].[L_papelAcabado] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    // filas afectadas
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+
+function modificarGramajePapel($conn_sis, $bbddSql, $datos, $filtros, $filtrosOperadores)
+{
+    // ---------- CAMPOS PERMITIDOS ----------
+    $camposPermitidos = array(       
+        'gramaje' => 't1.gramaje'        
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array(
+            'error' => 'modificarGramaje: datos vacios',
+            'ok' => false
+        );
+    }
+
+    // ---------- SET ----------
+    $set = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $set[] = $camposPermitidos[$campo] . ' = ?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($set)) {
+        return array(
+            'error' => 'modificarGramaje: no hay campos validos para actualizar',
+            'ok' => false
+        );
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+
+    if (!empty($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id',
+       // 'activo' => 't1.activo'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            // campo vs campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
+
+            // campo vs valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    if (empty($condicion)) {
+        return array(
+            'error' => 'modificarTipo: update sin WHERE bloqueado por seguridad',
+            'ok' => false,            
+            'params' => $params
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        UPDATE t1
+        SET " . implode(', ', $set) . "
+        FROM [".$bbddSql."].[dbo].[L_papelGramaje] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    // filas afectadas
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+
+
 //DELETE
 function eliminarDetallePresupuesto($conn_sis, $bbddSql, $filtros, $filtrosOperadores)
 {
@@ -4991,9 +6341,390 @@ function eliminarDetallePresupuesto($conn_sis, $bbddSql, $filtros, $filtrosOpera
     );
 }
 
+function eliminarTamaniosPapel($conn_sis, $bbddSql, $filtros, $filtrosOperadores)
+{
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
 
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
 
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
 
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id'       
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ?';
+
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    //SEGURIDAD: NO permitir DELETE sin WHERE
+    if (empty($condicion)) {
+        return array(
+            'error' => 'eliminar Papel Tamanio: DELETE sin WHERE bloqueado por seguridad',
+            'ok' => false
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        DELETE t1
+        FROM [".$bbddSql."].[dbo].[L_papelTamanio] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function eliminarTamanioConversor($conn_sis, $bbddSql, $filtros, $filtrosOperadores)
+{
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id'       
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ?';
+
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    //SEGURIDAD: NO permitir DELETE sin WHERE
+    if (empty($condicion)) {
+        return array(
+            'error' => 'eliminar Papel Tamanio Conversor: DELETE sin WHERE bloqueado por seguridad',
+            'ok' => false
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        DELETE t1
+        FROM [".$bbddSql."].[dbo].[L_papelTamanioConversor] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function eliminarTiposPapel($conn_sis, $bbddSql, $filtros, $filtrosOperadores)
+{
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id'       
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ?';
+
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    //SEGURIDAD: NO permitir DELETE sin WHERE
+    if (empty($condicion)) {
+        return array(
+            'error' => 'eliminar Papel Tipo: DELETE sin WHERE bloqueado por seguridad',
+            'ok' => false
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        DELETE t1
+        FROM [".$bbddSql."].[dbo].[L_papelTipo] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function eliminarAcabadosPapel($conn_sis, $bbddSql, $filtros, $filtrosOperadores)
+{
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id'       
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ?';
+
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    //SEGURIDAD: NO permitir DELETE sin WHERE
+    if (empty($condicion)) {
+        return array(
+            'error' => 'eliminar Acabado Papel: DELETE sin WHERE bloqueado por seguridad',
+            'ok' => false
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        DELETE t1
+        FROM [".$bbddSql."].[dbo].[L_papelAcabado] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function eliminarGramajesPapel($conn_sis, $bbddSql, $filtros, $filtrosOperadores)
+{
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id'       
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ?';
+
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    //SEGURIDAD: NO permitir DELETE sin WHERE
+    if (empty($condicion)) {
+        return array(
+            'error' => 'eliminar Gramaje Papel: DELETE sin WHERE bloqueado por seguridad',
+            'ok' => false
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        DELETE t1
+        FROM [".$bbddSql."].[dbo].[L_papelGramaje] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
 
 
 

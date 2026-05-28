@@ -87,23 +87,15 @@ function mostrarCargarTamaniosListado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
+				var datos = res.datos;	
 				
 				var contenido = "";
 				
@@ -151,7 +143,7 @@ function insertarTamanio()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarTamanio;
-		peticionUnica1.open("POST","ajax/insertarTamanioPapel.php",false);
+		peticionUnica1.open("POST","ajax/crearTamanioPapel.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarTamanio();
 		peticionUnica1.send(query_string);
@@ -161,7 +153,12 @@ function insertarTamanio()
 function consultaInsertarTamanio()
 {	
 	var consulta = "accion=insertarTamanio";
-	consulta += "&valor=" + document.getElementById("nuevoTamanio").value;
+
+	var datos = {tamano: document.getElementById("nuevoTamanio").value}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));	
+
+
 	return consulta;	
 }
 
@@ -171,16 +168,17 @@ function mostrarInsertarTamanio()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="" || res.ok==false )
 			{
-				alert(peticionUnica1.responseText);
-			}
+				alert(res.error);				
+			}			
 			else
 			{
-				alert(peticionUnica1.responseText);
-				cargarTamaniosListado("listado");
-						
-			}			
+				alert('Tamaño Insertado');
+				cargarTamaniosListado("listado");						
+			}
+
 			peticionUnica1=null;			
 		}
 	}						
@@ -205,8 +203,18 @@ function modificarTamanio(id)
 function consultaModificarTamanio(id)
 {	
 	var consulta = "accion=modificarTamanioPapel";
-	consulta += "&id=" + id ;
-	consulta += "&valor=" + document.getElementById(id + "_tamanio").value;
+
+	var datos = {		
+		tamano: document.getElementById(id + "_tamanio").value		
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));	
+
+
 	return consulta;	
 }
 
@@ -216,19 +224,20 @@ function mostrarModificarTamanio()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);
+				alert("Tamaño modificado");
 				cargarTamaniosListado("listado");
-						
 			}			
-			peticionUnica1=null;			
+			peticionUnica1=null;
 		}
-	}						
+	}
 }
 
 
@@ -249,7 +258,11 @@ function eliminarTamanio(id)
 function consultaEliminarTamanio(id)
 {	
 	var consulta = "accion=borrarTamanioPapel";
-	consulta += "&id=" + id ;
+
+	var filtros = {
+		id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -260,13 +273,15 @@ function mostrarEliminarTamanio()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				alert(peticionUnica1.responseText);
+			{				
+				alert("Tamaño Borrado");
 				cargarTamaniosListado("listado");
 						
 			}			
@@ -303,23 +318,15 @@ function mostrarCargarTipoListado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
+				var datos = res.datos;	
 				
 				var contenido = "";
 				
@@ -377,8 +384,17 @@ function modificarTipo(id)
 function consultaModificarTipo(id)
 {	
 	var consulta = "accion=modificarTipoPapel";
-	consulta += "&id=" + id ;
-	consulta += "&valor=" + document.getElementById(id + "_tipo").value;
+
+	var datos = {		
+		tipo: document.getElementById(id + "_tipo").value	
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));	
+
 	return consulta;	
 }
 
@@ -388,16 +404,17 @@ function mostrarModificarTipo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);
-				cargarTipoListado("listado");
-						
-			}			
+				alert("Tipo modificado");
+				cargarTipoListado("listado");						
+			}	
 			peticionUnica1=null;			
 		}
 	}						
@@ -432,23 +449,15 @@ function mostrarCargarAcabadoListado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
+				var datos = res.datos;	
 				
 				var contenido = "";
 				
@@ -505,8 +514,17 @@ function modificarAcabado(id)
 function consultaModificarAcabado(id)
 {	
 	var consulta = "accion=modificarAcabadoPapel";
-	consulta += "&id=" + id ;
-	consulta += "&valor=" + document.getElementById(id + "_acabado").value;
+
+	var datos = {		
+		acabado: document.getElementById(id + "_acabado").value		
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	
 	return consulta;	
 }
 
@@ -516,13 +534,15 @@ function mostrarModificarAcabado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);
+				alert("Acabado modificado");
 				cargarAcabadoListado("listado");
 						
 			}			
@@ -559,23 +579,15 @@ function mostrarCargarGramajeListado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
+				var datos = res.datos;	
 				
 				var contenido = "";
 				
@@ -632,8 +644,17 @@ function modificarGramaje(id)
 function consultaModificarGramaje(id)
 {	
 	var consulta = "accion=modificarGramajePapel";
-	consulta += "&id=" + id ;
-	consulta += "&valor=" + document.getElementById(id + "_gramaje").value;
+	
+	var datos = {		
+		gramaje: document.getElementById(id + "_gramaje").value		
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));		
+	
 	return consulta;	
 }
 
@@ -643,13 +664,15 @@ function mostrarModificarGramaje()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);
+				alert("Gramaje modificado");
 				cargarGramajeListado("listado");
 						
 			}			
@@ -677,7 +700,11 @@ function eliminarTipo(id)
 function consultaEliminarTipo(id)
 {	
 	var consulta = "accion=borrarTipoPapel";
-	consulta += "&id=" + id ;
+	
+	var filtros = {
+		id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -688,13 +715,15 @@ function mostrarEliminarTipo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				alert(peticionUnica1.responseText);
+			{				
+				alert("Tipo Borrado");
 				cargarTipoListado("listado");
 						
 			}			
@@ -721,7 +750,11 @@ function eliminarAcabado(id)
 function consultaEliminarAcabado(id)
 {	
 	var consulta = "accion=borrarAcabadoPapel";
-	consulta += "&id=" + id ;
+	
+	var filtros = {
+		id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -732,13 +765,15 @@ function mostrarEliminarAcabado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				alert(peticionUnica1.responseText);
+			{				
+				alert("Acabado Borrado");
 				cargarAcabadoListado("listado");
 						
 			}			
@@ -765,7 +800,11 @@ function eliminarGramaje(id)
 function consultaEliminarGramaje(id)
 {	
 	var consulta = "accion=borrarGramajePapel";
-	consulta += "&id=" + id ;
+	
+	var filtros = {
+		id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -776,13 +815,15 @@ function mostrarEliminarGramaje()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				alert(peticionUnica1.responseText);
+			{				
+				alert("Gramaje Borrado");
 				cargarGramajeListado("listado");
 						
 			}			
@@ -798,7 +839,7 @@ function insertarTipo()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarTipo;
-		peticionUnica1.open("POST","ajax/insertarTipoPapel.php",false);
+		peticionUnica1.open("POST","ajax/crearTipoPapel.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarTipo();
 		peticionUnica1.send(query_string);
@@ -808,7 +849,11 @@ function insertarTipo()
 function consultaInsertarTipo()
 {	
 	var consulta = "accion=insertarTipo";
-	consulta += "&valor=" + document.getElementById("nuevoTipo").value;
+
+	var datos = {tipo: document.getElementById("nuevoTipo").value}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));	
+	
 	return consulta;	
 }
 
@@ -818,15 +863,15 @@ function mostrarInsertarTipo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="" || res.ok==false )
 			{
-				alert(peticionUnica1.responseText);
-			}
+				alert(res.error);				
+			}			
 			else
 			{
-				alert(peticionUnica1.responseText);
-				cargarTipoListado("listado");
-						
+				alert('Tipo Insertado');
+				cargarTipoListado("listado");						
 			}			
 			peticionUnica1=null;			
 		}
@@ -840,7 +885,7 @@ function insertarAcabado()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarAcabado;
-		peticionUnica1.open("POST","ajax/insertarAcabadoPapel.php",false);
+		peticionUnica1.open("POST","ajax/crearAcabadoPapel.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarAcabado();
 		peticionUnica1.send(query_string);
@@ -850,7 +895,12 @@ function insertarAcabado()
 function consultaInsertarAcabado()
 {	
 	var consulta = "accion=insertarAcabado";
-	consulta += "&valor=" + document.getElementById("nuevoAcabado").value;
+
+	var datos = {acabado: document.getElementById("nuevoAcabado").value}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));	
+
+
 	return consulta;	
 }
 
@@ -860,15 +910,15 @@ function mostrarInsertarAcabado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="" || res.ok==false )
 			{
-				alert(peticionUnica1.responseText);
-			}
+				alert(res.error);				
+			}			
 			else
 			{
-				alert(peticionUnica1.responseText);
-				cargarAcabadoListado("listado");
-						
+				alert('Acabado Insertado');
+				cargarAcabadoListado("listado");						
 			}			
 			peticionUnica1=null;			
 		}
@@ -883,7 +933,7 @@ function insertarGramaje()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarGramaje;
-		peticionUnica1.open("POST","ajax/insertarGramajePapel.php",false);
+		peticionUnica1.open("POST","ajax/crearGramajePapel.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarGramaje();
 		peticionUnica1.send(query_string);
@@ -893,7 +943,11 @@ function insertarGramaje()
 function consultaInsertarGramaje()
 {	
 	var consulta = "accion=insertarGramaje";
-	consulta += "&valor=" + document.getElementById("nuevoGramaje").value;
+
+	var datos = {gramaje: document.getElementById("nuevoGramaje").value}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));	
+
 	return consulta;	
 }
 
@@ -903,13 +957,14 @@ function mostrarInsertarGramaje()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="" || res.ok==false )
 			{
-				alert(peticionUnica1.responseText);
-			}
+				alert(res.error);				
+			}			
 			else
 			{
-				alert(peticionUnica1.responseText);
+				alert('Gramaje Insertado');
 				cargarGramajeListado("listado");
 						
 			}			
@@ -946,27 +1001,19 @@ function mostrarCargarTamanioConversor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
+				var datos = res.datos;	
 				
 				var contenido = "";
 				
-				var contador = 0;	
+				var contador = 0;
 				contenido += '<tr><td align="center" colspan="6" style="border:0px !important;"><h1>TAMAÑO CONVERSOR</h1></tr>';
 
 				contenido += '<tr><td align="center" colspan="6" style="border:0px !important; vertical-align: center !important;">Nuevo Tamaño Inicio: <select id="nuevoTamanioInicio"></select>&nbsp;&nbsp;&nbsp;&nbsp;Nuevo Tamaño Final: <select id="nuevoTamanioFinal"></select>&nbsp;&nbsp;&nbsp;&nbsp;Valor <input type="text" id="valorTamanioConversor"></input> <img src="imagenes/crear.png" style="width:20px !important; vertical-align: center !important;"  onclick="insertarTamanioConversor()"></img></td></tr>';
@@ -1036,7 +1083,7 @@ function insertarTamanioConversor()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarTamanioConversor;
-		peticionUnica1.open("POST","ajax/insertarTamanioConversor.php",false);
+		peticionUnica1.open("POST","ajax/crearTamanioConversor.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarTamanioConversor();
 		peticionUnica1.send(query_string);
@@ -1046,9 +1093,15 @@ function insertarTamanioConversor()
 function consultaInsertarTamanioConversor()
 {	
 	var consulta = "accion=insertarTamanioConversor";
-	consulta += "&idTamanioInicio=" + document.getElementById("nuevoTamanioInicio").value;
-	consulta += "&idTamanioFinal=" + document.getElementById("nuevoTamanioFinal").value;
-	consulta += "&valorTamanioConversor=" + document.getElementById("valorTamanioConversor").value;
+
+	var datos = {
+		idTamanioInicio: document.getElementById("nuevoTamanioInicio").value,
+		idTamanioFinal: document.getElementById("nuevoTamanioFinal").value,
+		valor: document.getElementById("valorTamanioConversor").value
+	}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));	
+	
 	return consulta;	
 }
 
@@ -1058,16 +1111,17 @@ function mostrarInsertarTamanioConversor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="" || res.ok==false )
 			{
-				alert(peticionUnica1.responseText);
-			}
+				alert(res.error);				
+			}			
 			else
 			{
-				alert(peticionUnica1.responseText);
-				cargarTamanioConversor("listado");
-						
-			}			
+				alert('Tamaño Conversor Insertado');
+				cargarTamanioConversor("listado");						
+			}
+
 			peticionUnica1=null;			
 		}
 	}						
@@ -1093,12 +1147,20 @@ function modificarTamanioConversor(id)
 function consultaModificarTamanioConversor(id)
 {	
 	var consulta = "accion=modificarTamanioConversor";
-	consulta += "&id=" + id;
-	consulta += "&idTamanioInicio=" + document.getElementById(id + "_tamanioInicio").value;
-	consulta += "&idTamanioFinal=" + document.getElementById(id + "_tamanioFinal").value;
-	consulta += "&valorTamanioConversor=" + document.getElementById(id + "_valor").value;
+	
+	
+	var datos = {		
+		idTamanioInicio: document.getElementById(id + "_tamanioInicio").value,
+		idTamanioFinal: document.getElementById(id + "_tamanioFinal").value,
+		valor: document.getElementById(id + "_valor").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 
-
+	var filtros = {
+    	id: id
+	};	
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	
 	return consulta;	
 }
 
@@ -1108,13 +1170,15 @@ function mostrarModificarTamanioConversor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				alert(peticionUnica1.responseText);
+			{				
+				alert("Tamaño Conversor modificado");
 				cargarTamanioConversor("listado");
 						
 			}			
@@ -1133,35 +1197,41 @@ function eliminarTamanioConversor(id)
 
 	if(peticionUnica1)
 	{							
-		peticionUnica1.onreadystatechange = mostrarEliminarGramaje;
+		peticionUnica1.onreadystatechange = mostrarEliminarTamanioConversor;
 		peticionUnica1.open("POST","ajax/eliminarTamanioConversor.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaEliminarGramaje(id);
+		var query_string = consultaEliminarTamanioConversor(id);
 		peticionUnica1.send(query_string);
 	}
 }
 
-function consultaEliminarGramaje(id)
+function consultaEliminarTamanioConversor(id)
 {	
 	var consulta = "accion=eliminarTamanioConversor";
-	consulta += "&id=" + id ;
+
+	var filtros = {
+		id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
 
-function mostrarEliminarGramaje()
+function mostrarEliminarTamanioConversor()
 {
 	if (peticionUnica1.readyState == 4)
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				alert(peticionUnica1.responseText);
+			{				
+				alert("Tamaño Conversor Borrado");
 				cargarTamanioConversor("listado");
 						
 			}			

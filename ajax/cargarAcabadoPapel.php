@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarAcabado")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarAcabado")
 {
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);

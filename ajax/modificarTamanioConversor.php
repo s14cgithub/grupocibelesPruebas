@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="modificarTamanioConversor")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarTamanioConversor")
 { 
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -9,14 +9,22 @@ if(isset($_POST["accion"])&$_POST["accion"]=="modificarTamanioConversor")
 		
 	session_start(); 
 	
+	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
 	
-	$id=$_POST["id"];	
-	$idTamanioInicio=$_POST["idTamanioInicio"];	
-	$idTamanioFinal=$_POST["idTamanioFinal"];	
-	$valorTamanioConversor=$_POST["valorTamanioConversor"];	
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
+
+	$res =  modificarTamanioConversor($conn,$bbddSql, $datos, $filtros,$filtrosOperadores);
 	
+	sqlsrv_close($conn);
 	
-	echo modificarTamanioConversor($conexion,$id,$idTamanioInicio,$idTamanioFinal,$valorTamanioConversor);
+	echo json_encode($res);
+
+	
 }
 
 ?>

@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarGramaje")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarGramaje")
 {
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -27,7 +27,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarGramaje")
 		];
 
 	$order = [			
-			['campo' => 'tipo', 'dir' => 'ASC']
+			['campo' => 'gramaje', 'dir' => 'ASC']
 		];
 	
 	$gramaje = cargarGramajePapel($conn,$bbddSql, $campos, $filtros,$filtrosOperadores, $order);

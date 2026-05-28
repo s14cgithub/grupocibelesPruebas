@@ -30,12 +30,25 @@ require($ruta."Archivos Comunes/cabecera.php");
 
 
 <?php
-//PRESUPUESTOS
+	//PRESUPUESTOS
 	if ($_SESSION["permiso_presupuestos"]==1 || $_SESSION["permiso_presupuestos"] == 2)
 	{
 		echo ('<br><br>');	
 		echo ('<h4>PRESUPUESTOS</h4>');	
 		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'presupuestos.php\'">Presupuestos</button>');		
+	}
+
+	//MATERIALES
+	if ($_SESSION["permiso_materialesPapel"]==1 || $_SESSION["permiso_materialesPapel"] == 2)
+	{	
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'materiales.php\'">Materiales</button>');		
+	}
+
+	
+	//OT - PRODUCCION
+	if ($_SESSION["permiso_ot"]==1 || $_SESSION["permiso_ot"] == 2)
+	{
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'ot.php\'">OT</button>');		
 	}
 
 ?>

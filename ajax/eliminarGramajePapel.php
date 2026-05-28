@@ -8,30 +8,53 @@ if(isset($_POST["accion"])&$_POST["accion"]=="borrarGramajePapel")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	$id = $_POST["id"];
-	
-	$condicion = " where t1.idPapelGramaje = ".$id;
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
 
-	$datos = cargarRegistrosHoraInformatica($conexion,$condicion);
-	if (count($datos)>0)
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resultado = array();
+
+	$campos2 = ['id'];
+	$joins2=array();
+	$filtros2 = ['idPapelGramaje' => $filtros["id"]];
+	$filtrosOperadores2=array();	
+	$order2=array();
+
+	$registrosHoras = cargarRegistrosHoraInformatica($conn, $bbddSql, $campos2, $joins2, $filtros2, $filtrosOperadores2, $order2);
+
+	if (count($registrosHoras["datos"])>0)
 	{
-		echo "No puede eliminar porque hay registros en produccion guardados con este Gramaje";
+		$resultado["error"] = "No puede eliminar porque hay registros de Informatica guardados con este Tamaño";
 	}
 	else 
 	{
-		$condicion = " where t12.id = ".$id; 
-		$datosPresu  = mostrarPresupuestosDetalles($conexion,$condicion);
+		$campos3 = ['id'];
+		$joins3= ['tabla5','tabla9'];
+		$filtros3 = ['gramaje_id' => $filtros["id"]];
+		$filtrosOperadores3=array();	
+		$order3=array();
 
-		if (count($datosPresu)>0)
+		$detallePresupuesto = cargarDetallesPresupuesto($conn, $bbddSql, $campos3, $joins3, $filtros3, $filtrosOperadores3, $order3);
+	
+		if (count($detallePresupuesto["datos"])>0)
 		{
-			echo "No se puede eliminar porque hay registros en presupuestos guardados con este Gramaje";
+			$resultado["error"] = "No puede eliminar porque hay registros de presupuestos guardados con este Tamaño";
 		}
 		else
 		{
-			echo eliminarGramajesPapel($conexion, $id);
-			
-		}			
+			$resultado =  eliminarGramajesPapel($conn,$bbddSql, $filtros, $filtrosOperadores);
+		}
 	}
+
+	sqlsrv_close($conn);
+	echo json_encode($resultado);
 	
 }
 
