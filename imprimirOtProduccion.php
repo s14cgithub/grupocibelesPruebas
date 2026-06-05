@@ -2,7 +2,7 @@
 session_start(); 
 require("comprobarSesion.php");
 
-if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirOT")
+if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 //if(isset($_GET["imprimirAccion"])&$_GET["imprimirAccion"]=="imprimirPresu")
 {
 	$ruta = '/';
@@ -43,92 +43,196 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirOT")
 	$pdf = new PDF('P','mm','A4');
 	
 	//echo "<br>".$MaxNumFac;
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
 	
 	while ($contadorMax<=$MaxNumFac)		
-	{
-	
+	{	
 		$numPresupuesto = $contadorMax;
 	
+		$campos =['departamento'];
+		$filtros = [];	
+		$order = array();
+		
+		$departamentos = cargarDepartamentoProcesoBBDD($conn,$bbddSql, $campos, $filtros, $order);
 	
-		$departamentos = verDepartamentosProcesos($conexion);
-		$departamentosEnDetalles = cargarDetallesPresupuestoDepartamento($conexion,$numPresupuesto);
+		$campos2 =['departamentoDistinct'];
+		$joins2 = [];
+		$filtros2 = [
+			'presupuesto' => strval($numPresupuesto)	
+		];
+		$filtrosOperadores2 = array();
+		$order2 = [
+			['campo' => 'departamento', 'dir' => 'ASC']		
+		];
 
-		$esClayma = verSiOtEsDeClayma($conexion,$numPresupuesto);
-		
-		
-		if (count($esClayma)>0)
+		$departamentosEnDetalles = cargarDetallesPresupuesto($conn, $bbddSql, $campos2, $joins2, $filtros2, $filtrosOperadores2, $order2);
+
+		$campos3 =['clayma'];
+		$joins3 = array();
+		$filtros3 = [
+			'presupuesto' => strval($numPresupuesto)	
+		];
+		$filtrosOperadores3 = array();
+		$order3 = array();
+
+
+		$esClayma = cargarPresupuestos($conn,$bbddSql, $campos3, $joins3, $filtros3, $filtrosOperadores3, $order3);
+	
+				
+		if (count($esClayma['datos'])>0)
 		{
-			if ($esClayma[0]["clayma"]==1)
+
+			$filtros4 = [
+				'presupuesto' => strval($numPresupuesto)	
+			];
+			$filtrosOperadores4 = array(
+				array(
+					'campo1' => 'codigoCliente',
+					'operador' => '!=',
+					'campo2' => null
+				)
+			);
+			$order4 = array();
+
+
+			if ($esClayma['datos'][0]["clayma"]==1)
 			{
-				$datosPresupuesto = verPresupuestoParaOtClayma($conexion,$numPresupuesto);
+				$campos4 =[
+					'presupuesto',
+					'cliente',
+					'codigoCliente',
+					'nombre_franqueoClayma',					
+					'fechaInicioReal',
+					'fechaTerminado',
+					'campana2',
+					'inicialComercial',
+					'persona',
+					'letra',
+					'observaciones2',
+					'cantidad2'
+				];
+
+				$joins4 = ['tabla2','tabla3','tabla4', 'tabla8'];
+				//$datosPresupuesto = verPresupuestoParaOtClayma($conexion,$numPresupuesto);
 			}
 			else
 			{
-				$datosPresupuesto = verPresupuestoParaOt($conexion,$numPresupuesto);
+				$campos4 =[
+					'presupuesto',
+					'cliente',
+					'codigoCliente',
+					'nombre_franqueo',					
+					'fechaInicioReal',
+					'fechaTerminado',
+					'campana2',
+					'inicialComercial',
+					'persona',
+					'letra',
+					'observaciones2',
+					'cantidad2'
+				];
+
+				$joins4 = ['tabla2','tabla3','tabla4', 'tabla7'];
+				
+				//$datosPresupuesto = verPresupuestoParaOt($conexion,$numPresupuesto);
 			}
+			//echo $numPresupuesto."\n<br>";
+			$datosPresupuesto = cargarPresupuestos($conn,$bbddSql, $campos4, $joins4, $filtros4, $filtrosOperadores4, $order4);
+			
 
-
-			$datosDetalles = cargarDetallesPresupuesto($conexion,$numPresupuesto,"paraOt");
-
-			//$departamentosFijos = array("BENJA","SOBRANTE", "ALMACEN","MATERIALES");
-			//$departamentosFijos = array("SOBRANTE","MATERIALES");
-			$departamentosFijos = array();//sin departamentos fijos
-
-			//$pdf = new PDF('P','mm','A4');
-
-			$altura=-1;
-			$margen=10;
-			$alturaSiguientePagina=15;
-			$limiteAlturaDatos = 260;
-			$mostrarPrecio=0;
-			$numPagina=0;
-
-
-
-			foreach ($departamentos as $row)//impresión de departamentos dinámicos
+	
+			if (count($datosPresupuesto['datos'])>0)
 			{
-				$contador=0;
-				$encontrado=false;
+				$campos5 =[
+						'id',
+						'presupuesto',
+						'departamento',
+						'unidades2',
+						'proceso',
+						'descripcion',
+						'notaCibeles'
+					];
 
-				while ($contador<count($departamentosEnDetalles) && !$encontrado) //se mira qué departamentos dinámicos se imprimen
+				$joins5 = [];			
+
+				$filtros5 = [
+					'presupuesto' => strval($numPresupuesto)		
+					];
+
+				$filtrosOperadores5 = array();
+				$order5 = [			
+					['campo' => 'departamento', 'dir' => 'ASC'],
+					['campo' => 'ordenTipoProceso', 'dir' => 'ASC'],
+					['campo' => 'idTipo', 'dir' => 'ASC'],
+					['campo' => 'orden', 'dir' => 'ASC'],
+					['campo' => 'id', 'dir' => 'ASC']				
+				];
+
+				$datosDetalles = cargarDetallesPresupuesto($conn,$bbddSql, $campos5, $joins5, $filtros5, $filtrosOperadores5, $order5);
+				//$departamentosFijos = array("BENJA","SOBRANTE", "ALMACEN","MATERIALES");
+				//$departamentosFijos = array("SOBRANTE","MATERIALES");
+				$departamentosFijos = array();//sin departamentos fijos
+
+				//$pdf = new PDF('P','mm','A4');
+
+				$altura=-1;
+				$margen=10;
+				$alturaSiguientePagina=15;
+				$limiteAlturaDatos = 260;
+				$mostrarPrecio=0;
+				$numPagina=0;
+
+
+
+				foreach ($departamentos as $row)//impresión de departamentos dinámicos
 				{
-					if (in_array($row["departamento"], $departamentosEnDetalles[$contador]))
+					$contador=0;
+					$encontrado=false;
+
+					while ($contador<count($departamentosEnDetalles['datos']) && !$encontrado) //se mira qué departamentos dinámicos se imprimen
 					{
-						$encontrado=true;
+						if (in_array($row["departamento"], $departamentosEnDetalles['datos'][$contador]))
+						{
+							$encontrado=true;
+						}
+						$contador++;
 					}
-					$contador++;
-				}
 
 
-				if ($encontrado)
-				{
-					imprimirDatos($pdf,"dinamico", $row);
-				}
-
-			}
-			foreach ($departamentosFijos as $row)
-			{
-				/*$contador=0;
-				$encontrado=false;
-
-				while ($contador<count($departamentosEnDetalles) && !$encontrado) //se mira qué departamentos dinámicos se imprimen
-				{
-					if (in_array($row["departamento"], $departamentosEnDetalles[$contador]))
+					if ($encontrado)
 					{
-						$encontrado=true;
+						imprimirDatos($pdf,"dinamico", $row);
 					}
-					$contador++;
-				}*/
 
-
-				//if ($encontrado)
-				{
-					//$pdf->Text(50,50,$row);
-					//$altura += 5;
-					imprimirDatos($pdf,"", $row);
 				}
+				foreach ($departamentosFijos as $row)
+				{
+					/*$contador=0;
+					$encontrado=false;
 
+					while ($contador<count($departamentosEnDetalles) && !$encontrado) //se mira qué departamentos dinámicos se imprimen
+					{
+						if (in_array($row["departamento"], $departamentosEnDetalles[$contador]))
+						{
+							$encontrado=true;
+						}
+						$contador++;
+					}*/
+
+
+					//if ($encontrado)
+					{
+						//$pdf->Text(50,50,$row);
+						//$altura += 5;
+						imprimirDatos($pdf,"", $row);
+					}
+
+				}
 			}
+			
 		}
 		
 		
@@ -152,6 +256,10 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirOT")
 	//echo "<script language='javascript'>window.open('http://172.26.0.17:8080/gestionGrupocibelesPreproduccion/imprimirOtProduccion2.php?ot=333', '_blank')</script>";
 	//echo '<script language="javascript">document.getElementById("formImprimir").submit();</script>';
 	//header("Location: http://www.example.com/");
+	
+	
+	sqlsrv_close($conn);
+	
 	$pdf->Output("I",$ruta."OT - ".date("dmy")." .pdf","UTF-8");
 	
 	
@@ -201,7 +309,7 @@ function imprimirDatos(&$pdf,$tipo, $row)
 			
 			$pdf->SetFont('Arial','B',30);	
 			$altura=$altura + 18;
-			$pdf->Text($margen,$altura,"OT ".$datosPresupuesto[0]["presupuesto"]);
+			$pdf->Text($margen,$altura,"OT ".$datosPresupuesto['datos'][0]["presupuesto"]);
 
 			$pdf->SetXY($pdf->GetPageWidth()-60,$altura);
 			$pdf->Image('imagenes/Logo Grupo Cibeles.jpg',(($pdf->GetPageWidth())/2)-(27/2),5,27);	
@@ -227,25 +335,25 @@ function imprimirDatos(&$pdf,$tipo, $row)
 			$pdf->SetFont('Arial','',15);
 			$altura=$altura + 5;
 			$pdf->SetXY($margen,$altura);
-			$pdf->MultiCell(140,8,utf8_decode($datosPresupuesto[0]["cliente"]),1,'L',false);
+			$pdf->MultiCell(140,8,utf8_decode($datosPresupuesto['datos'][0]["cliente"]),1,'L',false);
 			
 			
 			$pdf->SetTextColor(255,0,0);
 			$pdf->SetFont('Arial','B',12);
 			$pdf->SetXY($pdf->GetPageWidth()-60,$altura);
-			$pdf->MultiCell(0,8,utf8_decode($datosPresupuesto[0]["nombre_franqueo"]),1,'R',false);
+			$pdf->MultiCell(0,8,utf8_decode($datosPresupuesto['datos'][0]["nombre_franqueo"]),1,'R',false);
 	
 	
 			$pdf->SetFont('Arial','',10);
 			$pdf->SetTextColor(0,0,0);
 			$pdf->SetXY($margen,$altura+8);
-			$pdf->MultiCell(0,8,utf8_decode($datosPresupuesto[0]["codigo"]),0,'L',false);
+			$pdf->MultiCell(0,8,utf8_decode($datosPresupuesto['datos'][0]["codigoCliente"]),0,'L',false);
 			
 			
 			
 			
 			
-			$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($datosPresupuesto[0]["cliente"]));
+			$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($datosPresupuesto['datos'][0]["cliente"]));
 			$numeroDeFilas = $anchoDescripcion / ((140)-1);
 			if ($numeroDeFilas<1)
 			{
@@ -266,7 +374,7 @@ function imprimirDatos(&$pdf,$tipo, $row)
 			$pdf->SetXY($margen,$altura);
 			$pdf->SetTextColor(0,0,0);
 			$pdf->SetFont('Arial','',10);
-			$pdf->MultiCell(0,8,utf8_decode($datosPresupuesto[0]["nombre_empresa"]),0,'L',false);
+			$pdf->MultiCell(0,8,utf8_decode($datosPresupuesto['datos'][0]["cliente"]),0,'L',false);
 			
 			
 			$altura = $altura + 10; 
@@ -277,7 +385,7 @@ function imprimirDatos(&$pdf,$tipo, $row)
 			$pdf->SetTextColor(0,0,0);
 			$pdf->SetFont('Arial','',18);
 			$pdf->SetXY($margen+15+90,$altura);
-			$pdf->Cell(25,0,utf8_decode($datosPresupuesto[0]["fechaInicioReal"]->format('d/m/Y')),0,1,'L',false);
+			$pdf->Cell(25,0,utf8_decode($datosPresupuesto['datos'][0]["fechaInicioReal"]->format('d/m/Y')),0,1,'L',false);
 			
 			$pdf->SetFont('Arial','BI',10);
 			$pdf->SetTextColor(13,140,252);
@@ -286,17 +394,17 @@ function imprimirDatos(&$pdf,$tipo, $row)
 			$pdf->SetTextColor(0,0,0);
 			$pdf->SetFont('Arial','',18);
 			//$pdf->SetXY($margen+15,$altura);
-			$pdf->Cell(0,0,utf8_decode($datosPresupuesto[0]["fechaTerminado"]->format('d/m/Y')),0,1,'R',false);
+			$pdf->Cell(0,0,utf8_decode($datosPresupuesto['datos'][0]["fechaTerminado"]->format('d/m/Y')),0,1,'R',false);
 			
 			
 			$altura = $altura + 10; 
 			$pdf->SetFont('Arial','B',15);			
 			$pdf->SetXY($margen,$altura);
-			$pdf->MultiCell(0,5,utf8_decode($datosPresupuesto[0]["campana2"]),0,'C',false);
+			$pdf->MultiCell(0,5,utf8_decode($datosPresupuesto['datos'][0]["campana2"]),0,'C',false);
 			
 			
 			
-			$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($datosPresupuesto[0]["campana2"]));
+			$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($datosPresupuesto['datos'][0]["campana2"]));
 			$numeroDeFilas = $anchoDescripcion / ((140)-1); 
 			if ($numeroDeFilas<1)
 			{
@@ -331,7 +439,7 @@ function imprimirDatos(&$pdf,$tipo, $row)
 			$pdf->Text($margen+140,$altura,"Ingreso:");
 			
 			$pdf->SetTextColor(0,0,0);
-			$pdf->Text($margen+23,$altura,$datosPresupuesto[0]["inicialComercial"]." - ".$datosPresupuesto[0]["presupuesto"]." ".$datosPresupuesto[0]["letra"]);
+			$pdf->Text($margen+23,$altura,$datosPresupuesto['datos'][0]["inicialComercial"]." - ".$datosPresupuesto['datos'][0]["presupuesto"]." ".$datosPresupuesto['datos'][0]["letra"]);
 			
 			
 			$altura = $altura + 5; 
@@ -341,17 +449,19 @@ function imprimirDatos(&$pdf,$tipo, $row)
 			//$pdf->Text($margen+140,$altura,"Email:");
 			
 			$pdf->SetTextColor(0,0,0);			
-			$pdf->Text($margen+19,$altura,strtoupper(utf8_decode($datosPresupuesto[0]["persona"])));
+			$pdf->Text($margen+19,$altura,strtoupper(utf8_decode($datosPresupuesto['datos'][0]["persona"])));
 			
 			$altura = $altura + 7; 
 			$pdf->SetTextColor(255,0,0);
 			$pdf->SetFont('Arial','B',10);
 			$pdf->SetXY($margen,$altura);
 			//$pdf->Cell(0,0,utf8_decode("¡¡¡¡POR FAVOR LEED LA OT CON MAXIMA ATENCION, ANTE CUALQUIER DUDA CONSULTAR!!!!"),0,1,'C',false);
-			//$pdf->Cell(0,0,utf8_decode($datosPresupuesto[0]["observaciones2"]),0,1,'C',false);
+			//$pdf->Cell(0,0,utf8_decode($datosPresupuesto['datos'][0]["observaciones2"]),0,1,'C',false);
 			
+
+			$observaciones2 = mb_convert_encoding($datosPresupuesto['datos'][0]["observaciones2"], 'ISO-8859-1', 'UTF-8');
 	
-			$observaciones2 = reemplazarSimbolos($datosPresupuesto[0]["observaciones2"]);
+			//$observaciones2 = reemplazarSimbolos($datosPresupuesto['datos'][0]["observaciones2"]);
 			$pdf->MultiCell(0,5,$observaciones2,0,'C',false);
 			$pdf->SetTextColor(0,0,0);	
 	
@@ -386,7 +496,7 @@ function imprimirDatos(&$pdf,$tipo, $row)
 			$altura = $altura + 5; 
 			$pdf->SetXY($margen,$altura);
 			$pdf->SetFont('Arial','B',16);
-			$pdf->Cell(0,0,"Cantidad: " .number_format($datosPresupuesto[0]["cantidad2"],0,',','.'),0,1,'C',false); 
+			$pdf->Cell(0,0,"Cantidad: " .number_format($datosPresupuesto['datos'][0]["cantidad2"],0,',','.'),0,1,'C',false); 
 			
 	
 			$altura = $altura - 5; 
@@ -407,7 +517,7 @@ function imprimirDatos(&$pdf,$tipo, $row)
 function imprimirDetalles(&$pdf,$tipo, &$altura, $departamento, $datosDetalles, $limiteAlturaDatos, $margen, $alturaSiguientePagina, $mostrarPrecio, &$numPagina, $departamentoTitulo)
 {
 	$departamentoAnterior="asdfjkidj234234";
-	foreach ($datosDetalles as $row) 
+	foreach ($datosDetalles['datos'] as $row) 
 	{
 		//if ($departamentoTitulo==$row["departamento"]) //ESTE IF ES PARA IMPRIMIR SOLO LOS DATOS CORRESPOENDIENTE DEL DEPARTAMENTO
 		{
@@ -473,7 +583,8 @@ function imprimirDetalles(&$pdf,$tipo, &$altura, $departamento, $datosDetalles, 
 				$pdf->SetXY($margen+25,$altura);
 
 
-				$descripion = reemplazarSimbolos($row["descripcion"]);		
+				//$descripion = reemplazarSimbolos($row["descripcion"]);	
+				$descripion =mb_convert_encoding($row["descripcion"], 'Windows-1252', 'UTF-8');	
 
 
 				$pdf->MultiCell(165,4,$descripion,0,'L',false);
@@ -500,7 +611,8 @@ function imprimirDetalles(&$pdf,$tipo, &$altura, $departamento, $datosDetalles, 
 
 				$pdf->SetXY($margen+30,$altura);
 
-				$notas2 = reemplazarSimbolos($row["notaCibeles"]);
+				//$notas2 = reemplazarSimbolos($row["notaCibeles"]);
+				$notas2 = mb_convert_encoding($row["notaCibeles"], 'ISO-8859-1', 'UTF-8');
 
 				$pdf->MultiCell(160,4,$notas2,0,'L',false);
 
@@ -774,12 +886,3 @@ function checkList(&$pdf,&$numPagina)
 }
 
 ?>
-
-	
-	
-	
-	
-	
-		
-
-

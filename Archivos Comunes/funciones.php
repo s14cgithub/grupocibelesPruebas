@@ -777,7 +777,9 @@ function cargarPresupuestos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fil
         'nombreComercial' => 't2.nombre as nombreComercial',
         'telefonoComercial' => 't2.telefono as telefonoComercial',
         'textoFormaPago' => 't3.concepto as textoFormaPago',
-        'ivaFranqueo' => 't4.tipoIva as ivaFranqueo'        
+        'ivaFranqueo' => 't4.tipoIva as ivaFranqueo',
+        'nombre_franqueo' => 't7.nombre_franqueo',
+        'nombre_franqueoClayma' => 't8.nombre_franqueo'
     );
 
     //t2: presupuestadores
@@ -785,6 +787,8 @@ function cargarPresupuestos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fil
     //t4: totalFranqueoTipos
     //t5: facturacion
     //t6: facturacion clayma
+    //t7: clientes
+    //t8: clientes Clayma
 
     if (!is_array($campos) || empty($campos)) {
         return array(
@@ -813,7 +817,9 @@ function cargarPresupuestos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fil
         'tabla3' => "inner join [".$bbddSql."].[dbo].[formaDePago] as t3 on t3.id = t1.idFormaPago",
         'tabla4' => "inner join [".$bbddSql."].[dbo].[totalFranqueoTipos] as t4  on t4.id = t1.idVisualizarTotalFranqueo",
         'tabla5' => "left join [".$bbddSql."].[dbo].[facturacion] as t5 on t5.presupuesto = t1.presupuesto",
-        'tabla6' => "left join [".$bbddSql."].[dbo].[facturacionClayma] as t6 on t6.presupuesto = t1.presupuesto"
+        'tabla6' => "left join [".$bbddSql."].[dbo].[facturacionClayma] as t6 on t6.presupuesto = t1.presupuesto",
+        'tabla7' => "inner join [".$bbddSql."].[dbo].[clientes] as t7 on t7.codigo = t1.codigoCliente",
+        'tabla8' => "inner join [".$bbddSql."].[dbo].[clientesClayma] as t8 on t8.codigo = t1.codigoCliente"
     ];
 
     $sqlJoins = '';
@@ -936,9 +942,8 @@ function cargarPresupuestos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fil
     );
 }
 
-function cargarPresupuestosConNumFacturas($conn_sis, $bbddSql, $campos, $filtros, $order)
+function cargarPresupuestosConNumFacturas($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $filtrosLike, $order)
 {
-    // ---------- CAMPOS ----------
     $camposPermitidos = array(
         'cliente' => 'tabla.cliente',
         'campana' => 'tabla.campana',
@@ -963,172 +968,167 @@ function cargarPresupuestosConNumFacturas($conn_sis, $bbddSql, $campos, $filtros
 		'fechaInicioReal' => 'tabla.fechaInicioReal',
 		'cantidad' => 'tabla.cantidad',
 		'cantidad2' => 'tabla.cantidad2',
-		'noSeFacturaObservaciones' => 'tabla.noSeFacturaObservaciones'
+		'noSeFacturaObservaciones' => 'tabla.noSeFacturaObservaciones',
+        'observaciones2' => 'observaciones2'
     );
+   
 
     if (!is_array($campos) || empty($campos)) {
-
         return array(
-            'error' => 'campos vacios',
-            'datos' => array()
-        );
+            'error' => "campos vacios");
     }
 
     $camposSQL = array();
 
     foreach ($campos as $campo) {
-
         if (isset($camposPermitidos[$campo])) {
-
             $camposSQL[] = $camposPermitidos[$campo];
         }
     }
 
     if (empty($camposSQL)) {
-
         return array(
-            'error' => 'campos SQL vacios',
-            'datos' => array()
-        );
+            'error' => "campos SQL vacios");
     }
 
     $listaCampos = implode(', ', $camposSQL);
 
+    //JOINS
+
+    $joinsPermitidos = [
+
+    ];
+
+    $sqlJoins = '';
+
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+    
     // ---------- FILTROS ----------
     $condicion = array();
-    $params = array();
+    $params = array();    
 
-    // texto + queBusca
-    if (
-        !empty($filtros['texto']) &&
-        !empty($filtros['queBusca'])
-    ) {
+    if (isset($filtros['presupuesto'])) {
+        $condicion[] = 'tabla.presupuesto = ?';
+        $params[] = $filtros['presupuesto'];
+    }
+    if (isset($filtros['otBajada'])) {
+        $condicion[] = 'tabla.otBajada = ?';
+        $params[] = $filtros['otBajada'];
+    }
+    if (isset($filtros['otAbierta'])) {
+        $condicion[] = 'tabla.otAbierta = ?';
+        $params[] = $filtros['otAbierta'];
+    }
+    
+    if (isset($filtros['sinFecha']) && $filtros['sinFecha'] == 1) {
+        $condicion[] = '(tabla.fechaInicioReal IS NULL OR tabla.fechaTerminado IS NULL)';
+    }
+    
+    //FILTROS CON OPERADORES
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=');
 
-        $camposBusquedaPermitidos = array(
+    $camposComparablesPermitidos = array(
+    //'presupuestoNoMensual' => 'SUBSTRING(t1.presupuesto, LEN(t1.presupuesto) - 2, 3)'
+    'fecha' => 'tabla.fecha',
+    'fechaInicioReal' => 'tabla.fechaInicioReal'   
+    );
+         
 
-            'presupuesto' => 'tabla.presupuesto',
-            'cliente' => 'tabla.cliente',
-            'campana' => 'tabla.campana'
-        );
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
 
-        if (
-            isset($camposBusquedaPermitidos[$filtros['queBusca']])
-        ) {
+            // campo vs campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
 
-            $condicion[] =
-                $camposBusquedaPermitidos[$filtros['queBusca']] .
-                ' LIKE ?';
-
-            $params[] = '%' . $filtros['texto'] . '%';
+            // campo vs valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
         }
     }
 
-    // bajada + abierta
-    if (
-        isset($filtros['bajada']) &&
-        isset($filtros['abierta'])
-    ) {
+    // ---------- FILTROS LIKE ----------
+    $camposLikePermitidos = array(
+        'presupuesto' => 'tabla.presupuesto',
+        'cliente' => 'tabla.cliente',
+        'campana' => 'tabla.campana'
+    );
 
-        if (
-            $filtros['bajada'] == 1 ||
-            $filtros['abierta'] == 1
-        ) {
-
-            $condicion[] = 'tabla.otBajada = ?';
-
-            $params[] =
-                $filtros['bajada'] == 1 ? 1 : 0;
-
-            $condicion[] = 'tabla.otAbierta = ?';
-
-            $params[] =
-                $filtros['abierta'] == 1 ? 1 : 0;
+    if (is_array($filtrosLike) && !empty($filtrosLike)) {
+        foreach ($filtrosLike as $f) {
+            if (
+                isset($f['campo'], $f['valor']) &&
+                isset($camposLikePermitidos[$f['campo']]) &&
+                trim($f['valor']) !== ''
+            ) {
+                $condicion[] = $camposLikePermitidos[$f['campo']] . ' LIKE ?';
+                $params[] = '%' . $f['valor'] . '%';
+            }
         }
-    }
-
-     // fecha desde meses
-    if (!empty($filtros['fecha'])) {
-
-        $condicion[] = $filtros['fecha'];
-    }
-
-    // fecha aceptacion
-    if (!empty($filtros['fechaAceptacion'])) {
-
-        $fechaSinHora =
-            date(
-                "d-m-Y",
-                strtotime(
-                    $filtros['fechaAceptacion']
-                )
-            );
-
-        $condicion[] =
-            'tabla.fechaAceptacionRegistro >= ?';
-
-        $params[] = $fechaSinHora;
-
-        $condicion[] =
-            'tabla.otAbierta != ?';
-
-        $params[] = 1;
     }
 
     $sqlWhere = '';
-
     if (!empty($condicion)) {
-
-        $sqlWhere =
-            ' WHERE ' .
-            implode(' AND ', $condicion);
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
     }
 
-    // ---------- ORDER ----------
+    // ---------- ORDER BY ----------
     $camposOrdenPermitidos = array(
-
         'presupuesto' => 'tabla.presupuesto',
         'cliente' => 'tabla.cliente',
         'campana' => 'tabla.campana',
         'fecha' => 'tabla.fecha',
         'fechaAceptacion' => 'tabla.fechaAceptacion',
         'nombreComercial' => 'tabla.nombreComercial',
-        'origen' => 'tabla.origen'
+        'origen' => 'tabla.origen',
+        'fechaInicioReal' => 'tabla.fechaInicioReal'       
     );
 
     $sqlOrder = '';
 
     if (!empty($order) && is_array($order)) {
-
         $ordenes = array();
 
         foreach ($order as $o) {
-
             if (
                 isset($o['campo'], $o['dir']) &&
-                isset($camposOrdenPermitidos[$o['campo']]) &&
-                in_array(
-                    strtoupper($o['dir']),
-                    array('ASC', 'DESC')
-                )
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
             ) {
-
-                $ordenes[] =
-                    $camposOrdenPermitidos[$o['campo']] .
-                    ' ' .
-                    strtoupper($o['dir']);
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
             }
         }
 
         if (!empty($ordenes)) {
-
-            $sqlOrder =
-                ' ORDER BY ' .
-                implode(', ', $ordenes);
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
         }
     }
 
     // ---------- SQL ----------
-    $consulta = "
+   $consulta = "
 
     SELECT $listaCampos
     FROM (
@@ -1199,53 +1199,35 @@ function cargarPresupuestosConNumFacturas($conn_sis, $bbddSql, $campos, $filtros
         WHERE t1.clayma = 1
 
     ) AS tabla
-
+     
+    $sqlJoins
     $sqlWhere
-
     $sqlOrder
     ";
 
-    $resultado =
-        sqlsrv_query(
-            $conn_sis,
-            $consulta,
-            $params
-        );
+    //echo $consulta;   
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
 
     if ($resultado === false) {
-
-        return array(
-
-            'error' =>
-                print_r(sqlsrv_errors(), true),
-            'datos' => array(),
-            'sql' => $consulta,
-            'params' => $params
-        );
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
     }
 
     $result = array();
-
-    while (
-        $fila =
-            sqlsrv_fetch_array(
-                $resultado,
-                SQLSRV_FETCH_ASSOC
-            )
-    ) {
-
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
         $result[] = $fila;
     }
 
     sqlsrv_free_stmt($resultado);
-
+    
     return array(
-        'error' => '',
-        'datos' => $result,
-        'sql' => $consulta,
-        'params' => $params
+    'error' => '',
+    'datos' => $result,
+    'sql' => $consulta,
+     'params' => $params
     );
 }
+
 
 function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
 {
@@ -1274,8 +1256,9 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
         'idGFMetrosCuadrados' => 't1.idGFMetrosCuadrados',
         'noVisible' => 't1.noVisible',
         'proceso' => 't3.proceso',
-        'tipoProceso' => 't2.tipoProceso',
+        'tipoProceso' => 't2.tipoProceso',        
         'departamento' => 't4.departamento',
+        'departamentoDistinct' => 'distinct(t4.departamento)',
         'tamanoFinal' => 't11.tamano as tamanoFinal',
         'tipo' => 't7.tipo',
         'tamano' => 't6.tamano',        
@@ -1328,7 +1311,7 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
     $joinsPermitidos = [        
         'tabla2' => "inner join [".$bbddSql."].[dbo].[procesosTipos] as t2 on t1.idTipo = t2.id", 
         'tabla3' => "inner join  [".$bbddSql."].[dbo].[procesos] as t3 on t1.idConcepto = t3.id",
-        
+        //'tabla4' => "inner join  [".$bbddSql."].[dbo].[procesosDepartamento] as t4 on t4.id = t1.idDepartamento",
         'tabla5' => "left join [".$bbddSql."].[dbo].tarifas_papel as t5 on t1.idMaterialPapel = t5.id",
 		'tabla6' => "left join [".$bbddSql."].[dbo].[L_papelTamanio] as t6 on t6.id = t5.idTamanio",
 		'tabla7' => "left join [".$bbddSql."].[dbo].[L_papelTipo] as t7 on t7.id = t5.idTipo",
@@ -1468,6 +1451,7 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
     ";
 
     //echo $consulta;   
+
 
     $resultado = sqlsrv_query($conn_sis, $consulta, $params);
 

@@ -9,7 +9,7 @@ function cargarDetallesOt()//js_presupuestosOtDetalle
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarDetallesOt;
-		peticionUnica1.open("POST","ajax/mostrarDetallePresupuesto.php",false);
+		peticionUnica1.open("POST","ajax/cargarDetallesPresupuesto.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarDetallesOt();
 		peticionUnica1.send(query_string);
@@ -18,10 +18,56 @@ function cargarDetallesOt()//js_presupuestosOtDetalle
 
 function consultaCargarDetallesOt()
 {	
-	var consulta = "accion=mostrarDetalles";
+	var consulta = "accion=cargarDetalles";
 	
-	consulta+="&numPresupuesto="+document.getElementById("numPresupuesto").innerHTML;
+	var campos = [
+		'idTipo',
+		'tipoProceso',
+		'id',
+		'descripcion',
+		'notaCibeles',
+		'notaAdmonProd',
+		'unidades',
+		'unidades2',
+		'precio',
+		'orden',
+		'idDepartamento',
+		'idConcepto'
+		];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [
+		'tabla5',
+		'tabla6',
+		'tabla7',
+		'tabla8',
+		'tabla9',
+		'tabla10',
+		'tabla11',
+		'tabla12',
+		'tabla13',
+		'tabla14'		
+	];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {
+    	presupuesto: document.getElementById("numPresupuesto").innerHTML
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
+	var order = [
+    	{ campo: 'ordenTipoProceso', dir: 'ASC' },
+		{ campo: 'idTipo', dir: 'ASC' },
+		{ campo: 'orden', dir: 'ASC' },
+		{ campo: 'id', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+
 	return consulta;	
 }
 
@@ -31,23 +77,16 @@ function mostrarCargarDetallesOt()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
-				
+			{			
+				var datos = res.datos;
+
 				if (datos != "")
 				{				
 					var grupoAntiguo = "9999999999999999999999999999";
@@ -116,12 +155,11 @@ function mostrarCargarDetallesOt()
 					{ 
 						valorTipo = datos[contador]["idTipo"];
 						valorDepartamento = datos[contador]["idDepartamento"];
-						idInputListado = datos[contador]["id"]+'_procesoDetalle';
-						cargarSubprocesosGuardados();
+						
+						cargarSubprocesos(datos[contador]["id"]+'_procesoDetalle',1);
 
 						document.getElementById(datos[contador]["id"]+'_procesoDetalle').value = datos[contador]["idConcepto"];					
-
-						idInputListado = "";
+						
 						valorTipo = 0;
 						valorDepartamento=0;
 						contador++;	
@@ -148,7 +186,7 @@ function modificarDetallePresupuesto2(idInput)//js_presupuestosOtDetalle
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarModificarDetallePresupuesto2;
-		peticionUnica1.open("POST","ajax/modificarDetallePresupuesto2.php",false);
+		peticionUnica1.open("POST","ajax/modificarDetallePresupuesto.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaModificarDetallePresupuesto2(idInput);
 		peticionUnica1.send(query_string);
@@ -157,26 +195,30 @@ function modificarDetallePresupuesto2(idInput)//js_presupuestosOtDetalle
 
 function consultaModificarDetallePresupuesto2(idInput)
 {	
-	var consulta = "accion=modificarDetalle";
-	
-	consulta+="&idDetalle="+idInput;
-	
-	//consulta += "&nota=" + document.getElementById(idInput+"_notaDetalle").value;	
-	consulta+= "&nota=" + reemplazarSimbolos(document.getElementById(idInput+"_notaDetalle").value);
-	
-	consulta+= "&notaAdmonProd=" + reemplazarSimbolos(document.getElementById(idInput+"_notaAdmonProd").value);
-	
-	
-	
-	var unidad = document.getElementById(idInput+"_unidadesDetalle2").value;
-	unidad = unidad.replace(',','.');
-	if (unidad == "")
-	{
-		unidad =0;
-	}
-	consulta += "&unidad=" + unidad;
 
-	return consulta;	
+	var consulta = "accion=modificarDetalle";	
+
+	var datos = {	
+		notaCibeles: document.getElementById(idInput+"_notaDetalle").value,
+		notaAdmonProd: document.getElementById(idInput+"_notaAdmonProd").value,
+		unidades2:  document.getElementById(idInput+"_unidadesDetalle2").value === "" ? 0  : parseFloat(document.getElementById(idInput+"_unidadesDetalle2").value.replace(',', '.'))
+	}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var presu = document.getElementById("numPresupuesto").innerHTML === "" ? document.getElementById("numPresupuesto").innerHTML : document.getElementById("numPresupuesto").innerHTML + document.getElementById("letraPresupuesto").innerHTML
+		
+	consulta+="&numPresupuesto="+presu;	
+
+	var filtros = {
+    	id: idInput
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	consulta += "&origen=presuestosOtDetalle";
+	
+	return consulta;
+	
 }
 
 function mostrarModificarDetallePresupuesto2()
@@ -185,13 +227,16 @@ function mostrarModificarDetallePresupuesto2()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);
+				alert("Detalle Modificado");
+				peticionUnica1=null;
 				cargarDetallesOt();
 			}
 		}

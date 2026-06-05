@@ -40,16 +40,33 @@ function consultaCargarListadoPresupuesto1()
 	];
 	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
 
-	var filtros = {
-		bajada: document.getElementById("busqBajada").checked ? 1 : 0,
-		abierta: document.getElementById("busqAbierta").checked ? 1 : 0,
-		meses: document.getElementById("buscarNumMeses").value,
-		fechaAceptacion: document.getElementById("buscarFechaAceptacion").value,
-		texto: document.getElementById("buscarTexto").value,
-		queBusca: document.getElementById("tipoBusquedaPresupuesto").checked ? 'presupuesto' : document.getElementById("tipoBusquedaCliente").checked ? 'cliente' : 'campana'
-
+	var filtros = {		
+		fechaAceptacion: document.getElementById("buscarFechaAceptacion").value		
 	};
+	
+	if (document.getElementById("busqBajada").checked == 1)
+	{
+		filtros['otBajada'] = 1;
+	}
+	if (document.getElementById("busqAbierta").checked == 1)
+	{
+		filtros['otAbierta'] = 1;
+	}
 	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	
+	consulta += "&pantallaOrigen=presupuestos_listado";
+	consulta += "&meses=" + document.getElementById("buscarNumMeses").value;
+
+	var filtrosLike = [
+		{
+			campo: document.getElementById("tipoBusquedaPresupuesto").checked ? 'presupuesto' : document.getElementById("tipoBusquedaCliente").checked ? 'cliente' : 'campana',
+			valor: document.getElementById("buscarTexto").value
+		}
+	];
+
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+
 
 	var order = [
 		{
@@ -58,6 +75,7 @@ function consultaCargarListadoPresupuesto1()
 		}
 	];
 	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 
 	
 	return consulta;	

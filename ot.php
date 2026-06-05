@@ -18,10 +18,10 @@ if ($_SESSION["usuario"]<>"")
 	<tr>
 		<td align="center" colspan="">Buscar por:
 			<select class=""  id="buscarCampo" name="buscarCampo">
-				<option value="t1.presupuesto">Presupuesto</option>
-				<option value="t1.cliente">Cliente</option>
-				<option value="t1.campana">Campaña</option>
-				<option value="t1.cantidad">Cantidad</option>								
+				<option value="presupuesto">Presupuesto</option>
+				<option value="cliente">Cliente</option>
+				<option value="campana">Campaña</option>
+				<option value="cantidad">Cantidad</option>								
 			</select>
 		Texto:
 			<input class="" type="text" id="buscarTexto" name="buscarTexto"></input>
@@ -30,18 +30,18 @@ if ($_SESSION["usuario"]<>"")
 		<td align="left" colspan="3">
 			
 			<select class="" id="ordenBuscar">
-				<option value="t1.presupuesto">Presupuesto</option>
-				<option value="t1.cliente">Cliente</option>
-				<option value="t1.campana">Campaña</option>
-				<option value="t1.cantidad">Cantidad</option>	
-				<option value="t1.fechaAceptacion">Fecha Inicio</option>	
-				<option value="t1.fechaTerminado">Fecha Fin</option>	
+				<option value="presupuesto">Presupuesto</option>
+				<option value="cliente">Cliente</option>
+				<option value="campana">Campaña</option>
+				<option value="cantidad">Cantidad</option>	
+				<option value="fechaInicioReal">Fecha Inicio</option>	
+				<option value="fechaTerminado">Fecha Fin</option>	
 			</select>
 		
 			Desc: <input type="checkbox" id="ordenDesc" checked></input>
 		
 
-			<button type="button" class="btn btn-info" onClick="buscarOt()">Buscar</button>
+			<button type="button" class="btn btn-info" onClick="cargarListadoOtProduccion()">Buscar</button>
 			<input type="submit" class="btn btn-info" onClick="gestionExportarExcelOtCibeles()" value="Excel" ></input>
 			<button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirRangoOtModal" data-whatever="@mdo">Imprimir</button>
 			
@@ -215,8 +215,8 @@ else
 						<label for="recipient-name" class="col-form-label">Año:</label>
 						<select id="anioImprimirModal" class="form-control">
 							<!--<option value="21" selected>2021</option>-->
-							<option value="26">2026</option>
-							<option value="25" selected>2025</option>
+							<option value="26" selected>2026</option>
+							<option value="25">2025</option>
 							<option value="24">2024</option>
 							<option value="23">2023</option>
 							<option value="22">2022</option>							
@@ -281,7 +281,14 @@ else
 </form>
 
 <form id="formExportarExcel"  method="post"  target="_blank" action="PHPExcel/archivosCibeles/exportarOtCibelesExcel.php">	
-	<input type="hidden" id="exportarCondiciones" name="exportarCondiciones" value=""></input>
+
+	<input type="hidden" id="camposFormExportar" name="campos">
+    <input type="hidden" id="filtrosFormExportar" name="filtros">
+    <input type="hidden" id="filtrosOperadoresFormExportar" name="filtrosOperadores">
+    <input type="hidden" id="filtrosLikeFormExportar" name="filtrosLike">
+    <input type="hidden" id="orderFormExportar" name="order">
+	<input type="hidden" id="mesesFormExportar" name="meses">
+
 	<input type="hidden" id="exportarAccion" name="exportarAccion" value="exportarExcel"></input>			
 </form>
 
@@ -344,7 +351,7 @@ echo ("</html>");
 	//cargarListadoOtProduccion();
 	//cargarAnios("anioSeleccionado");
 	//document.getElementById("anioSeleccionado").value = 2024;
-	buscarOt();
+	cargarListadoOtProduccion();
 	document.getElementById("button-up").addEventListener("click", scrollUp);
 	
 </script>

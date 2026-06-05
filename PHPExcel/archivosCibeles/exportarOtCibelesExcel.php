@@ -10,20 +10,53 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	
-	$condicion = $_POST["exportarCondiciones"];
-	
-	
-	//echo $condicion;
+	session_start(); 
 	
 	
-	$resultado = mostrarOt($conexion,$condicion);
-	//echo mostrarOt($conexion,$condicion);
-	
+	$campos=isset($_POST["campos"])?json_decode($_POST["campos"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$order=isset($_POST["order"])?json_decode($_POST["order"], true):array();
+	$joins=isset($_POST["joins"])?json_decode($_POST["joins"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
+	$filtrosLike=isset($_POST["filtrosLike"])?json_decode($_POST["filtrosLike"], true):array();
+	$meses=isset($_POST["meses"])?$_POST["meses"]:0;
+
+	if ($meses>0)
+	{
+		$meses = $meses-1;
+		$fechaActual = date('d-m-Y');
+		
+		//$fechaInicio = date("01-m-Y",strtotime($fechaActual."- ".$meses." month")); 
+		//$fecha = " fecha >='".$fechaInicio."'";
+		//$fecha = $fechaInicio;
+		//echo $fecha; exit;
+
+		$fechaInicio = date('01-m-Y',strtotime("-{$meses} month"));
+
+
+		$filtrosOperadores[] = [
+			'campo1' => 'fecha',
+			'operador' => '>=',
+			'valor' => $fechaInicio
+		];
+
+		
+	}
+
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
+
+
+	$resultado = cargarPresupuestosConNumFacturas($conn,$bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $filtrosLike, $order);
+
+	sqlsrv_close($conn);
 		
 	$nombreArchivo = 'OT_'.date('d-m-Y').'.xlsx';
 	
-	//echo $resultado;
+
 	
 	
 	
@@ -95,16 +128,16 @@ $objPHPExcel->setActiveSheetIndex(0)
 
 	
 $contador=2;
-while($contador-2 < count($resultado))
+while($contador-2 < count($resultado['datos']))
 {
 	$objPHPExcel->setActiveSheetIndex(0)
-            ->setCellValue('A'.$contador, $resultado[$contador-2]["presupuesto"])
-			->setCellValue('B'.$contador, $resultado[$contador-2]["cliente"])
-            ->setCellValue('C'.$contador, $resultado[$contador-2]["campana2"])			
-			->setCellValue('D'.$contador, $resultado[$contador-2]["cantidad2"])
-			->setCellValue('E'.$contador, $resultado[$contador-2]["fechaInicioReal"])
-			->setCellValue('F'.$contador, $resultado[$contador-2]["fechaTerminado"])
-			->setCellValue('G'.$contador, $resultado[$contador-2]["observaciones2"]);
+            ->setCellValue('A'.$contador, $resultado['datos'][$contador-2]["presupuesto"])
+			->setCellValue('B'.$contador, $resultado['datos'][$contador-2]["cliente"])
+            ->setCellValue('C'.$contador, $resultado['datos'][$contador-2]["campana2"])			
+			->setCellValue('D'.$contador, $resultado['datos'][$contador-2]["cantidad2"])
+			->setCellValue('E'.$contador, $resultado['datos'][$contador-2]["fechaInicioReal"])
+			->setCellValue('F'.$contador, $resultado['datos'][$contador-2]["fechaTerminado"])
+			->setCellValue('G'.$contador, $resultado['datos'][$contador-2]["observaciones2"]);
 			
 	
 	$contador++;
@@ -124,7 +157,9 @@ $objPHPExcel->setActiveSheetIndex(0);
 
 
 	
-	
+	while (ob_get_level()) {
+    ob_end_clean();
+}
 // Redirect output to a client’s web browser (Excel2007)
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');
