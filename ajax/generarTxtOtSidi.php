@@ -2,7 +2,7 @@
 
 <?php 
 //echo 'entra0<br>';
-if(isset($_POST["accion"])&$_POST["accion"]=="generarTxtSIDI")
+if(isset($_POST["accion"]) && $_POST["accion"]=="generarTxtSIDI")
 {
 	session_start(); 
 	$ruta = '../';	

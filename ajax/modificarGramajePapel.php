@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="modificarGramajePapel")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarGramajePapel")
 { 
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);

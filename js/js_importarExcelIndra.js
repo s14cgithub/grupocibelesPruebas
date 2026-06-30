@@ -117,16 +117,18 @@ function mostrarLeerArchivo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				//alert(peticionUnica1.responseText);
+			{		
+				var datos = res.datos.split(".txt");
 				
 				
-				var datos = peticionUnica1.responseText.split(".txt");
+				//var datos = peticionUnica1.responseText.split(".txt");
 				
 				var rutaArchivo=datos[0]+".txt";
 				

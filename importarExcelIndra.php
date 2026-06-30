@@ -10,9 +10,6 @@ $ruta="/";
 require($ruta."comprobarSesion.php");
 
 
-
-
-
 require($ruta."Archivos Comunes/cabecera.php");
 
 if ($_SESSION["usuario"]<>"")
@@ -21,16 +18,7 @@ if ($_SESSION["usuario"]<>"")
 ?>
 
 
-<table align="center" border="0"  class="">
-	
-	
-	
-	
-	
-	
-
-
-	
+<table align="center" border="0"  class="">	
 
 
 <tr><td colspan="2"><hr></hr></td></tr>
@@ -49,12 +37,6 @@ if ($_SESSION["usuario"]<>"")
 <a href="" download="" id="descargarArchivoIndra" style="visibility: hidden">button</a>
 </table>
 
-
-
-
-
-
-
  
 <?php	
 }
@@ -66,11 +48,7 @@ if ($_SESSION["usuario"]<>"")
 </div>
 
 
-
-
 <?php
-
-
 
 echo ("</div>");
 echo ("</body>");

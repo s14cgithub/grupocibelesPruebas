@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="grabarFranqueo")
+if(isset($_POST["accion"]) && $_POST["accion"]=="grabarFranqueo")
 {
 	session_start(); 
 	$ruta = '../';
@@ -9,38 +9,41 @@ if(isset($_POST["accion"])&$_POST["accion"]=="grabarFranqueo")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 		
 	
+	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
 	
-	
-	$idProducto = $_POST["idProducto"];
-	$idCliente = $_POST["idCliente"];
-	$fecha = $_POST["fecha"];
-	$envios = $_POST["totalEnvios"];
-	$ot = $_POST["ot"];
-	$tipoDetalle = $_POST["tipoDetalle"];
-
-
-	
-	$idEmpleado = $_SESSION["idEmpleado"];
-	
-	
-	$anioSeleccionado =   date("Y", strtotime($fecha));
+	$anioSeleccionado =   date("Y", strtotime($datos["fecha"]));
 	$anioActual = date('Y');
-	
 	if ($anioActual==$anioSeleccionado)
-	{		
-		insertarGrabacionFranqueoPagado($conexion,$fecha,$idCliente,$idProducto,$envios,$ot,$tipoDetalle,$idEmpleado,$anioSeleccionado);
+	{
+		$idEmpleado = $_SESSION["idEmpleado"];
+
+		if (strlen($idEmpleado)==1)
+		{
+			$idDelEmpleado = "0".$idEmpleado;
+		}
+		else if (strlen($idEmpleado)==2)
+		{
+			$idDelEmpleado =$idEmpleado;
+		}
+
+
+		$datos["idEmpleado"] = $idDelEmpleado;
+
+		$conn1 = conectarSQL($conexion);
+		$conn = $conn1['conn'];
+		$bbddSql = $conn1['bbdd'];		
+
+		$res = insertarFranqueoPagado($conn, $bbddSql, $datos);
+
+		sqlsrv_close($conn);
 		
 	}
 	else
 	{
-		echo "Error: Solo se puede grabar si la fecha esta dentro de este año";
+		$res["error"] = "Solo se puede grabar si la fecha esta dentro de este año";
 	}
-	
-	
-	
-	
-	
-	
+
+	echo json_encode($res);
 	
 }
 

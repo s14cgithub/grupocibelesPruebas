@@ -13,9 +13,9 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="cargarPresupuestos")
 
 	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
 
-	$filtrosOperadores=isset($_POST["filtrosOperadores"])?$_POST["filtrosOperadores"]:array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
 	
-	$order=isset($_POST["order"])?$_POST["order"]:array();
+	$order=isset($_POST["order"])?json_decode($_POST["order"], true):array();
 
 	$conn1 = conectarSQL($conexion);
 

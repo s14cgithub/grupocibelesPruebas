@@ -32,7 +32,7 @@ require($ruta."Archivos Comunes/cabecera.php");
 	
 	<td align="center" colspan="6"> &nbsp&nbsp Buscar por:
 		<select class=""  id="buscarCampo" name="buscarCampo">
-				<option value="codigo" selected>Codigo Cliente</option>
+				<option value="codigo">Codigo Cliente</option>
 				<option value="nombre_empresa"  selected="selected">Nombre Cliente</option>
 				<option value="nombre_franqueo">Nombre Franqueo</option>
 		</select>
@@ -41,7 +41,7 @@ require($ruta."Archivos Comunes/cabecera.php");
 		<input class="" type="text" id="buscarTexto" name="buscarTexto"></input>
 		Orden: 
 		<select class="" id="ordenBuscar">
-				<option value="codigo" selected>Codigo Cliente</option>
+				<option value="codigo">Codigo Cliente</option>
 				<option value="nombre_empresa"  selected="selected">Nombre Cliente</option>
 				<option value="nombre_franqueo">Nombre Franqueo</option>
 				
@@ -104,8 +104,7 @@ echo ("</html>");
 	?>
 
 
-	buscarRegistroFranqueo();
+	cargarClienteAutorizados();
 
-	//buscarRegistroFranqueo();
 	document.getElementById("button-up").addEventListener("click", scrollUp);
 </script>

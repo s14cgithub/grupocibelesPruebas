@@ -1,7 +1,7 @@
 <?php session_start(); 
 
 
-if(isset($_POST["accion"])&&$_POST["accion"]=="subir")
+if(isset($_POST["accion"]) && $_POST["accion"]=="subir")
 {
 	//echo 'entra';
 	$ruta = $_POST["ruta"];
@@ -77,8 +77,11 @@ if(isset($_POST["accion"])&&$_POST["accion"]=="subir")
 		
 		if (!move_uploaded_file($tmp_archivo, $archivador)) 
 		{	  
-			$return = Array('ok' => FALSE, 'msg' => "Ocurrio un error al subir el archivo. No pudo guardarse.", 'status' => 'error');
-			echo ("Error: Ocurrio un error al subir el archivo. No pudo guardarse.");
+			//$return = Array('ok' => FALSE, 'msg' => "Ocurrio un error al subir el archivo. No pudo guardarse.", 'status' => 'error');
+			
+			$res["error"] = "Ocurrio un error al subir el archivo. No pudo guardarse.";			
+			echo json_encode($res);
+			
 		}
 		else
 		{
@@ -111,11 +114,13 @@ if(isset($_POST["accion"])&&$_POST["accion"]=="subir")
 			
 			if ($error=="")
 			{
-				echo "Importacion Finalizada";
+				//echo "Importacion Finalizada";
 			}
 			else 
-				echo $error;
-			
+			{
+				$res["error"] = $error;			
+			}
+
 			/*$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
 			$objWriter->save($archivador);
 			
@@ -136,6 +141,10 @@ function extraerNumero($texto) {
 
 function gestionarExcel($objPHPExcel,$conexion,&$error)
 {
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
 	
 	$sheet = $objPHPExcel->getSheetByName('Órdenes de Trabajo'); 
 	//$highestRow = $sheet->getHighestRow(); 
@@ -154,23 +163,27 @@ function gestionarExcel($objPHPExcel,$conexion,&$error)
 			$referencia =  $sheet->getCell("E".$row)->getValue();
 			$ot = extraerNumero($referencia);
 			if ($ot == null)
-			{
-				//$error = $error."\n".$referencia;
-				die ("Error referencia: ".$referencia.". Ot: ".$ot);
+			{				
+				$res["error"] = "Error referencia: ".$referencia.". Ot: ".$ot;
+				sqlsrv_close($conn);
+				die (json_encode($res));
 			}
 			else
 			{
-				$otSidi = $sheet->getCell("C".$row)->getValue();		
-				echo guardarOtSidiDesdeExcel($conexion, $ot, $otSidi);
+				$otSidi = $sheet->getCell("C".$row)->getValue();
+				
+				$datos = ["otSidi" => $otSidi];
+				$filtros = ['presupuesto' => $ot];
+				$filtrosOperadores = array();
+				
+				$res = modificarPresupuesto($conn, $bbddSql, $datos, $filtros, $filtrosOperadores);
 			}
 		}
-		
-		
-
-
-		
-
 	}
+
+	sqlsrv_close($conn);
+	echo json_encode($res);
+	
 			
 }
 

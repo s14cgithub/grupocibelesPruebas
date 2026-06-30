@@ -59,9 +59,42 @@ function cargarClienteAutorizados()
 
 function consultaCargarClienteAutorizados()
 {	
-	var consulta = "accion=cargarClientes";	
+
+	var consulta = "accion=cargarClientes";
 	
-	consulta +="&condicion=" + laCondicion;	
+	var campos = [
+		'codigo',
+		'nombre_empresa',
+		'nombre_franqueo',
+		'idAutorizacionFranqueo'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	activo: 1	
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+
+	var filtrosLike = [
+		{
+			campo: document.getElementById("buscarCampo").value,
+			valor: document.getElementById("buscarTexto").value
+		}
+	];
+
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+	
+	var order = [
+    	{ 
+			campo: document.getElementById("ordenBuscar").value,
+			dir: document.getElementById("buscarDesc").checked ? 'DESC' : 'ASC' 
+		}
+		
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
 	
 	return consulta;
 }
@@ -73,14 +106,15 @@ function mostrarCargarClienteAutorizados()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
+			{
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
@@ -181,7 +215,7 @@ function modificarClienteAutorizado(elCodigo)
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarModificarClienteAutorizado;
-		peticionUnica1.open("POST","ajax/modificarClienteAutorizado.php",false);
+		peticionUnica1.open("POST","ajax/modificarCliente.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaModificarClienteAutorizado(elCodigo);
 		peticionUnica1.send(query_string);						
@@ -190,12 +224,19 @@ function modificarClienteAutorizado(elCodigo)
 
 function consultaModificarClienteAutorizado(elCodigo)
 {	
-	var consulta = "accion=modificarClienteAutorizado";	
+	var consulta = "accion=modificarCliente";
 	
-	consulta +="&codigo=" + elCodigo;
-	consulta +="&valor="+document.getElementById(elCodigo+"_autorizado").value;	
+	var datos = {		
+		idAutorizacionFranqueo: document.getElementById(elCodigo+"_autorizado").value		
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	codigo: elCodigo
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));		
 	
-	return consulta;
+	return consulta;	
 }
 
 
@@ -205,13 +246,15 @@ function mostrarModificarClienteAutorizado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{	
-				alert(peticionUnica1.responseText);
+			{
+				alert("Registro Modificado");
 			}
 		}
 	}

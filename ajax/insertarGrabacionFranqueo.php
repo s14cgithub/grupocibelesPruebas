@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="grabarFranqueo")
+if(isset($_POST["accion"]) && $_POST["accion"]=="grabarFranqueo")
 {
 	session_start(); 
 	$ruta = '../';
@@ -8,161 +8,388 @@ if(isset($_POST["accion"])&$_POST["accion"]=="grabarFranqueo")
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
 		
+
 	
-	
-	
-	$idProducto = $_POST["idProducto"];
-	$idCliente = $_POST["idCliente"];
-	$fecha = $_POST["fecha"];
-	$totalEnvios = $_POST["totalEnvios"];
-	$ot = $_POST["ot"];
-	$otSidi = $_POST["otSidi"];
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
 	$contenido = $_POST["contenido"];
-	$anadidos = $_POST["anadidos"];
-	
+
+	$datosTipos = explode("|193fea32|", $contenido);
+
 	$idEmpleado = $_SESSION["idEmpleado"];
+
+	
+	if (strlen($idEmpleado)==1)
+	{
+		$idEmpleado = "0".$idEmpleado;
+	}
+
+
 	$detalle="";
-	
-	//importe y detalle
-	
-	$datos = explode("|193fea32|", $contenido);
-	$importeTotal=0;
-	
-	$anioSeleccionado =   date("Y", strtotime($fecha));
+
+	$anioSeleccionado =   date("Y", strtotime($datos["fecha"]));
 	$anioActual = date('Y');
+
 	
+	$importeTotal=0;
+
 	if ($anioActual==$anioSeleccionado)
 	{
-		foreach ($datos as $valor)
+		$conn1 = conectarSQL($conexion);
+		$conn = $conn1['conn'];
+		$bbddSql = $conn1['bbdd'];
+
+		foreach ($datosTipos as $valor)
 		{
 			$valores = explode("|3432ji31|", $valor);
 
 			$tipo = $valores[0];
 			$cantidad = $valores[1];
 
-			$datosFranqueo = verImporteProductoFranqueo($conexion, $tipo, $cantidad,$anioSeleccionado);
 
-			$importeTotal += $datosFranqueo[0]["importe"];
+			$datos2 = [
+				'importe_cantidadIndicada',
+				'titulo',
+				'gramos',
+				'importeSinIva_cantidadIndicada'
+			];
+			$joins2 = ['tabla2'];
 
-			$detalle .= $datosFranqueo[0]["titulo"]."(".$datosFranqueo[0]["gramos"]."): ".$cantidad;
-			$detalle .= "|";		
+			$filtros2 = [
+				'tipos' => $tipo		
+			];
+			$filtrosOperadores2 = array();
+			$order2 = array();			
 
-			/*echo ("\n".$datosFranqueo[0]["tipos"].": ".$datosFranqueo[0]["importe"]);
-			echo ("\nPrecioNeto: ".$datosFranqueo[0]["precioNeto"]);
-			echo ("\nUnidades: ".$cantidad);		
-			echo ("\n");*/
+			$datosFranqueo = cargarTarifasFranqueo($conn,$bbddSql, $datos2, $joins2, $filtros2, $filtrosOperadores2, $order2,$anioSeleccionado,$cantidad);
+
+
+			$importeTotal += $datosFranqueo["datos"][0]["importe"];
+			$detalle .= $datosFranqueo["datos"][0]["titulo"]."(".$datosFranqueo["datos"][0]["gramos"]."): ".$cantidad;
+			$detalle .= "|";
+			
+
+
+			$datos3 = [
+				'importe_cantidadIndicada',
+				'tipos',
+				'importeSinIva_cantidadIndicada'				
+			];
+			$joins3 = array();
+
+			
+			$filtrosOperadores3 = array();
+			$order3 = array();		
+
 
 			$seguir=false;
-			if ($anadidos=="AcuseRecibo")
+			if ($datos["anadidos"] == "AcuseRecibo")
 			{
-				$datosFranqueo2 = verImporteProductoFranqueoAcuseRecibo($conexion, $tipo, $cantidad,$anioSeleccionado);
+				$filtros3 = [
+					'tipos_acuseRecibo' => $tipo		
+				];
+				
+				$datosFranqueo2 = cargarTarifasFranqueo($conn,$bbddSql, $datos3, $joins3, $filtros3, $filtrosOperadores3, $order3,$anioSeleccionado,$cantidad);
 				$seguir = true;
 			}
-			else if($anadidos=="PEE")
+			else if($datos["anadidos"]=="PEE")
 			{
-				$datosFranqueo2 = verImporteProductoFranqueoPEE($conexion, $tipo, $cantidad,$anioSeleccionado);
+				$filtros3 = [
+					'tipos_PEE' => $tipo		
+				];
+
+				$datosFranqueo2 = cargarTarifasFranqueo($conn,$bbddSql, $datos3, $joins3, $filtros3, $filtrosOperadores3, $order3,$anioSeleccionado,$cantidad);
 				$seguir = true;
 			}
 			if ($seguir==true)
 			{
-				$importeTotal += $datosFranqueo2[0]["importe"];
-			}
-
-
-
+				$importeTotal += $datosFranqueo2["datos"][0]["importe"];
+			}			
 		}
 
 		$detalle = substr($detalle, 0, -1);
 
+		$datos["importe"] = $importeTotal;
+		$datos["detalle"] = $detalle;
+		$datos["idEmpleado"] = $idEmpleado;
 
-		//echo ("\nImporte: ".$importeTotal);	
 
-		insertarGrabacionFranqueo($conexion,$fecha,$idCliente,$ot,$otSidi,$importeTotal,$totalEnvios,$idProducto,$detalle,$idEmpleado,$anadidos,$anioSeleccionado);
+		insertarGrabacionFranqueo($conn, $bbddSql, $datos);
 
 
-		$referencia = verUltimaReferenciaPorUsuario($conexion,$idEmpleado,$anioSeleccionado);
+		$datos4 = [
+			'referencia'
+		];
 
-		foreach ($datos as $valor)
+		$joins4 = array();
+
+		$filtros4 = [
+			'verUltimaReferenciaPorUsuario' => $idEmpleado	
+		];
+
+		$filtrosOperadores4 = array();
+		$order4 = array();
+		//$referencia = verUltimaReferenciaPorUsuario($conexion,$idEmpleado,$anioSeleccionado);
+		$referencia = cargarFranqueo($conn, $bbddSql, $datos4, $joins4, $filtros4, $filtrosOperadores4, $order4);
+		
+		
+
+		foreach ($datosTipos as $valor)
 		{
 			$valores = explode("|3432ji31|", $valor);
 
 			$tipo = $valores[0];
 			$cantidad = $valores[1];
 
-			$datosFranqueo = verImporteProductoFranqueo($conexion, $tipo, $cantidad,$anioSeleccionado);		
+			$datos5 = [
+				'importe_cantidadIndicada',				
+				'importeSinIva_cantidadIndicada'
+			];
+			$joins5 = ['tabla2'];
 
-			//echo ("\nReferencia: ".$referencia[0]["referencia"]);
+			$filtros5 = [
+				'tipos' => $tipo		
+			];
+			$filtrosOperadores5 = array();
+			$order5 = array();
+			
+			$datosFranqueo = cargarTarifasFranqueo($conn,$bbddSql, $datos5, $joins5, $filtros5, $filtrosOperadores5, $order5,$anioSeleccionado,$cantidad);
+			
 
-			echo insertarGrabacionFranqueoTipos($conexion,$idCliente, $ot,$otSidi, $fecha, $tipo, $cantidad, $datosFranqueo[0]["importe"],$referencia[0]["referencia"],$datosFranqueo[0]["importeSinIva"],$anioSeleccionado);
 
+			$datos6 =  [
+				'idCliente' => $datos["idCliente"],
+				'ot' =>  $datos["ot"],
+				'otSidi' => $datos["otSidi"],
+				'fecha' => $datos["fecha"],
+				'tipo' => $tipo,
+				'unidades' =>  $cantidad,
+				'importe' => $datosFranqueo["datos"][0]["importe"],
+				'referencia' => $referencia["datos"][0]["referencia"],
+				'importeSinIva' => $datosFranqueo["datos"][0]["importeSinIva"],
+				'numSeguimiento' => '',
+				'importado' => 0,
+				'txt' => 0,
+				'comprobado' => 0,
+				'nombre' => '',
+				'direccion' => '',
+				'poblacion' => '',
+				'cp' => ''				
+			];			
+
+
+			insertarGrabacionFranqueoTipos($conn, $bbddSql, $datos6);
+
+			/*
+		sqlsrv_close($conn);	
+		echo json_encode($prueba);		
+		exit();
+		*/
+
+			$datos7 = [
+				'importe_cantidadIndicada',
+				'tipos',
+				'importeSinIva_cantidadIndicada'				
+			];
+			$joins7 = array();
+			
+			$filtrosOperadores7 = array();
+			$order7 = array();	
 
 			$seguir=false;
-			if ($anadidos=="AcuseRecibo")
-			{
-				$datosFranqueo2 = verImporteProductoFranqueoAcuseRecibo($conexion, $tipo, $cantidad,$anioSeleccionado);
+			if ($datos["anadidos"]=="AcuseRecibo")
+			{	//echo "entra1";
+				$filtros7 = [
+					'tipos_acuseRecibo' => $tipo		
+				];				
 				$seguir = true;
 			}
-			else if($anadidos=="PEE")
-			{
-				$datosFranqueo2 = verImporteProductoFranqueoPEE($conexion, $tipo, $cantidad,$anioSeleccionado);
+			else if($datos["anadidos"]=="PEE")
+			{ //echo "entra2";
+				$filtros7 = [
+					'tipos_PEE' => $tipo		
+				];
 				$seguir = true;
 			}
 
 			if ($seguir==true)
 			{
-				//echo("hola: ".$datosFranqueo2[0]["tipos"]);
-				echo insertarGrabacionFranqueoTipos($conexion,$idCliente, $ot,$otSidi, $fecha, $datosFranqueo2[0]["tipos"], $cantidad, $datosFranqueo2[0]["importe"],$referencia[0]["referencia"],$datosFranqueo2[0]["importeSinIva"],$anioSeleccionado);
+				$datosFranqueo2 = cargarTarifasFranqueo($conn,$bbddSql, $datos7, $joins7, $filtros7, $filtrosOperadores7, $order7,$anioSeleccionado,$cantidad);
+				
+				/*
+				sqlsrv_close($conn);
+	
+				echo json_encode($datosFranqueo2);
+				exit();
+*/
+				$datos8 = [	
+					'idCliente' => $datos["idCliente"],
+					'ot' =>  $datos["ot"],
+					'otSidi' => $datos["otSidi"],
+					'fecha' => $datos["fecha"],
+					'tipo' => $datosFranqueo2["datos"][0]["tipos"],
+					'unidades' =>  $cantidad,
+					'importe' => $datosFranqueo2["datos"][0]["importe"],
+					'referencia' => $referencia["datos"][0]["referencia"],
+					'importeSinIva' => $datosFranqueo2["datos"][0]["importeSinIva"],
+					'numSeguimiento' => '',
+					'importado' => 0,
+					'nombre' => '',
+					'direccion' => '',
+					'poblacion' => '',
+					'cp' => ''					
+				];			
+
+
+				insertarGrabacionFranqueoTipos($conn, $bbddSql, $datos8);
+
+
+				//echo("hola: ".$datosFranqueo2["datos"][0]["tipos"]);
+				//insertarGrabacionFranqueoTipos($conexion,$idCliente, $ot,$otSidi, $fecha, $datosFranqueo2["datos"][0]["tipos"], $cantidad, $datosFranqueo2["datos"][0]["importe"],$referencia["datos"][0]["referencia"],$datosFranqueo2["datos"][0]["importeSinIva"],$anioSeleccionado);
 			}
 		}
 
 		$fechaActual = date('d-m-Y');
-		$fechaGuardada = date("d-m-Y", strtotime($fecha));
+		$fechaGuardada = date("d-m-Y", strtotime($datos["fecha"]));
 
 		if (($_SESSION["permiso_franqueoF12"]==1||$_SESSION["permiso_franqueoF12"]==2) && $fechaGuardada<$fechaActual)
 		{
-			echo ejecutarF12PorReferencia($conexion, $referencia[0]["referencia"],$anioSeleccionado);
+			$datos9 = [
+				'comprobado' => 1
+			];			
 
-			$resultado = verImportesTotalesFranqueoPorReferencia($conexion, $referencia[0]["referencia"],$anioSeleccionado);		
+			$filtros9 = [
+				'comprobado' => 0,
+				'referencia' => $referencia["datos"][0]["referencia"]
+			];
+
+			$filtrosOperadores9 = array();		
+
+
+			modificarFranqueo($conn, $bbddSql, $datos9, $filtros9, $filtrosOperadores9);
+
+			modificarFranqueoTipos($conn, $bbddSql, $datos9, $filtros9, $filtrosOperadores9);
+
+
+
+
+
+			$datos10 = [
+				'idCliente',
+				'importeTotal',
+				'codigo_saldo'
+			];			
+
+			$filtros10 = [				
+				'referencia' => $referencia["datos"][0]["referencia"]
+			];
+
+			$filtrosOperadores10 = array();	
+			$joins10 =['tabla2'];
+
+			$group10 = [
+				'idCliente',
+				'codigo_saldo'				
+			];
+
+			$order10 = [
+				['campo' => 'idCliente', 'dir' => 'ASC']
+			];
+			
+
+			$resultado = cargarFranqueoTipos($conn, $bbddSql, $datos10, $joins10, $filtros10, $filtrosOperadores10, $group10, $order10);
+
+			//echo json_encode($resultado);
+			//exit;
 
 			$contador=0;
 
-			while ($contador<count($resultado))
+			while ($contador<count($resultado["datos"]))
 			{
 				$fecha = date("d-m-Y");
-				$importe = floatval($resultado[$contador]["importeTotal"])*-1;
-				$codigoCliente = $resultado[$contador]["idCodigoSaldo"];
+				$importe = floatval($resultado["datos"][$contador]["importeTotal"])*-1;
+				$codigoCliente = $resultado["datos"][$contador]["codigo_saldo"];
 
 
 				///////////////////////////////////////
+				$datos11 = [
+					'importePF'					
+				];
+				$filtros11 = [				
+					'codigo' => $codigoCliente
+				];
 
-				$saldo = cargarClientes($conexion," where codigo_saldo = ".$codigoCliente);
-				$nuevoSaldo = $saldo[0]["importePF"] + $importe;	
-				$informacionCuadre='';
-				$fechaCuadre='';
-				$formaPago='';
-				$presupuesto='';
-				echo insertarMovimientoPF($conexion,$codigoCliente,$fecha,$formaPago,$importe,$presupuesto,$fechaCuadre,$informacionCuadre,$nuevoSaldo);	
+				$filtrosOperadores11 = array();
+				$order11 = array();
+
+				$saldo = cargarClientes($conn, $bbddSql, $datos11, $filtros11, $filtrosOperadores11, $order11);
+
+				//echo json_encode($saldo);
+				//exit();
+				//exit;
+				//$nuevoSaldo = $saldo["datos"][0]["importePF"] + $importe;
+
+				$nuevoSaldo = floatval(isset($saldo["datos"][0]["importePF"]) ? $saldo["datos"][0]["importePF"] : 0) + floatval($importe);
+				
+				//echo "<br>importe: ".$importe;
+				//echo "<br>saldo antiguo: ".$saldo["datos"][0]["importePF"];
+
+				$datos12 = [
+					'codigoCliente' => $codigoCliente,
+					'fecha' => $fecha,
+					'formaPago' => '',
+					'importe' => $importe,
+					'presupuesto' => '',
+					'fechaCuadre' => NULL,
+					'informacionCuadre' => '',
+					'saldoPostPF' => $nuevoSaldo,
+					'clayma' => 0
+				];
+				
+				insertarProvisionDeFondo_movimientos($conn, $bbddSql, $datos12);
 
 
-				////////////////////////////////////////
 
-				echo modificarDatosPFenCliente($conexion,$codigoCliente,$fecha,$importe);
+				$datos13 = [
+					'fechaCobroPF' => $fecha,
+					'importePF' => $nuevoSaldo
+				];
+
+				$datosIncremento13 = array();
+				/*
+				$datosIncremento13 = [
+					'importePF' => $importe
+				];
+				*/
+
+				$filtros13 = [
+					'codigo' => $codigoCliente
+				];
+
+				$filtrosOperadores13 = array();
+
+				$res =  modificarClientes($conn, $bbddSql, $datos13, $filtros13, $filtrosOperadores13, $datosIncremento13);
+
+
 
 				$contador++;
 			}
-
+			
 		}
+		else
+		{
+			$res["error"]="";
+			
+		}	
+
 	}
 	else
 	{
-		echo "Error: Solo se puede grabar si la fecha esta dentro de este año";
+		$res["datos"] = "Error: Solo se puede grabar si la fecha esta dentro de este año";		
 	}
+
+	sqlsrv_close($conn);
 	
-	
-	
-	
-	
-	
+	echo json_encode($res);
 	
 }
 

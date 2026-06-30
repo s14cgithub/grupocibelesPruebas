@@ -267,14 +267,14 @@ echo ("</html>");
 	//cargarListadoNombreFranqueo(" where activo = 1   and (idAutorizacionFranqueo =2 or idAutorizacionFranqueo=3) order by nombre_franqueo");
 	
 	
-	cargarClientes(" where activo = 1   and (idAutorizacionFranqueo =2 or idAutorizacionFranqueo=3) order by nombre_empresa",idInputListado);
+	cargarClientes();
 	
 	
 	//idInputListado = "";
 	//rellenarCamposGrabacionFranqueo();	
 
 	idInputListado = "idClienteModal";
-	cargarListadoNombreFranqueo(" where activo = 1   and (idAutorizacionFranqueo =2 or idAutorizacionFranqueo=3) order by nombre_franqueo");
+	cargarListadoNombreFranqueo();
 	
 	
 	

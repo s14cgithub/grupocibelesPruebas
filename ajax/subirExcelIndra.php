@@ -7,12 +7,17 @@
 echo ("idProducto".$_POST["idProducto"]);
 echo ("accion".$_POST["accion"]);*/
 
-if(isset($_POST["accion"])&&$_POST["accion"]=="subir")
+if(isset($_POST["accion"]) && $_POST["accion"]=="subir")
 {
 	$ruta = $_POST["ruta"];
 	$tipo = $_POST["tipo"];
 	
 	$idEmpleado = $_SESSION["idEmpleado"];	
+
+	if (strlen($idEmpleado)==1)
+	{
+		$idEmpleado = "0".$idEmpleado;
+	}
 	
 	$rutaCarpeta = $ruta."archivosDescargas/";
 	$rutaCarpetaSession = "archivosDescargas/importacionIndra";
@@ -105,6 +110,9 @@ if(isset($_POST["accion"])&&$_POST["accion"]=="subir")
 			
 			$objPHPExcel->setActiveSheetIndex(0);
 			
+			$conn1 = conectarSQL($conexion);
+			$conn = $conn1['conn'];
+			$bbddSql = $conn1['bbdd'];
 			
 			for ($row = 5, $seguir2="true"; $seguir2=="true"; $row++)
 			{
@@ -226,40 +234,82 @@ if(isset($_POST["accion"])&&$_POST["accion"]=="subir")
 						
 						if ($error=="")
 						{
-							$resultado2 = verDatosTarifa ($conexion,$idTarifaProducto, $gramos, $fechaActual);
+							$campos = [
+								'tipos',
+								'precioNeto',
+								'iva',
+								'titulo'
+							];
+						
+							$joins = [
+								'tabla2'
+							];
+
+							$filtros = [
+								'idTarifasProducto' => $idTarifaProducto,
+								'gramos' => $gramos
+							];
+							$filtrosOperadores = array();
+							$order = array();
+
+							//where t1.idTarifasProducto = ".$idTarifaProducto." and t1.gramos=" .$peso;
+
+
+							$resultado2 = cargarTarifasFranqueo($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order,$anioActual,$cantidad);
 							
-							if (count($resultado2)>0)
+							if (count($resultado2["datos"])>0)
 							{
-								$tipo = $resultado2[0]["tipos"];
+								$tipo = $resultado2["datos"][0]["tipos"];
 								
-								$importe = $resultado2[0]["precioNeto"] + $resultado2[0]["iva"];
-								$importeSinIva = $resultado2[0]["precioNeto"];
+								$importe = $resultado2["datos"][0]["precioNeto"] + $resultado2["datos"][0]["iva"];
+								$importeSinIva = $resultado2["datos"][0]["precioNeto"];
 								//$referencia = verUltimaReferenciaPorUsuario($conexion,$idEmpleado,$anioActual);
 								//$codigoBarras
 
 
 								//idProductoPadre
-								$detalle = $resultado2[0]["titulo"]."(".$gramos."): ".$cantidad;
+								$detalle = $resultado2["datos"][0]["titulo"]."(".$gramos."): ".$cantidad;
 
 								$importeTotal = $importe;
 								$importeTotalSinIva = $importeSinIva;
 
 								/////////////////////////////////////////
 								$seguir=false;
+
+								$datos2 = [
+									'importe_cantidadIndicada',
+									'tipos',
+									'importeSinIva_cantidadIndicada'				
+								];
+								$joins2 = array();
+								
+								$filtrosOperadores2 = array();
+								$order2 = array();	
+
 								if (strtoupper(trim($acuseRecibo))=="ACUSE DE RECIBO")
 								{
-									$datosFranqueo2 = verImporteProductoFranqueoAcuseRecibo($conexion, $tipo, $cantidad,$anioActual);
+									$filtros2 = [
+										'tipos_acuseRecibo' => $tipo		
+									];
 									$seguir = true;
 								}
 								else if(strtoupper(trim($acuseRecibo))=="PEE")
 								{
-									$datosFranqueo2 = verImporteProductoFranqueoPEE($conexion, $tipo, $cantidad,$anioActual);
+									$filtros2 = [
+										'tipos_PEE' => $tipo		
+									];
+
 									$seguir = true;
 								}
 								if ($seguir==true)
 								{
-									$importeTotal += $datosFranqueo2[0]["importe"];
-									$importeTotalSinIva += $datosFranqueo2[0]["importeSinIva"];
+									$datosFranqueo2 = cargarTarifasFranqueo($conn,$bbddSql, $datos2, $joins2, $filtros2, $filtrosOperadores2, $order2,$anioActual,$cantidad);
+
+									//echo json_encode($datosFranqueo2);
+									//exit; 
+
+									$importeTotal += $datosFranqueo2["datos"][0]["importe"];
+									$importeTotalSinIva += $datosFranqueo2["datos"][0]["importeSinIva"];
 								}
 
 
@@ -270,23 +320,89 @@ if(isset($_POST["accion"])&&$_POST["accion"]=="subir")
 								$poblacion="";
 								$codigoPostal="";
 								
-								//echo "cliente:".$codigoCliente;
-								echo insertarGrabacionFranqueo($conexion,$fechaActual,$codigoCliente,$ot,'',$importeTotal,$cantidad,$idProductoPadre,$detalle,$idEmpleado,$anadidos,$anioActual);
+								
+								$datos3["fecha"] = $fechaActual;
+								$datos3["idCliente"] = $codigoCliente;
+								$datos3["ot"] = $ot;
+								$datos3["otSidi"] = '';
+								$datos3["importe"] = $importeTotal;
+								$datos3["envios"] = $cantidad;
+								$datos3["producto"] = $idProductoPadre;
+								$datos3["detalle"] = $detalle;
+								$datos3["idEmpleado"] = $idEmpleado;
+								$datos3["anadidos"] = $anadidos;
 
-								$referencia = verUltimaReferenciaPorUsuario($conexion,$idEmpleado,$anioActual);
+
+								insertarGrabacionFranqueo($conn, $bbddSql, $datos3);
+
+
+								$datos4 = [
+									'referencia'
+								];
+
+								$joins4 = array();
+
+								$filtros4 = [
+									'verUltimaReferenciaPorUsuario' => $idEmpleado	
+								];
+
+								$filtrosOperadores4 = array();
+								$order4 = array();
+								$referencia = cargarFranqueo($conn, $bbddSql, $datos4, $joins4, $filtros4, $filtrosOperadores4, $order4);
+		
 
 
 								//////////////////////////////////////////
 								$importado = 2;//VALOR UNICO PARA ESTE PROCESO DE INDRA
 								
-								//echo $referencia[0]["referencia"];
-								insertarGrabacionFranqueoTipos($conexion,$codigoCliente, $ot,'', $fechaActual, $tipo, $cantidad, $importe,$referencia[0]["referencia"], $importeSinIva, $anioActual, $codigoBarras,$importado, $nombreCompleto, $direccion, $poblacion, $codigoPostal);
+								$datos5 =  [
+									'idCliente' => $codigoCliente,
+									'ot' =>  $ot,
+									'otSidi' => '',
+									'fecha' => $fechaActual,
+									'tipo' => $tipo,
+									'unidades' =>  $cantidad,
+									'importe' => $importe,
+									'referencia' => $referencia["datos"][0]["referencia"],
+									'importeSinIva' => $importeSinIva,
+									'numSeguimiento' => $codigoBarras,
+									'importado' => $importado,
+									'txt' => 0,
+									'comprobado' => 0,
+									'nombre' => $nombreCompleto,
+									'direccion' => $direccion,
+									'poblacion' => $poblacion,
+									'cp' => $codigoPostal				
+								];
 
+								insertarGrabacionFranqueoTipos($conn, $bbddSql, $datos5);
+								
 
 								if ($seguir==true)
 								{
-									//echo("hola: ".$datosFranqueo2[0]["tipos"]);
-									insertarGrabacionFranqueoTipos($conexion,$codigoCliente, $ot,'', $fechaActual, $datosFranqueo2[0]["tipos"], $cantidad, $datosFranqueo2[0]["importe"],$referencia[0]["referencia"],$datosFranqueo2[0]["importeSinIva"],$anioActual, $codigoBarras, $importado, $nombreCompleto, $direccion, $poblacion, $codigoPostal);
+
+									$datos6 =  [
+										'idCliente' => $codigoCliente,
+										'ot' =>  $ot,
+										'otSidi' => '',
+										'fecha' => $fechaActual,
+										'tipo' => $datosFranqueo2["datos"][0]["tipos"],
+										'unidades' =>  $cantidad,
+										'importe' => $datosFranqueo2["datos"][0]["importe"],
+										'referencia' => $referencia["datos"][0]["referencia"],
+										'importeSinIva' => $datosFranqueo2["datos"][0]["importeSinIva"],
+										'numSeguimiento' => $codigoBarras,
+										'importado' => $importado,
+										'txt' => 0,
+										'comprobado' => 0,
+										'nombre' => $nombreCompleto,
+										'direccion' => $direccion,
+										'poblacion' => $poblacion,
+										'cp' => $codigoPostal				
+									];
+
+									insertarGrabacionFranqueoTipos($conn, $bbddSql, $datos6);									
+									
 								}
 								
 								//echo "entra";
@@ -316,6 +432,8 @@ if(isset($_POST["accion"])&&$_POST["accion"]=="subir")
 			$objWriter->save($archivador);
 			
 			echo "Nombre:".$archivadorSesion;
+
+			sqlsrv_close($conn);
 
 		}
 		

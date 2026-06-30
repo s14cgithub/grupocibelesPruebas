@@ -32,27 +32,27 @@ require($ruta."Archivos Comunes/cabecera.php");
 	<td align="center" > Año: <select class=""  id="anioSeleccionado" name="anioSeleccionado"></td>
 	<td align="center" colspan="6"> &nbsp&nbsp Buscar por:
 		<select class=""  id="buscarCampo" name="buscarCampo">
-		<option value="t1.idCliente">Cliente-Codigo</option>
-			<option value="t2.nombre_franqueo">Cliente-Franqueo</option>
-			<option value="t1.ot" selected="selected">Ot</option>				
-			<option value="t1.referencia">Referencia</option>
+		<option value="idCliente">Cliente-Codigo</option>
+			<option value="nombre_franqueo">Cliente-Franqueo</option>
+			<option value="ot" selected="selected">Ot</option>				
+			<option value="referencia">Referencia</option>
 		</select>
 
 		Texto:
 		<input class="" type="text" id="buscarTexto" name="buscarTexto"></input>
 		Orden: 
 		<select class="" id="ordenBuscar">
-				<option value="t1.idCliente">Cliente-Codigo</option>
-				<option value="t2.nombre_franqueo">Cliente-Franqueo</option>
-				<option value="t1.fecha"  selected="selected">Fecha</option>
-				<option value="t1.ot">Ot</option>				
-				<option value="t1.referencia">Referencia</option>
+				<option value="idCliente">Cliente-Codigo</option>
+				<option value="nombre_franqueo">Cliente-Franqueo</option>
+				<option value="fecha"  selected="selected">Fecha</option>
+				<option value="ot">Ot</option>				
+				<option value="referencia">Referencia</option>
 				
 				
 		</select>
 		Desc: <input type="checkbox" id="buscarDesc"  checked></input>
 		
-		<button type="button" class="btn btn-info" onClick="buscarRegistroFranqueo()">BUSCAR</button>
+		<button type="button" class="btn btn-info" onClick="cargarRegistrosFranqueo()">BUSCAR</button>
 		
 	</td>		
 </tr>
@@ -96,10 +96,7 @@ echo ("</html>");
 
 
 <script language="javascript">	
-	cargarAnios("anioSeleccionado");
-	document.getElementById("anioSeleccionado").value = 2025;
-
-
-	//buscarRegistroFranqueo();
+	cargarAniosFranqueoTipo();
+	
 	document.getElementById("button-up").addEventListener("click", scrollUp);
 </script>

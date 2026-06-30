@@ -201,14 +201,15 @@ function mostrarSubirOtSidiDesdeExcel()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				alert(peticionUnica1.responseText);
-				//alert("Proceso Finalizado");
+			{							
+				alert("Proceso Finalizado");
 				
 				document.getElementById("elArchivoExcelOtSidi").value = null;
 			}

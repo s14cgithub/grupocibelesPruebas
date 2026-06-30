@@ -3,6 +3,103 @@ var modo=0;
 var fechaActual1="";
 var permisosSoloLectura = null;
 
+
+
+
+
+function cargarListadoNombreFranqueo(idInput) //js_pdaGestion
+{	
+	idInputListado = idInput;
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarListadoNombreFranqueo;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarListadoNombreFranqueo();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarListadoNombreFranqueo()
+{	
+	var consulta = "accion=cargarClientes";
+	
+	var campos = [
+		'codigo',
+		'nombre_franqueo'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	activo: 1,
+		autorizadoFranqueo: 1
+
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
+	var order = [
+    	{ campo: 'nombre_franqueo', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	return consulta;	
+}
+
+function mostrarCargarListadoNombreFranqueo()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;				
+				
+				if (datos != "")
+				{					
+					if (datos.length<=0)
+					{
+						//alert("No hay ningun registro");
+						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
+					}
+					else
+					{
+						var contador=0;
+						var contenido="";
+						
+						if (idInputListado!="clienteAjusteModal")
+						{
+							contenido += '<option value="0"></option>';
+						}
+						while  (contador<datos.length)
+						{
+							contenido += '<option value="'+datos[contador]["codigo"]+'">'+datos[contador]["nombre_franqueo"]+'</option>';
+							contador++;
+						}
+							
+						document.getElementById(idInputListado).innerHTML = contenido;
+						idInputListado = '';
+					}					
+				}
+			}						
+			
+			peticionUnica1=null;			
+		}
+	}						
+}
+
+
+
 function rellenarCamposGrabacionFranqueo()//js_franqueoGrabacion	
 {	
 	
@@ -11,7 +108,7 @@ function rellenarCamposGrabacionFranqueo()//js_franqueoGrabacion
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarRellenarCamposGrabacionFranqueo;
-		peticionUnica1.open("POST","ajax/rellenarCamposGrabacionFranqueo.php",false);
+		peticionUnica1.open("POST","ajax/cargarListadoTarifasProductos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string =consultaRellenarCamposGrabacionFranqueo();
 		peticionUnica1.send(query_string);
@@ -20,10 +117,28 @@ function rellenarCamposGrabacionFranqueo()//js_franqueoGrabacion
 
 function consultaRellenarCamposGrabacionFranqueo()
 {	
-	var consulta = "accion=rellenarCamposGrabacionFranqueo";	
+	var consulta = "accion=cargarTarifasProductos";
 	
-	consulta += "&producto="+ document.getElementById("tarifaProducto").value;
-	return consulta;	
+	var campos = [
+		'titulo'	
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));	
+	
+
+	var filtros = {
+    	idProductoPadre: document.getElementById("tarifaProducto").value		
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+
+	var order = [
+    	{ campo: 'orden', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	return consulta;
+
 }
 
 function mostrarRellenarCamposGrabacionFranqueo()
@@ -32,21 +147,15 @@ function mostrarRellenarCamposGrabacionFranqueo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+				var datos = res.datos;	
 				
 				if (datos != "")
 				{
@@ -103,6 +212,7 @@ function mostrarRellenarCamposGrabacionFranqueo()
 							
 			}
 			peticionUnica1=null;
+			document.getElementById("numEnvios").value = 0;
 		}
 	}						
 }
@@ -114,7 +224,7 @@ function franqueo_irAcampo_Ot()//js_franqueoGrabacion
 	document.getElementById("ot").select();
 }
 
-function grabarFranqueo()//js_franqueoGrabacion		
+function grabarFranqueo()
 {
 	if(document.getElementById("numEnvios").value=="0")
 	{
@@ -142,67 +252,65 @@ function grabarFranqueo()//js_franqueoGrabacion
 }
 
 function consultaGrabarFranqueo()
-{	
+{
 	var consulta = "accion=grabarFranqueo";	
-	var contador=0;
-	
-	
-	consulta += "&idProducto="+ document.getElementById("tarifaProducto").value;
-	consulta += "&idCliente="+ document.getElementById("listadoNombreFranqueo").value;
-	consulta += "&fecha="+ document.getElementById("fecha").value;	
-	consulta += "&totalEnvios="+ document.getElementById("numEnvios").value;
-	consulta += "&ot="+ document.getElementById("ot").value;
-	consulta += "&otSidi=" + document.getElementById("otSidi").value;
-	
-	var contenido2=""
-	listadoTipos.forEach(function(valorId)
-	{	
-			if (document.getElementById(valorId).value>0 && document.getElementById(valorId).value!="")
-			{		
-				contenido2+=document.getElementById(valorId).id;
-				contenido2+="|3432ji31|";
-				contenido2+=document.getElementById(valorId).value;
-				contenido2+="|193fea32|";
-			}
-	});
-	//alert(contenido2.lenght);
-	contenido2 = contenido2.substring(0,contenido2.length-10);
-	//alert(contenido2);
-	consulta += "&contenido="+contenido2;
-	
-	
+
+	var anadidos = "";
 	if (document.getElementById("tarifaProducto").value==3 || document.getElementById("tarifaProducto").value==4 || document.getElementById("tarifaProducto").value==17 )
 	{	
 		if (document.getElementById("conAcuse").checked==true)
 		{
-			consulta += "&anadidos=AcuseRecibo";
+			anadidos="AcuseRecibo";
 		}
 		else if (document.getElementById("conPEE").checked==true)
 		{
-			consulta += "&anadidos=PEE";
-		}
-		else 
-		{
-			consulta += "&anadidos=";
-		}
+			anadidos="PEE";
+		}		
 	}
 	else if (document.getElementById("tarifaProducto").value==5)
 	{
 		if (document.getElementById("conPEEnot").checked==true)
 		{
-			consulta += "&anadidos=PEE";
+			anadidos="PEE";
 		}
 		else 
 		{
-			consulta += "&anadidos=AcuseRecibo";
+			anadidos="AcuseRecibo";
 		}
 	}
-	else
-	{
-		consulta += "&anadidos=";
+
+
+	var datos = {
+		producto: document.getElementById("tarifaProducto").value,
+		idCliente: document.getElementById("listadoNombreFranqueo").value,
+		fecha: document.getElementById("fecha").value,
+		envios: document.getElementById("numEnvios").value,
+		ot: document.getElementById("ot").value,
+		otSidi: document.getElementById("otSidi").value,
+		anadidos: anadidos,
+		comprobado: 0,
+		txt: 0
 	}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));	
+
+	var contenido2=""
+	listadoTipos.forEach(function(valorId)
+	{	
+		if (document.getElementById(valorId).value>0 && document.getElementById(valorId).value!="")
+		{		
+			contenido2+=document.getElementById(valorId).id;
+			contenido2+="|3432ji31|";
+			contenido2+=document.getElementById(valorId).value;
+			contenido2+="|193fea32|";
+		}
+	});
 	
+	contenido2 = contenido2.substring(0,contenido2.length-10);	
+	consulta += "&contenido="+contenido2;
+
 	return consulta;	
+		
 }
 
 function mostrarGrabarFranqueo()
@@ -212,14 +320,16 @@ function mostrarGrabarFranqueo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
 			{
-			 //vaciar campos	
-				//alert(peticionUnica1.responseText);	
+			 	//vaciar campos	
+				
 				listadoTipos.forEach(function(valorId)
 				{					
 					document.getElementById(valorId).value="";
@@ -283,10 +393,16 @@ function generacionTxtCorreosFranqueo_sidi(modo1)
 }
 function consultaGeneracionTxtCorreosFranqueo_sidi()
 {	
-	var consulta = "accion=generacionTxtCorreosFranqueo";	
-	consulta+="&idProducto="+document.getElementById("tarifaProducto").value;
-	consulta+="&modo="+modo;
-	return consulta;	
+	var consulta = "accion=generacionTxtCorreosFranqueo";
+
+	var filtros = {
+    	idProducto: document.getElementById("tarifaProducto").value,
+		modo: modo
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	
+	return consulta;
 }
 
 function mostrarGeneracionTxtCorreosFranqueo_sidi()
@@ -295,20 +411,24 @@ function mostrarGeneracionTxtCorreosFranqueo_sidi()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.trim().substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				document.getElementById("generarAlbaranesCorreosFranqueo_sidi").setAttribute('href',peticionUnica1.responseText.trim());
-				document.getElementById("generarAlbaranesCorreosFranqueo_sidi").setAttribute('download',peticionUnica1.responseText.trim().substring(peticionUnica1.responseText.trim().lastIndexOf('/')+1));
+			{
+				var datos = res.datos;	
+				
+						
+				document.getElementById("generarAlbaranesCorreosFranqueo_sidi").setAttribute('href',datos.trim());
+				document.getElementById("generarAlbaranesCorreosFranqueo_sidi").setAttribute('download',datos.trim().substring(datos.trim().lastIndexOf('/')+1));
 				
 				document.getElementById("generarAlbaranesCorreosFranqueo_sidi").click();
 				
 			}
-			peticionUnica1=null;
-			generacionTxtCorreosFranqueo();
+			peticionUnica1=null;			
 		}
 	}						
 }
@@ -421,7 +541,7 @@ function verInformeFranqueoResumen()//js_franqueoGrabacion
 }
 
 
-function cargarTarifasProductos()//js_franqueoGrabacion			
+function cargarTarifasProductos()
 {	
 	peticionUnica1=null;
 	peticionUnica1=crearComunicacion(peticionUnica1);
@@ -429,7 +549,7 @@ function cargarTarifasProductos()//js_franqueoGrabacion
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarTarifasProductos;
-		peticionUnica1.open("POST","ajax/cargarlistadoTarifasProductos.php",false);
+		peticionUnica1.open("POST","ajax/cargarListadoTarifasProductosPadre.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string =consultaCargarTarifasProductos();
 		peticionUnica1.send(query_string);
@@ -438,7 +558,20 @@ function cargarTarifasProductos()//js_franqueoGrabacion
 
 function consultaCargarTarifasProductos()
 {	
-	var consulta = "accion=cargarTarifasProductos";	
+	var consulta = "accion=cargarTarifasProductos";
+	
+	var campos = [
+		'id',
+		'producto'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));	
+	
+	var order = [
+    	{ campo: 'producto', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -449,21 +582,15 @@ function mostrarCargarTarifasProductos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+				var datos = res.datos;				
 				
 				if (datos != "")
 				{					
@@ -496,7 +623,7 @@ function rellenarHistoricoFranqueo() //js_franqueoGrabacion
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarRellenarHistoricoFranqueo;
-		peticionUnica1.open("POST","ajax/mostrarHistoricoFranqueo.php",false);
+		peticionUnica1.open("POST","ajax/cargarFranqueo.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string =consultaRellenarHistoricoFranqueo();
 		peticionUnica1.send(query_string);
@@ -505,11 +632,49 @@ function rellenarHistoricoFranqueo() //js_franqueoGrabacion
 
 function consultaRellenarHistoricoFranqueo()
 {	
-	var consulta = "accion=rellenarHistoricoFranqueo";	
-	consulta+="&idProducto=" + document.getElementById("tarifaProducto").value;
-	consulta+="&fecha=" + document.getElementById("fecha").value;
+	var consulta = "accion=cargarFranqueo";	
+
+	var campos = [
+		'id',
+		'referencia',
+		'idCliente',        
+        'ot',
+        'otSidi',
+        'importe',
+        'envios',
+        'detalle',
+        'anadidos',
+        'fecha',
+        'comprobado',
+        'nombre_franqueo'     		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [
+		'tabla2'
+	];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var fecha = document.getElementById("fecha").value;
+
+	if (fecha) {
+		var partes = fecha.split('-');
+		fecha = partes[2] + '-' + partes[1] + '-' + partes[0];
+	}
+
+	var filtros = {
+    	producto: document.getElementById("tarifaProducto").value,
+		fecha: fecha
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
-	return consulta;	
+	consulta += "&origen=franqueoGrabacion";
+	
+	return consulta;
+
 }
 
 function mostrarRellenarHistoricoFranqueo()
@@ -518,21 +683,15 @@ function mostrarRellenarHistoricoFranqueo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
-			{				
-			  	var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+			{
+				var datos = res.datos;	
 				
 				if (datos != "")
 				{
@@ -672,31 +831,64 @@ function mostrarRellenarHistoricoFranqueo()
 
 
 function rellenarCamposGrabacionFranqueo2()	//js_franqueoGrabacion		
-{	
-	peticionUnica1=null;
-	peticionUnica1=crearComunicacion(peticionUnica1);
+{
+	if (document.getElementById('fecha').value)
+	{
+		peticionUnica1=null;
+		peticionUnica1=crearComunicacion(peticionUnica1);
 
-	if(peticionUnica1)
-	{							
-		peticionUnica1.onreadystatechange = mostrarRellenarCamposGrabacionFranqueo2;
-		peticionUnica1.open("POST","ajax/rellenarCamposGrabacionFranqueo2.php",false);
-		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string =consultaRellenarCamposGrabacionFranqueo2();
-		peticionUnica1.send(query_string);
+		if(peticionUnica1)
+		{							
+			peticionUnica1.onreadystatechange = mostrarRellenarCamposGrabacionFranqueo2;
+			peticionUnica1.open("POST","ajax/cargarTarifasFranqueo.php",false);
+			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+			var query_string =consultaRellenarCamposGrabacionFranqueo2();
+			peticionUnica1.send(query_string);
+		}	
+	}
+	else
+	{		
 	}	
+	
 }
 
 function consultaRellenarCamposGrabacionFranqueo2()
 {	
-	var consulta = "accion=rellenarCamposGrabacionFranqueo";	
+	var consulta = "accion=cargarTarifasFranqueo";		
+
+	var campos = [
+		'gramos',
+		'tipos'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [
+		'tabla2'
+	];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+
+	var filtros = {
+    	idProductoPadre: document.getElementById("tarifaProducto").value		
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
 	
-	consulta += "&producto="+ document.getElementById("tarifaProducto").value;
-		
+	var order = [
+    	{ campo: 'gramos', dir: 'ASC' },
+		{ campo: 'orden_Producto', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	var date = new Date(document.getElementById('fecha').value);
 	
 	consulta += "&anioSeleccionado=" + date.getFullYear();
 	
-	return consulta;	
+	return consulta;
+	
 }
 
 function mostrarRellenarCamposGrabacionFranqueo2()
@@ -704,28 +896,21 @@ function mostrarRellenarCamposGrabacionFranqueo2()
 	if (peticionUnica1.readyState == 4)
 	{
 		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+		{			
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+				var datos = res.datos;	
 				
 				if (datos != "")
 				{
 					
 					var contenido = "";
-
 					var contador = 0;
 						
 					//contenido = "<tr>";
@@ -754,8 +939,7 @@ function mostrarRellenarCamposGrabacionFranqueo2()
 						}
 						
 						contenido += '<td align="center"><input type="text"  id="'+datos[contador]["tipos"]+'" value="" onkeyup="gestionarValorGrabacionFranqueo('+contador+', event, id)" style="width: 100%;text-align: center;"></input></td>';
-						 
-						
+						 						
 						listadoTipos.push(datos[contador]["tipos"]);
 						
 						contador++;
@@ -957,7 +1141,7 @@ function cargarDatosFranqueoTipoPorReferencia(referencia) //js_franqueoGrabacion
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarDatosFranqueoTipoPorReferencia;
-		peticionUnica1.open("POST","ajax/cargarDatosFranqueoTipoPorReferencia.php",false);
+		peticionUnica1.open("POST","ajax/cargarFranqueoTipo.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarDatosFranqueoTipoPorReferencia(referencia);
 		peticionUnica1.send(query_string);
@@ -966,10 +1150,40 @@ function cargarDatosFranqueoTipoPorReferencia(referencia) //js_franqueoGrabacion
 
 function consultaCargarDatosFranqueoTipoPorReferencia(referencia)
 {	
-	var consulta = "accion=cargarDatosFranqueoTipoPorReferencia";	
-	consulta+="&referencia=" + referencia;
-	var anioSeleccionado = document.getElementById("fecha").value.substr(0,4);
-	consulta+="&anioSeleccionado=" + anioSeleccionado;
+	var consulta = "accion=cargarFranqueoTipo";	
+
+	var campos = [
+		'id',
+		'unidades',
+		'importe',
+		'tarifa',
+		'idTarifa',
+		'idCliente',
+		'fecha',
+		'ot',
+		'otSidi'
+		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	referencia: referencia
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+
+	var joins = [
+		'tabla3'
+	];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var order = [
+    	{ campo: 'id', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	
 	return consulta;	
 }
@@ -980,14 +1194,15 @@ function mostrarCargarDatosFranqueoTipoPorReferencia()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;	
 				
 				var contenido="";
 				var contador = 0;
@@ -996,8 +1211,8 @@ function mostrarCargarDatosFranqueoTipoPorReferencia()
 				//contenido += '<td align="center">OT</td>';	
 				contenido += '<td align="center">Tipo</td>	';
 				contenido += '<td align="center">Unidades</td>';
-				contenido += '<td align="center">importe</td>';
-				contenido += '<td align="center">tarifa</td>';
+				contenido += '<td align="center">Importe</td>';
+				contenido += '<td align="center">Tarifa</td>';
 				contenido += '<td align="center"></td>';
 				contenido += '<td align="center"></td>';
 				contenido += '</tr>';
@@ -1019,9 +1234,19 @@ function mostrarCargarDatosFranqueoTipoPorReferencia()
 					
 					contenido += '<td><input type="number" id="'+datos[contador]["id"]+'_unidades" name="'+datos[contador]["id"]+'_unidades" style="width: 100%;" value="'+datos[contador]["unidades"]+'" onKeyUp="recalcularImporteFranqueoTipo('+datos[contador]["id"]+')"></input></td>';
 					
-					contenido += '<td><input type="number" id="'+datos[contador]["id"]+'_importe" name="'+datos[contador]["id"]+'_importe" style="width: 100%;" value="'+datos[contador]["importe"]+'" readonly></input></td>';
+					var importe = String(datos[contador]["importe"]);
+					if (importe.substring(0, 1) == ".") {
+						importe = "0" + importe;
+					}
+
+					contenido += '<td><input type="number" id="'+datos[contador]["id"]+'_importe" name="'+datos[contador]["id"]+'_importe" style="width: 100%;" value="'+importe+'" readonly></input></td>';
 					
-					contenido += '<td><input type="number" id="'+datos[contador]["id"]+'_tarifa" name="'+datos[contador]["id"]+'_tarifa" style="width: 100%;" value="'+datos[contador]["tarifa"]+'" readonly></input></td>';
+					var tarifa = String(datos[contador]["tarifa"]);
+					if (tarifa.substring(0, 1) == ".") {
+						tarifa = "0" + tarifa;
+					}					
+
+					contenido += '<td><input type="number" id="'+datos[contador]["id"]+'_tarifa" name="'+datos[contador]["id"]+'_tarifa" style="width: 100%;" value="'+tarifa+'" readonly></input></td>';
 					
 					if (!permisosSoloLectura)
 					{
@@ -1047,7 +1272,7 @@ function mostrarCargarDatosFranqueoTipoPorReferencia()
 				document.getElementById("fechaModal").value = datos[0]["fecha"]["date"].substring(0,10);
 				document.getElementById("otModal").value = datos[0]["ot"];
 				document.getElementById("otSidiModal").value = datos[0]["otSidi"];
-				document.getElementById("totalModal").value = totalImporte;				
+				document.getElementById("totalModal").value = totalImporte.toFixed(2);
 				document.getElementById("datosTipoFranqueo").innerHTML = contenido;		
 				
 				
@@ -1105,10 +1330,14 @@ function eliminarRegistroFranqueo2(id)//js_franqueoGrabacion
 function consultaEliminarRegistroFranqueo2(id)
 {	
 	var consulta = "accion=eliminarRegistroFranqueo2";	
-	consulta+="&id=" + id;
-	consulta+="&referencia=" +document.getElementById(id+"_refRegistroF").value;
-	var anioSeleccionado = document.getElementById("fecha").value.substr(0,4);
-	consulta += "&anioSeleccionado=" + anioSeleccionado;
+
+	var filtros = {
+		
+    	referencia: document.getElementById(id+"_refRegistroF").value		
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -1118,12 +1347,14 @@ function mostrarEliminarRegistroFranqueo2()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
-			{
+			{				
 				rellenarHistoricoFranqueo();
 			}
 			peticionUnica1=null;
@@ -1147,8 +1378,34 @@ function cargarTiposFranqueoPorProducto()	//js_franqueoGrabacion
 
 function consultaCargarTiposFranqueoPorProducto()
 {	
+
 	var consulta = "accion=cargarTiposFranqueoPorProducto";	
-	consulta+="&idProductoPadre="+document.getElementById("tarifaProducto").value;
+
+	var campos = [
+		'id',
+		'destino',
+		'gramos',        
+        'tipos',
+        'orden',
+        'titulo'        		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	
+	var filtros = {
+    	 idProductoPadre: document.getElementById("tarifaProducto").value		
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var order = [
+    	{ campo: 'orden', dir: 'ASC' },
+		{ campo: 'titulo', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
 	return consulta;	
 }
 
@@ -1158,22 +1415,15 @@ function mostrarCargarTiposFranqueoPorProducto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);					
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+			{
+				var datos = res.datos;	
 				
 				if (datos != "")
 				{
@@ -1218,21 +1468,25 @@ function modificarFranqueoTipo(idInput)	//js_franqueoGrabacion
 function consultaModificarFranqueoTipo(idInput)
 {	
 	var consulta = "accion=modificarFranqueoTipo";	
-	consulta+="&id="+idInput;
-	
+
 	var sel = document.getElementById(idInput+"_tipo");
 	
-	consulta+="&tipo="+ sel.options[sel.selectedIndex].text;	
-	consulta+="&unidades="+document.getElementById(idInput+"_unidades").value;
-	consulta+="&importe="+document.getElementById(idInput+"_importe").value;	
+	consulta+="&tipo="+ sel.options[sel.selectedIndex].text;
 	
-	//genericos
-	consulta+="&ot="+document.getElementById("otModal").value;
-	consulta+="&otSidi="+document.getElementById("otSidiModal").value;
-	consulta+="&fecha="+document.getElementById("fechaModal").value;
-	consulta+="&idCliente="+document.getElementById("idClienteModal").value;
-	
-	consulta+="&referencia="+document.getElementById("modReferencia").innerHTML;
+	var datos = {
+    	id: idInput,
+		tipo: 	sel.options[sel.selectedIndex].text,
+		unidades: document.getElementById(idInput+"_unidades").value,
+		importe: document.getElementById(idInput+"_importe").value,
+		ot: document.getElementById("otModal").value, //genericos
+		otSidi: document.getElementById("otSidiModal").value,
+		fecha: document.getElementById("fechaModal").value,
+		idCliente: document.getElementById("idClienteModal").value,
+		referencia: document.getElementById("modReferencia").innerHTML,
+		total: document.getElementById("totalModal").value
+	};
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
 	return consulta;	
 }
@@ -1243,41 +1497,15 @@ function mostrarModificarFranqueoTipo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{	
-				alert(peticionUnica1.responseText);
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);					
-				}
-				catch (error)
-				{
-					datos="";
-				}				
-				
-				if (datos != "")
-				{
-					if (datos.length<=0)
-					{						
-					}
-					else
-					{	
-						var contenido = "";
-
-						var contador = 0;
-						
-						document.getElementById(valorNumero+"_tarifa").value = datos[0]["total"];
-						recalcularImporteFranqueoTipo(valorNumero);
-						valorNumero=0;
-						
-					}
-				}				
+			{
+				alert("Modificado");
 			}
 			rellenarHistoricoFranqueo();
 			peticionUnica1=null;
@@ -1289,10 +1517,19 @@ function recalcularImporteFranqueoTipo(idTipo)//js_franqueoGrabacion
 {
 	var unidades = 0;
 	unidades = Number(document.getElementById(idTipo+"_unidades").value);
+	
+	
+
 	var total=0;
 	total = unidades * Number(document.getElementById(idTipo+"_tarifa").value);
 	
-	document.getElementById(idTipo+"_importe").value = total.toFixed(2);
+	var total2 = String(total);
+
+	if (total2.substring(0, 1) == ".") {
+		total2 = "0" + total2;
+	}
+	
+	document.getElementById(idTipo+"_importe").value = Number(total2).toFixed(2);
 	
 	recalcularImporteTotalFranqueoTipo();
 	
@@ -1317,7 +1554,7 @@ function modificarTarifaAlCambiarTipo(idInput)
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarModificarTarifaAlCambiarTipo;
-		peticionUnica1.open("POST","ajax/mostrarTarifaPorTipo.php",false);
+		peticionUnica1.open("POST","ajax/cargarTarifasFranqueo.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaModificarTarifaAlCambiarTipo(idInput);
 		peticionUnica1.send(query_string);						
@@ -1326,11 +1563,32 @@ function modificarTarifaAlCambiarTipo(idInput)
 
 function consultaModificarTarifaAlCambiarTipo(idInput)
 {	
-	var consulta = "accion=modificarTarifaAlCambiarTipo";	
-	consulta+="&idTipo="+document.getElementById(idInput+"_tipo").value;
+
+	var consulta = "accion=cargarTarifasFranqueo";
+
+	var campos = [
+		'importe_cantidadIndicada'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	
+
+	var filtros = {
+    	id: document.getElementById(idInput+"_tipo").value
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
 	valorNumero = idInput;
+
+	
+	
 	consulta +="&anioSeleccionado="+ fechaActual1.split('/')[2];
-	return consulta;	
+	consulta +="&cantidad=1";
+	
+	return consulta;
+
 }
 /*var idInputListado="";
 var valorTipo=0;
@@ -1342,22 +1600,15 @@ function mostrarModificarTarifaAlCambiarTipo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);					
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+			{
+				var datos = res.datos;	
 				
 				if (datos != "")
 				{
@@ -1370,7 +1621,12 @@ function mostrarModificarTarifaAlCambiarTipo()
 
 						var contador = 0;
 						
-						document.getElementById(valorNumero+"_tarifa").value = datos[0]["total"];
+						var importe = String(datos[0]["importe"]);
+						if (importe.substring(0, 1) == ".") {
+							importe = "0" + importe;
+						}
+						
+						document.getElementById(valorNumero+"_tarifa").value = importe;
 						recalcularImporteFranqueoTipo(valorNumero);
 						valorNumero=0;
 						

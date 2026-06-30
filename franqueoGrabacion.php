@@ -297,7 +297,7 @@ echo ("</html>");
 
 		if ($_SESSION["permiso_grabarFranqueo"]==1)
 		{		
-			echo 'permisosSoloLectura = true;';		
+			echo 'permisosSoloLectura = true;';
 		}
 
 		if ($_SESSION["permiso_franqueoF12"]==2)
@@ -315,16 +315,10 @@ echo ("</html>");
 	
 	
 	cargarTarifasProductos();
-	idInputListado = "listadoNombreFranqueo";
-	//cargarListadoNombreFranqueo(" where codigo_saldo != 554 and codigo_saldo != 1859 and activo = 1 order by nombre_franqueo");
-	cargarListadoNombreFranqueo(" where activo = 1   and (idAutorizacionFranqueo =2 or idAutorizacionFranqueo=3) order by nombre_franqueo");
-	idInputListado = "";
-	rellenarCamposGrabacionFranqueo();	
+	cargarListadoNombreFranqueo("listadoNombreFranqueo");
+	rellenarCamposGrabacionFranqueo();
+	cargarListadoNombreFranqueo("idClienteModal");
 
-	idInputListado = "idClienteModal";
-	cargarListadoNombreFranqueo(" where activo = 1   and (idAutorizacionFranqueo =2 or idAutorizacionFranqueo=3) order by nombre_franqueo");
-	
-	
 	
 	let params2 = new URLSearchParams(window.location.search);
 

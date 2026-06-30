@@ -62,7 +62,9 @@ require($ruta."Archivos Comunes/cabecera.php");
 		
 					<td align="right">Fecha: </td>
 					<td>
-						<input type="date" name="fecha" id="fecha" value="<?php echo date("Y-m-d");?>" style="width:100%"> </input>		
+						<input type="date" name="fecha" id="fecha" value="';
+			echo date("Y-m-d");
+			echo '" style="width:100%"> </input>		
 					</td>		
 				</tr>
 				<tr>		
@@ -209,8 +211,10 @@ echo ("</html>");
 	?>
 
 
-	idInputListado = "listadoNombreFranqueo";
-	cargarListadoNombreFranqueo(" where activo = 1   and (idAutorizacionFranqueo =2 or idAutorizacionFranqueo=3) order by nombre_franqueo");	
+	cargarListadoNombreFranqueo("listadoNombreFranqueo");
+
+	///idInputListado = "listadoNombreFranqueo";
+	//cargarListadoNombreFranqueo(" where activo = 1   and (idAutorizacionFranqueo =2 or idAutorizacionFranqueo=3) order by nombre_franqueo");	
 	idInputListado="";
 	rellenarHistoricoFranqueoEnviosEspeciales();
 	document.getElementById("button-up").addEventListener("click", scrollUp);

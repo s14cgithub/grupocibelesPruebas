@@ -16,11 +16,47 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirInforme")
 	$idProducto = $_POST["imprimirInformeProducto"];	
 	$fecha = $_POST["imprimirInformeFecha"];
 	
+	$fecha = date("d-m-Y", strtotime($fecha));
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 	
-	$datosInforme = mostrarInformeFranqueoResumen($conexion,$idProducto,$fecha);
 	
+	$campos = array(
+		'nombre_franqueo',
+		'nombreProducto',
+		'contarNumAlbaranes',
+		'enviosTotal',
+		'importeTotal',
+		'totalProductoFecha'
+	);
+
+	$joins = array('tabla2', 'tabla3');
+
+	$filtros = array(
+		'producto' => $idProducto,
+		'fecha' => $fecha
+	);
+
+	$filtrosOperadores = array();
+
+	$group = array(
+		'nombre_franqueo',
+		'nombreProducto'
+	);
+
+	$order = array(
+		array('campo' => 'nombre_franqueo', 'dir' => 'ASC')
+	);
 	
-	if (count($datosInforme)>0)
+	$datosInforme = cargarFranqueo($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order, $group);
+	//$datosInforme = mostrarInformeFranqueoResumen($conexion,$idProducto,$fecha);
+	
+	//echo json_encode($datosinforme);
+	//exit;
+	
+	if (count($datosInforme["datos"])>0)
 	{
 		$pdf = new FPDF('P','mm','A4');
 
@@ -51,7 +87,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirInforme")
 		
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,12,"RESUMEN DE ALBARANES\n".$datosInforme[0]["producto"],0,'C',false);
+		$pdf->MultiCell(0,12,"RESUMEN DE ALBARANES\n".$datosInforme["datos"][0]["nombreProducto"],0,'C',false);
 		
 		$altura += 30;
 		$margen = 10;
@@ -65,7 +101,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirInforme")
 		
 		$margen = 100;
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,12,"Importe Total: ".number_format($datosInforme[0]["total"],2,',','.')." ".EURO,0,'R',false);
+		$pdf->MultiCell(0,12,"Importe Total: ".number_format($datosInforme["datos"][0]["total"],2,',','.')." ".EURO,0,'R',false);
 		
 		
 		$margen = 10;
@@ -76,7 +112,8 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirInforme")
 		
 		
 		
-		foreach ($datosInforme as $row) 
+		
+		foreach ($datosInforme["datos"] as $row) 
 		{
 			if ($altura>=265)
 			{
@@ -112,14 +149,16 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirInforme")
 			
 			$altura +=5;
 			$pdf->SetXY($margen,$altura);			
-			$pdf->Cell(60,5,$row["cliente"],1,0,'C',false);
-			$pdf->Cell(40,5,$row["albaranes"],1,0,'C',false);		
-			$pdf->Cell(40,5,$row["envios"],1,0,'C',false);		
-			$pdf->Cell(50,5,$row["importe"],1,0,'C',false);
+			$pdf->Cell(60,5,$row["nombre_franqueo"],1,0,'C',false);
+			$pdf->Cell(40,5,$row["contarNumAlbaranes"],1,0,'C',false);		
+			$pdf->Cell(40,5,$row["enviosTotal"],1,0,'C',false);		
+			$pdf->Cell(50,5,$row["importeTotal"],1,0,'C',false);
 		}
 		
 		$pdf->Output("I",$ruta."Albaran - ".date("dmy")." .pdf","UTF-8");
+		
 	}
+	sqlsrv_close($conn);
 }
 else
 {

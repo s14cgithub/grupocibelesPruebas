@@ -52,7 +52,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="previsualizarPr
 		'telefonoComercial'			
 		];
 		
-	$joins = ['tabla2', 'tabla3'];
+	$joins = ['tabla2', 'tabla3','tabla4'];
 
 
 

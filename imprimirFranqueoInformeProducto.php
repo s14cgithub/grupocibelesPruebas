@@ -16,23 +16,84 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 	$idProducto = $_POST["imprimirInformeProductoId"];	
 	$fecha = $_POST["imprimirInformeProductoFecha"];
 	
+	$fecha = date("d-m-Y", strtotime($fecha));
+	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+
+	$campos = [
+		'importeTotal',
+		'contarNumAlbaranes',
+		'enviosTotal'		
+	];
+
+	$joins = array();
+
+	$filtros = [
+		'producto' => $idProducto,
+		'fecha' => $fecha
+	];
+
+	$filtrosOperadores = array();
+
+	$order = array(
+		'fecha' => 'ASC',
+		'producto' => 'ASC'
+	);
+
+	$datosInformeTotal = cargarFranqueo($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order);
+
+	$importeTotal=$datosInformeTotal["datos"][0]["importeTotal"];
+	$numAlbaranes=$datosInformeTotal["datos"][0]["contarNumAlbaranes"];
+	$enviosTotal=$datosInformeTotal["datos"][0]["enviosTotal"];
+
+	$campos2 = [
+		'gramos',
+		'tituloTarifasProducto_inner',
+		'producto_Padre',
+		'unidadesTotal'
+	];
+
+	$joins2 =[
+		'tabla3',
+		'tabla6',
+		'tabla7'
+	];
+
+	$filtros2 = [
+		'idProductoPadre' => $idProducto,
+		'fecha' => $fecha
+	];
+
+	$filtrosOperadores2 = array();
+
+	$order2 = array(
+		'producto_Padre' => 'ASC',
+		'ordenTarifaProducto_inner' => 'ASC'
+	);
+
+	$group2 =[
+		'producto',
+		'tipo',
+		'orden',
+		'gramos',
+		'titulo'
+	];
+
+
 	
 	
-	$datosInformeTotal = mostrarInformeFranqueoTotales($conexion,$idProducto,$fecha);
-	
-	$importeTotal=$datosInformeTotal[0]["importeTotal"];
-	$numAlbaranes=$datosInformeTotal[0]["numAlbaranes"];
-	$enviosTotal=$datosInformeTotal[0]["enviosTotal"];
-	
-	
-	$datosInforme = mostrarInformeFranqueoPorProductoYfechaResumen($conexion,$idProducto,$fecha);
+	$datosInforme = cargarFranqueoTipos($conn, $bbddSql, $campos2, $joins2, $filtros2, $filtrosOperadores2, $group2, $order2, date("Y", strtotime($fecha)));
 	
 	
 	$gramajes=array();
 	
 	$destinos=array();
 	
-	foreach($datosInforme as $row)
+	foreach($datosInforme["datos"] as $row)
 	{
 		if (!in_array($row["gramos"],$gramajes) )
 		{
@@ -69,7 +130,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 
 
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(0,12,"RESUMEN\n".$datosInforme[0]["producto"],0,'C',false);
+	$pdf->MultiCell(0,12,"RESUMEN\n".$datosInforme["datos"][0]["producto"],0,'C',false);
 	
 	$altura += 30;
 	$margen = 10;
@@ -164,15 +225,15 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 		{
 			$seguir = true;
 			$altura+=5;
-			foreach($datosInforme as $row3)
+			foreach($datosInforme["datos"] as $row3)
 			{				
 				if ($seguir==true && $row3["gramos"]==$row2 && $row3["titulo"]==$row)
 				{
 					$seguir = false;					
 					
 					$pdf->SetXY($margen,$altura);
-					$pdf->Cell($sumarMargen,5,$row3["unidades"],1,0,'C',true);
-					$enviosTotalDestino = $enviosTotalDestino + intval($row3["unidades"]);
+					$pdf->Cell($sumarMargen,5,$row3["unidadesTotal"],1,0,'C',true);
+					$enviosTotalDestino = $enviosTotalDestino + intval($row3["unidadesTotal"]);
 					break;
 				}
 				
@@ -202,11 +263,11 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 		
 		foreach ($destinos as $row2)
 		{			
-			foreach($datosInforme as $row3)
+			foreach($datosInforme["datos"] as $row3)
 			{				
 				if ($row3["gramos"]==$row && $row3["titulo"]==$row2)
 				{					
-					$gramosTotal = $gramosTotal + (intval($row3["unidades"]) * intval($row3["gramos"]));
+					$gramosTotal = $gramosTotal + (intval($row3["unidadesTotal"]) * intval($row3["gramos"]));
 					break;
 				}
 			}
@@ -229,6 +290,8 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 	
 	$pdf->Output("I",$ruta."Albaran - ".date("dmy")." .pdf","UTF-8");
 	
+	sqlsrv_close($conn);
+
 	/*$prueba = array();
 	$datos=array();
 	foreach ($datosInforme as $row) 

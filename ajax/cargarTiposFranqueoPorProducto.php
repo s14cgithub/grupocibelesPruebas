@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarTiposFranqueoPorProducto")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarTiposFranqueoPorProducto")
 {
 	
 	session_start(); 
@@ -9,19 +9,21 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarTiposFranqueoPorProducto")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	$idProductoPadre = $_POST["idProductoPadre"];
+
+	$campos=isset($_POST["campos"])?json_decode($_POST["campos"], true):array();	
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();	
+	$order=isset($_POST["order"])?json_decode($_POST["order"], true):array();
 	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = cargarTiposFranqueoPorProducto($conn,$bbddSql, $campos,$filtros, $order);
 	
-	$resultado = cargarTiposFranqueoPorProducto($conexion,$idProductoPadre);
+	sqlsrv_close($conn);
 	
-	if (count($resultado)<=0)
-	{
-		echo  json_encode("");
-	}	
-	else
-	{
-		echo  json_encode($resultado);
-	}	
+	echo json_encode($res);
 }
 
 ?>

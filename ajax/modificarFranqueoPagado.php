@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="grabarFranqueo")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarFranqueoPagado")
 {
 	
 	session_start(); 
@@ -8,19 +8,19 @@ if(isset($_POST["accion"])&$_POST["accion"]=="grabarFranqueo")
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
+	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
 	
-	$id = $_POST["id"];	
-	$fecha = $_POST["fecha"];
-	$ot = $_POST["ot"];
-	$envios = $_POST["envios"];
-	$detalle = $_POST["detalle"];
-	
-	
-	
-	$anioSeleccionado =  date("Y", strtotime($fecha));
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
 
-	echo modificarFranqueoPagado($conexion,$anioSeleccionado,$id,$ot,$envios,$detalle);
-		
+	$res = modificarFranqueoPagado($conn, $bbddSql, $datos, $filtros, $filtrosOperadores);
+	
+	sqlsrv_close($conn);
+	
+	echo json_encode($res);	
 	
 	
 	

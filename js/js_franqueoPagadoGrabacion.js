@@ -3,8 +3,182 @@ var modo=0;
 var fechaActual1="";
 
 
+function cargarClientes()
+{
+	peticionUnica1=null;
+	peticionUnica1=crearComunicacion(peticionUnica1);
 
-function rellenarHistoricoFranqueo() //js_franqueoGrabacion		
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarClientes;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarClientes();
+		peticionUnica1.send(query_string);
+	}	
+} 
+
+
+function consultaCargarClientes()
+{
+	var consulta = "accion=cargarClientes";	
+	var campos = [
+		'codigo_saldo',
+		'nombre_empresa'		
+	];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	activo: 1,
+		autorizadoFranqueo: 1
+
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
+	var order = [
+    	{ campo: 'nombre_empresa', dir: 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
+	
+	return consulta;	
+}
+
+function mostrarCargarClientes()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				
+				if (datos != "")
+				{		
+							
+					var contenido = "";
+					if (booleano==true)
+					{
+						contenido += '  <option value="todos">todos</option>';	
+					}
+					booleano=false;
+
+					var contador = 0;					
+					
+
+					while  (contador<datos.length)
+					{						
+						contenido += '  <option value="'+datos[contador]["codigo_saldo"]+'">'+datos[contador]["nombre_empresa"]+' - '+datos[contador]["codigo_saldo"]+'</option>';	
+												
+						contador++;
+					}
+
+					document.getElementById("listadoNombreFranqueo").innerHTML = contenido;
+				}			
+				
+			}
+			peticionUnica1=null;
+				
+		}
+	}						
+}
+
+
+function cargarListadoNombreFranqueo()		
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+							
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarListadoNombreFranqueo;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarListadoNombreFranqueo();
+		peticionUnica1.send(query_string);						
+	}
+}
+
+function consultaCargarListadoNombreFranqueo()
+{	
+	var consulta = "accion=cargarClientes";	
+
+	var campos = [
+		'codigo',
+		'nombre_franqueo'		
+	];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	activo: 1,
+		autorizadoFranqueo: 1
+
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
+	var order = [
+    	{ campo: 'nombre_franqueo', dir: 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
+	
+	return consulta;	
+}
+
+
+
+// mostrarCargarListadoNombreFranqueo: lo estoy poniendo la funcion en cada js que lo necesito
+function mostrarCargarListadoNombreFranqueo()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			{
+				alert(peticionUnica1.responseText);
+			}
+			else
+			{				
+				var datos = new Array;
+				
+				try 
+				{
+					datos = JSON.parse(peticionUnica1.responseText);
+				}
+				catch (error)
+				{
+					datos="";
+				} 
+				
+				var contador=0;
+				var contenido="";
+				
+				if (idInputListado!="clienteAjusteModal")
+				{
+					contenido += '<option value="0"></option>';
+				}
+				while  (contador<datos.length)
+				{
+					contenido += '<option value="'+datos[contador]["codigo"]+'">'+datos[contador]["nombre_franqueo"]+'</option>';
+					contador++;
+				}
+					
+				document.getElementById(idInputListado).innerHTML = contenido;
+				idInputListado = '';
+							
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
+
+
+function rellenarHistoricoFranqueo()
 {	
 	peticionUnica1=null;
 	peticionUnica1=crearComunicacion(peticionUnica1);
@@ -12,7 +186,7 @@ function rellenarHistoricoFranqueo() //js_franqueoGrabacion
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarRellenarHistoricoFranqueo;
-		peticionUnica1.open("POST","ajax/mostrarHistoricoFranqueoPagado.php",false);
+		peticionUnica1.open("POST","ajax/cargarFranqueoPagado.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string =consultaRellenarHistoricoFranqueo();
 		peticionUnica1.send(query_string);
@@ -21,9 +195,46 @@ function rellenarHistoricoFranqueo() //js_franqueoGrabacion
 
 function consultaRellenarHistoricoFranqueo()
 {	
-	var consulta = "accion=rellenarHistoricoFranqueo";	
-	consulta+="&idProducto=" + document.getElementById("tarifaProducto").value;
-	consulta+="&fecha=" + document.getElementById("fecha").value;
+	var consulta = "accion=cargarFranqueoPagado";	
+
+	var campos = [
+		'id',
+		'idCliente',
+		'nombre_franqueo',
+		'unidades',
+		'tipoCert_Not',
+		'fecha',
+		'ot'
+	];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var fecha = document.getElementById("fecha").value;
+	if (fecha != "") 
+	{
+    	var partes = fecha.split("-");
+		fecha = partes[2] + "-" + partes[1] + "-" + partes[0];
+	}
+
+	var filtros = {
+    	idProductoPadre: document.getElementById("tarifaProducto").value,
+		fecha: fecha
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
+	var joins = [
+		'tabla2',
+		'tabla3',
+		'tabla4'
+	];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));	
+
+	var order = [
+		{
+			campo: 'id',
+			dir: 'DESC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -34,21 +245,15 @@ function mostrarRellenarHistoricoFranqueo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
-			{				
-			  	var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+			{
+				var datos = res.datos;
 				
 				if (datos != "")
 				{
@@ -121,9 +326,9 @@ function mostrarRellenarHistoricoFranqueo()
 
 
 						
-						contenido+='<td><input type="image" id="'+datos[contador]["id"]+'_modificarRegistroF" value="" src="imagenes/modificar.png" style="width:20px;" onclick="modificarRegistroFranqueo('+datos[contador]["id"]+',\''+datos[contador]["fecha"]["date"].substring(0,10)+'\')"></td>';
+						contenido+='<td><input type="image" id="'+datos[contador]["id"]+'_modificarRegistroF" value="" src="imagenes/modificar.png" style="width:20px;" onclick="modificarRegistroFranqueo('+datos[contador]["id"]+')"></td>';
 
-						contenido+='<td><input type="image" id="'+datos[contador]["id"]+'_eliminarRegistroF" value="" src="imagenes/eliminar.png" style="width:20px;" onclick="eliminarRegistroFranqueo('+datos[contador]["id"]+',\''+datos[contador]["fecha"]["date"].substring(0,10)+'\')"></td>';
+						contenido+='<td><input type="image" id="'+datos[contador]["id"]+'_eliminarRegistroF" value="" src="imagenes/eliminar.png" style="width:20px;" onclick="eliminarRegistroFranqueo('+datos[contador]["id"]+')"></td>';
 						
 
 						contenido+='</tr>';
@@ -177,16 +382,26 @@ function grabarFranqueo()
 
 function consultaGrabarFranqueo()
 {	
-	var consulta = "accion=grabarFranqueo";	
-	var contador=0;
-	
-	
-	consulta += "&idProducto="+ document.getElementById("tarifaProducto").value;
-	consulta += "&idCliente="+ document.getElementById("listadoNombreFranqueo").value;
-	consulta += "&fecha="+ document.getElementById("fecha").value;	
-	consulta += "&totalEnvios="+ document.getElementById("numEnvios").value;
-	consulta += "&ot="+ document.getElementById("ot").value;
-	consulta += "&tipoDetalle="+ document.getElementById("listadoDetalleProducto").value;		
+
+	var consulta = "accion=grabarFranqueo";
+
+	var fecha = document.getElementById("fecha").value;
+
+	if (fecha != "") 
+	{
+		var partes = fecha.split("-");
+		fecha = partes[2] + "-" + partes[1] + "-" + partes[0];
+	}
+	var datos = {
+		idProductoPadre: document.getElementById("tarifaProducto").value,
+		idCliente: document.getElementById("listadoNombreFranqueo").value,
+		fecha: fecha,
+		unidades: document.getElementById("numEnvios").value,
+		ot: document.getElementById("ot").value,
+		tipoCert_Not: document.getElementById("listadoDetalleProducto").value
+	}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));	
 	
 	return consulta;	
 }
@@ -198,19 +413,18 @@ function mostrarGrabarFranqueo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
-			{
-			 //vaciar campos	
-				//alert(peticionUnica1.responseText);	
-				
+			{				
 				document.getElementById("ot").value="";
 				document.getElementById("numEnvios").value=0;
-
 			}
+
 			peticionUnica1=null;
 			rellenarHistoricoFranqueo();
 			
@@ -225,7 +439,7 @@ function mostrarGrabarFranqueo()
 
 
 
-function modificarRegistroFranqueo(valorId, fecha)		
+function modificarRegistroFranqueo(valorId)		
 {	
 	peticionUnica1=null;
 	peticionUnica1=crearComunicacion(peticionUnica1);
@@ -241,45 +455,54 @@ function modificarRegistroFranqueo(valorId, fecha)
 
 }
 
-function consultaModificarRegistroFranqueo(valorId, fecha)
+function consultaModificarRegistroFranqueo(valorId)
 {	
-	var consulta = "accion=grabarFranqueo";		
+
+	var consulta = "accion=modificarFranqueoPagado";
 	
-	consulta += "&id="+ valorId;	
-	consulta += "&fecha=" + fecha;
-	consulta += "&ot=" + document.getElementById(valorId + "_ot").value;
-	consulta += "&envios=" + document.getElementById(valorId + "_envios").value;
-	consulta += "&detalle=" + document.getElementById(valorId + "_detalleTipo").value;
+	var datos = {		
+		unidades: document.getElementById(valorId + "_envios").value,
+		ot: document.getElementById(valorId + "_ot").value,
+		tipoCert_Not: document.getElementById(valorId + "_detalleTipo").value
+
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	id: valorId
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));		
 	
-	return consulta;	
+	return consulta;
+
 }
 
 function mostrarModificarRegistroFranqueo()
-{
-	
+{	
 	if (peticionUnica1.readyState == 4)
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
-			{		
-				alert(peticionUnica1.responseText);	
+			{
+				alert("Registro Modificado");	
 
 			}
 			peticionUnica1=null;
-			rellenarHistoricoFranqueo();	
-			
+			rellenarHistoricoFranqueo();
 			
 		}
 	}	
 }
 
 
-function eliminarRegistroFranqueo(valorId, fecha)		
+function eliminarRegistroFranqueo(valorId)		
 {	
 	
 	if (confirm("¿Eliminar el registro con id: "+ valorId)) 
@@ -292,20 +515,23 @@ function eliminarRegistroFranqueo(valorId, fecha)
 			peticionUnica1.onreadystatechange = mostrarEliminarRegistroFranqueo;
 			peticionUnica1.open("POST","ajax/eliminarFranqueoPagado.php",false);
 			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-			var query_string = consultaEliminarRegistroFranqueo(valorId, fecha);
+			var query_string = consultaEliminarRegistroFranqueo(valorId);
 			peticionUnica1.send(query_string);
 		}
 	} 
 
 }
 
-function consultaEliminarRegistroFranqueo(valorId, fecha)
-{	
-	var consulta = "accion=grabarFranqueo";		
+function consultaEliminarRegistroFranqueo(valorId)
+{
 	
-	consulta += "&id="+ valorId;	
-	consulta += "&fecha=" + fecha;
-	
+	var consulta = "accion=eliminarFranqueoPagado";
+
+	var filtros = {
+    	id: valorId
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));	
 	return consulta;	
 }
 
@@ -316,13 +542,15 @@ function mostrarEliminarRegistroFranqueo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
 			{		
-				alert(peticionUnica1.responseText);	
+				alert("Registro Eliminado");	
 
 			}
 			peticionUnica1=null;
@@ -619,7 +847,7 @@ function verInformeFranqueoResumen()//js_franqueoGrabacion
 }
 
 
-function cargarTarifasProductos()//js_franqueoGrabacion			
+function cargarTarifasProductos()
 {	
 	peticionUnica1=null;
 	peticionUnica1=crearComunicacion(peticionUnica1);
@@ -627,7 +855,7 @@ function cargarTarifasProductos()//js_franqueoGrabacion
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarTarifasProductos;
-		peticionUnica1.open("POST","ajax/cargarlistadoTarifasProductos.php",false);
+		peticionUnica1.open("POST","ajax/cargarListadoTarifasProductosPadre.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string =consultaCargarTarifasProductos();
 		peticionUnica1.send(query_string);
@@ -636,7 +864,21 @@ function cargarTarifasProductos()//js_franqueoGrabacion
 
 function consultaCargarTarifasProductos()
 {	
-	var consulta = "accion=cargarTarifasProductos";	
+	var consulta = "accion=cargarTarifasProductos";
+
+	var campos = [
+		'id',
+		'producto'	
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [
+		{
+			campo: 'producto', dir:'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -647,21 +889,15 @@ function mostrarCargarTarifasProductos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+				var datos = res.datos;			
 				
 				if (datos != "")
 				{					

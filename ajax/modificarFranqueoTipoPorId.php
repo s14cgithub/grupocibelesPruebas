@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="modificarFranqueoTipo")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarFranqueoTipo")
 {
 	
 	session_start(); 
@@ -9,24 +9,22 @@ if(isset($_POST["accion"])&$_POST["accion"]=="modificarFranqueoTipo")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	$id = $_POST["id"];	
-	$tipo = $_POST["tipo"];
-	$unidades = $_POST["unidades"];
-	$importe = $_POST["importe"];
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
 	
-	$ot = $_POST["ot"];
-	$otSidi = $_POST["otSidi"];
-	$fecha = $_POST["fecha"];
-	
-	
+	$id = $datos["id"];	
+	$tipo = $datos["tipo"];
+	$unidades = $datos["unidades"];
+	$importe = $datos["importe"];	
+	$ot = $datos["ot"];
+	$otSidi = $datos["otSidi"];
+	$fecha = $datos["fecha"];
+	$idCliente = $datos["idCliente"];	
+	$referencia = $datos["referencia"];
+	$importeTotal = $datos["total"];
+
 	$anioSeleccionado =  date("Y", strtotime($fecha));
-	
-	
-	$idCliente = $_POST["idCliente"];
-	
-	$referencia = $_POST["referencia"];
-	
-	
+
+
 	$destino = "";
 	$gramos = "";
 	$tipo1 = "";
@@ -50,184 +48,341 @@ if(isset($_POST["accion"])&$_POST["accion"]=="modificarFranqueoTipo")
 		}
 		$contador++;
 	}
-	
-	
-	
+
 	$tipo1 = substr($tipo1, 0, -1);
+
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	//Obtenemos el importe del tipo antiguo
+	$campos = [		
+		'importe'	
+	];
+	$joins = array();
+	$filtros = [
+		'referencia' => $referencia,
+		'id' => $id		
+	];
+
+	 $filtrosOperadores = array();
+	 $group = array();
+	 $order = array();
+
+	$datosAntiguosFranqueoTipos = cargarFranqueoTipos($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $group, $order);
+
+	//Obtenemos el importe de los datos de franqueo antiguo
+	$campos2 = [
+		'fecha',
+		'idCliente',
+		'ot',
+		'otSidi',
+		'importe',
+		'envios',
+		'comprobado'		
+	];
+	$joins2 = array();
+	$filtros2 = [
+		'referencia' => $referencia		
+	];
+
+	 $filtrosOperadores2 = array();
+	 
+	 $order2 = array();
 	
-	/*echo "\nDestino: ".$destino;
-	echo "\nGramos: ".$gramos;
-	echo "\ntipo: ".$tipo1;
-	echo "\n";*/
+	$datosAntiguosFranqueo = cargarFranqueo($conn, $bbddSql, $campos2, $joins2, $filtros2, $filtrosOperadores2, $order2);
+
+
+	//Se guarda el cambio en el tipo de franqueo
+	$datos3 = [
+		'tipo' => $tipo1,
+		'unidades' => $unidades,
+		'importe' => $importe
+	];			
+
+	$filtros3 = [
+		'id' => $id
+	];		
+
+	$filtrosOperadores3 = array();		
+
+	modificarFranqueoTipos($conn, $bbddSql, $datos3, $filtros3, $filtrosOperadores3);
+
+
+	//se obtiene la suma del importe y de las unidades de franqueoTipos
+
+	$campos4 = [		
+		'importeTotal',
+		'unidadesTotal'	
+	];
+	$joins4 = ['tabla3', 'tabla6'];
+	$filtros4 = [
+		'referencia' => $referencia		
+	];
+
+	 $filtrosOperadores4 = array();
+	 $group4 = ['idCliente'];
+	 $order4 = array();
+
+	$datosNuevosParaFranqueo = cargarFranqueoTipos($conn, $bbddSql, $campos4, $joins4, $filtros4, $filtrosOperadores4, $group4, $order4);
+
+	//se obtiene los datos nuevos para el franqueo
+	$datos5 = [
+		'importe',
+		'descripcionTarifaLeft',
+		'tituloTarifasProducto',
+		'gramosTarifaLeft',
+		'unidades'
+	];
+
+	$joins5 = [
+		'tabla4',
+		'tabla5'
+	];
+
+	$filtros5 = [
+		'referencia' => $referencia			
+	];	
+
+	$filtrosOperadores5 = array();
+	$group5 = array();
+
+	$order5 = [
+		['campo' => 'ordenTarifaProducto', 'dir' => 'ASC'],
+		['campo' => 'gramosTarifasLeft', 'dir' => 'ASC']
+	];
 	
-	
-	////////////////////////////////////////
-	
-	$datosAntiguos = verDatosFranqueoPorRefenciaEid($conexion,$referencia,$id,$anioSeleccionado);
-	
-	
-	if ($datosAntiguos[0]["comprobado"]==0 || $datosAntiguos[0]["comprobado"]=="0")
+	$datosActuales = cargarFranqueoTipos($conn, $bbddSql, $datos5, $joins5, $filtros5, $filtrosOperadores5, $group5, $order5);
+	//echo json_encode($datosActuales);exit;
+	$importeTotal=0;
+	$enviosTotal=0;
+	$detalle="";
+	$anadidos="";
+
+	foreach ($datosActuales["datos"] as $valor)
 	{
-		
-		echo modificarFranqueoTipoPorId($conexion,$id,$tipo1,$unidades,$importe,$anioSeleccionado);	
-	
-		modificarFranqueoTipoPorReferencia($conexion,$referencia,$idCliente,$fecha,$ot,$otSidi,$anioSeleccionado);
+		$importeTotal = $importeTotal + $valor["importe"];
 
+		if ($valor["titulo"]=="" || $valor["titulo"]==NULL)
+		{
+			$valores = explode(" ", $valor["descripcion"]);
 
-		$datos = verDatosFranqueoTipoPorReferencia($conexion,$referencia,$anioSeleccionado);
-
-		$importeTotal=0;
-		$enviosTotal=0;
-		$detalle="";
-
-		$anadidos="";
-
-		foreach ($datos as $valor)
-		{		
-			$importeTotal = $importeTotal + $valor["importe"];
-
-
-
-
-			if ($valor["titulo"]=="" || $valor["titulo"]==NULL)
-			{
-				$valores = explode(" ", $valor["descripcion"]);
-
-				$anadidos=$valores[0];
-				//echo "\naqui: ".$valores[0];
-
-			}
-			else
-			{
-
-				$detalle = $detalle . $valor["titulo"]."(".$valor["gramos"]."): ".$valor["unidades"]."|";
-				$enviosTotal = $enviosTotal + $valor["unidades"];
-				//$anadidos="";
-			}
-
-			//echo "\nimporte: ".$importeTotal;
-			//echo "\nenvios: ".$enviosTotal;
+			$anadidos=$valores[0];
+		}
+		else
+		{
+			$detalle = $detalle . $valor["titulo"]."(".$valor["gramos"]."): ".$valor["unidades"]."|";
+			$enviosTotal = $enviosTotal + $valor["unidades"];
+			//$anadidos="";
 		}
 
-		$detalle = substr($detalle, 0, -1);
+		//echo "\nimporte: ".$importeTotal;
+		//echo "\nenvios: ".$enviosTotal;
+	}
+	$detalle = substr($detalle, 0, -1);
 
-		modificarFranqueoPorReferencia($conexion,$referencia,$idCliente,$ot,$otSidi,$fecha,$importeTotal,$enviosTotal,$detalle,$anadidos,$anioSeleccionado);
+	$fechaFormateada = date('d/m/Y', strtotime($fecha));
+
+
+	//se guarda los datos genericos en franqueoTipos
+	$datos6 = [
+		'ot' => $ot,
+		'otSidi' => $otSidi,
+		'fecha' => $fecha,
+		'idCliente' => $idCliente
+	];			
+
+	$filtros6 = [
+		'referencia' => $referencia			
+	];		
+
+	$filtrosOperadores6 = array();
+
+	modificarFranqueoTipos($conn, $bbddSql, $datos6, $filtros6, $filtrosOperadores6);
+
+
+
+	//se guarda los datos en franqueo
+	$datos7 = [
+		'fecha' => $fechaFormateada,
+		'idCliente' => $idCliente,			
+		'ot' => $ot,
+		'otSidi' => $otSidi,
+		'importe' => $importeTotal,
+		'envios' => $enviosTotal,
+		'detalle' => $detalle,
+		'anadidos' => $anadidos		
+	];			
+
+	$filtros7 = [
+		'referencia' => $referencia			
+	];		
+
+	$filtrosOperadores7 = array();
+
+	$res = modificarFranqueo($conn, $bbddSql, $datos7, $filtros7, $filtrosOperadores7);
+
+
+	
+
+
+
+
+	//si hay que modificar saldos
+	if ($datosAntiguosFranqueo["datos"][0]["comprobado"]==1 || $datosAntiguosFranqueo["datos"][0]["comprobado"]=="1")
+	{
+
+		//se obtiene el codigo saldo del cliente antiguo:
+		$campos8 = [
+			'codigo_saldo'	
+		];
+
+		$joins8 = array();
+
+		$filtros8 = [			
+			'codigo' => $datosAntiguosFranqueo["datos"][0]["idCliente"]
+		];
+
+		$filtrosOperadores8 = array();		
+		$order8 = array();
+
+		$codigoSaldoClienteAntiguo = cargarClientes($conn, $bbddSql, $campos8, $filtros8, $filtrosOperadores8, $order8, $joins8);
+		$codigoSaldoClienteAntiguo1 = $codigoSaldoClienteAntiguo["datos"][0]["codigo_saldo"];
 		
+		
+		
+		//Se calcula el saldo del cliente antiguo
+		$campos9 = [
+			'importePF'	
+		];
+
+		$joins9 = array();
+
+		$filtros9 = [
+			'codigo_saldo' => $codigoSaldoClienteAntiguo1,
+			'codigo' => $codigoSaldoClienteAntiguo1						
+		];
+
+		$filtrosOperadores9 = array();		
+		$order9 = array();
+
+		$saldoClienteAntiguo = cargarClientes($conn, $bbddSql, $campos9, $filtros9, $filtrosOperadores9, $order9, $joins9);
+		
+		$saldoClienteAntiguo1 = $saldoClienteAntiguo["datos"][0]["importePF"];
+
+		$fecha1 = date("d-m-Y");
+
+		//Se devuelve el importe al cliente antiguo
+		$nuevoSaldoClienteAntiguo = $saldoClienteAntiguo1 + $datosAntiguosFranqueo["datos"][0]["importe"];
+
+		$datos10 = [
+			'codigoCliente' => $codigoSaldoClienteAntiguo1,
+			'fecha' => $fecha1,
+			'formaPago' => '',
+			'importe' => $datosAntiguosFranqueo["datos"][0]["importe"],
+			'presupuesto' => '',
+			'fechaCuadre' => NULL,
+			'informacionCuadre' => 'modificacion desde franqueo grabacion',
+			'saldoPostPF' => $nuevoSaldoClienteAntiguo,
+			'clayma' => 0
+		];
+		insertarProvisionDeFondo_movimientos($conn, $bbddSql, $datos10);
+
+		
+
+		$datos11 = [
+			'fechaCobroPF' => $fecha1,
+			'importePF' => $nuevoSaldoClienteAntiguo
+		];
+
+		$datosIncremento11 = array();		
+
+		$filtros11 = [
+			'codigo' => $codigoSaldoClienteAntiguo1
+		];
+
+		$filtrosOperadores11 = array();
+
+		modificarClientes($conn, $bbddSql, $datos11, $filtros11, $filtrosOperadores11, $datosIncremento11);
+
+
+		//se obtiene el codigo saldo del cliente nuevo
+
+		$campos12 = [
+			'codigo_saldo'	
+		];
+
+		$joins12 = array();
+
+		$filtros12 = [			
+			'codigo' => $idCliente
+		];
+
+		$filtrosOperadores12 = array();		
+		$order12 = array();
+
+		$codigoSaldoClienteNuevo = cargarClientes($conn, $bbddSql, $campos12, $filtros12, $filtrosOperadores12, $order12, $joins12);
+		$codigoSaldoClienteNuevo1 = $codigoSaldoClienteNuevo["datos"][0]["codigo_saldo"];
+		
+
+		//Se calcula el saldo del cliente nuevo
+		$campos13 = [
+			'importePF'	
+		];
+
+		$joins13 = array();
+
+		$filtros13 = [
+			'codigo_saldo' => $codigoSaldoClienteNuevo1,
+			'codigo' => $codigoSaldoClienteNuevo1						
+		];
+
+		$filtrosOperadores13 = array();		
+		$order13 = array();
+
+		$saldoClienteNuevo = cargarClientes($conn, $bbddSql, $campos13, $filtros13, $filtrosOperadores13, $order13, $joins13);
+		
+		$saldoClienteNuevo1 = $saldoClienteNuevo["datos"][0]["importePF"];
+		
+
+		
+		//Se cobra el importe al cliente nuevo
+		$nuevoSaldoClienteNuevo = $saldoClienteNuevo1 - $importeTotal;
+
+		$datos14 = [
+			'codigoCliente' => $codigoSaldoClienteNuevo1,
+			'fecha' => $fecha1,
+			'formaPago' => '',
+			'importe' => $importeTotal*-1,
+			'presupuesto' => '',
+			'fechaCuadre' => NULL,
+			'informacionCuadre' => 'modificacion desde franqueo grabacion',
+			'saldoPostPF' => $nuevoSaldoClienteNuevo,
+			'clayma' => 0
+		];
+		insertarProvisionDeFondo_movimientos($conn, $bbddSql, $datos14);
+
+		$datos15 = [
+			'fechaCobroPF' => $fecha1,
+			'importePF' => $nuevoSaldoClienteNuevo
+		];
+
+		$datosIncremento15 = array();		
+
+		$filtros15 = [
+			'codigo' => $codigoSaldoClienteNuevo1
+		];
+
+		$filtrosOperadores15 = array();
+
+		modificarClientes($conn, $bbddSql, $datos15, $filtros15, $filtrosOperadores15, $datosIncremento15);
 	}
-	else // comprobado = 1
-	{		
-		//if ($datosAntiguos[0]["idCliente"]!= $idCliente)
-		{			
-			
-			
-			////CAMBIO DE SALDO EN EL CLIENTE ANTIGUO
-			$resultado1 = verCodigoSaldoPorReferenciaFranqueo($conexion,$referencia,$anioSeleccionado);
-			
-			$fecha1 = date("d-m-Y");
-			//$importe1 = floatval($resultado1[0]["importe"]); // importe total de la referencia - ESTO ESTA MAL
-//////////////////////////////////////////////////
-			$importe1 = $datosAntiguos[0]["importe"];
 
-
-////////////////////////////////////////////////////////
-
-
-			$codigoCliente1 = $resultado1[0]["codigo_saldo"];
-
-			$saldo1 = cargarClientes($conexion," where codigo_saldo = ".$codigoCliente1." and codigo = ".$codigoCliente1);
-			$nuevoSaldo1 = $saldo1[0]["importePF"] + $importe1;	
-			$informacionCuadre1='modificacion desde franqueo grabacion';
-			$fechaCuadre1='';
-			$formaPago1='';
-			$presupuesto1='';
-			
-			
-			echo insertarMovimientoPF($conexion,$codigoCliente1,$fecha1,$formaPago1,$importe1,$presupuesto1,$fechaCuadre1,$informacionCuadre1,$nuevoSaldo1);
-			
-			echo modificarDatosPFenCliente($conexion,$codigoCliente1,$fecha1,$importe1); //se le suma el importe antiguo al saldo
-			
-			
-			////CAMBIO DE SALDO EN EL CLIENTE NUEVO
-			echo modificarFranqueoTipoPorId($conexion,$id,$tipo1,$unidades,$importe,$anioSeleccionado);	
-			
-			modificarFranqueoTipoPorReferencia($conexion,$referencia,$idCliente,$fecha,$ot,$otSidi,$anioSeleccionado); //se cambiar en todos los registros de la misma referencia
-			
-			
-			
-			
-			
-			//$resultado2 = verCodigoSaldoPorReferenciaFranqueo($conexion,$referencia,$anioSeleccionado);
-			$fecha2 = date("d-m-Y");
-			//$importe2 = floatval($resultado2[0]["importe"]);
-			$importe2 = $importe;
-			//$codigoCliente2 = $resultado2[0]["codigo_saldo"];
-
-			$saldo2 = cargarClientes($conexion," where codigo_saldo = ".$codigoCliente1." and codigo = ".$codigoCliente1);
-			$nuevoSaldo2 = $saldo2[0]["importePF"] - $importe2;	
-			$informacionCuadre2='modificacion desde franqueo grabacion';
-			$fechaCuadre2='';
-			$formaPago2='';
-			$presupuesto2='';			
-			
-			$importe2 = $importe2*-1;
-			
-			echo insertarMovimientoPF($conexion,$codigoCliente1,$fecha2,$formaPago2,$importe2,$presupuesto2,$fechaCuadre2,$informacionCuadre2,$nuevoSaldo2);
-			
-			echo modificarDatosPFenCliente($conexion,$codigoCliente1,$fecha2,$importe2);
-			
-			
-			
-			
-			$datos = verDatosFranqueoTipoPorReferencia($conexion,$referencia,$anioSeleccionado);
-
-			$importeTotal=0;
-			$enviosTotal=0;
-			$detalle="";
-
-			$anadidos="";
-
-			foreach ($datos as $valor)
-			{		
-				$importeTotal = $importeTotal + $valor["importe"];
-
-
-
-
-				if ($valor["titulo"]=="" || $valor["titulo"]==NULL)
-				{
-					$valores = explode(" ", $valor["descripcion"]);
-
-					$anadidos=$valores[0];
-					//echo "\naqui: ".$valores[0];
-
-				}
-				else
-				{
-
-					$detalle = $detalle . $valor["titulo"]."(".$valor["gramos"]."): ".$valor["unidades"]."|";
-					$enviosTotal = $enviosTotal + $valor["unidades"];
-					//$anadidos="";
-				}
-
-				//echo "\nimporte: ".$importeTotal;
-				//echo "\nenvios: ".$enviosTotal;
-			}
-
-			$detalle = substr($detalle, 0, -1);
-			
-			modificarFranqueoPorReferencia($conexion,$referencia,$idCliente,$ot, $otSidi,$fecha,$importeTotal,$enviosTotal,$detalle,$anadidos,$anioSeleccionado);
-			
-			
-			
-		}
-	}
+	sqlsrv_close($conn);
 	
+	echo json_encode($res);
 	
-	
-	
-	
-	
-	//////////////////////////////////////
 	
 	
 	

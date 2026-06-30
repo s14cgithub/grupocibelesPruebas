@@ -858,7 +858,8 @@ function mostrarCargarSubprocesosGuardados()
 	}						
 }
 */
-function cargarListadoNombreFranqueo(condicion='')	//js_global		
+/*
+function cargarListadoNombreFranqueo()	//js_global		
 {
 	peticionUnica0=crearComunicacion(peticionUnica0);
 							
@@ -867,19 +868,22 @@ function cargarListadoNombreFranqueo(condicion='')	//js_global
 		peticionUnica0.onreadystatechange = mostrarCargarListadoNombreFranqueo;
 		peticionUnica0.open("POST","ajax/cargarListadoNombreFranqueo.php",false);
 		peticionUnica0.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaCargarListadoNombreFranqueo(condicion);
+		var query_string = consultaCargarListadoNombreFranqueo();
 		peticionUnica0.send(query_string);						
 	}
 }
 
-function consultaCargarListadoNombreFranqueo(condicion)
+function consultaCargarListadoNombreFranqueo()
 {	
 	var consulta = "accion=cargarListadoNombreFranqueo";	
 	consulta += "&condicion="+condicion;
 	return consulta;	
 }
 
-function mostrarCargarListadoNombreFranqueo()
+*/
+
+// mostrarCargarListadoNombreFranqueo: lo estoy poniendo la funcion en cada js que lo necesito
+/*function mostrarCargarListadoNombreFranqueo()
 {
 	if (peticionUnica0.readyState == 4)
 	{
@@ -922,8 +926,9 @@ function mostrarCargarListadoNombreFranqueo()
 			peticionUnica0=null;
 		}
 	}						
-}
+}*/
 
+/*
 function cargarClientes(condicion="",destino="",camposAmostrar="") //js_global				
 {	
 	idInputListado = destino;
@@ -1016,7 +1021,7 @@ function mostrarCargarClientesA()
 		}
 	}						
 }
-
+*/
 function cargarSubClientes(condicion="",destino="")	//js_global			
 {	
 	idInputListado = destino;

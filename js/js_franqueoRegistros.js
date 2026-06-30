@@ -39,6 +39,84 @@ function buscarRegistroFranqueo()
 	
 }
 
+function cargarAniosFranqueoTipo()
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarAniosFranqueoTipo;
+		peticionUnica1.open("POST","ajax/cargarFranqueoTipo.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarAniosFranqueoTipo();
+		peticionUnica1.send(query_string);
+	}
+}
+function consultaCargarAniosFranqueoTipo()
+{	
+	var consulta = "accion=cargarFranqueoTipo";		
+
+	var campos = [
+		'aniosDistintos'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	
+	var order = [
+    	{ campo: 'aniosDistintos', dir: 'ASC' }		
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	return consulta;
+	
+}
+
+function mostrarCargarAniosFranqueoTipo()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{			
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;	
+				
+				if (datos != "")
+				{
+					
+					var contenido = "";
+					var contador = 0;	
+					
+					while  (contador<datos.length)
+					{	
+						if (contador === datos.length - 1) {
+							contenido += '<option value="'+datos[contador]["aniosDistintos"]+'" selected>'+datos[contador]["aniosDistintos"]+'</option>';
+						}
+						else
+						{
+							contenido += '<option value="'+datos[contador]["aniosDistintos"]+'">'+datos[contador]["aniosDistintos"]+'</option>';
+						}
+						
+						contador++;	
+					}
+					
+					document.getElementById("anioSeleccionado").innerHTML = contenido;
+										
+				}
+							
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
 
 
 function cargarRegistrosFranqueo()
@@ -48,7 +126,7 @@ function cargarRegistrosFranqueo()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarRegistrosFranqueo;
-		peticionUnica1.open("POST","ajax/mostrarFranqueoRegistrosTipos.php",false);
+		peticionUnica1.open("POST","ajax/cargarFranqueoTipo.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarRegistrosFranqueo();
 		peticionUnica1.send(query_string);
@@ -57,9 +135,58 @@ function cargarRegistrosFranqueo()
 
 function consultaCargarRegistrosFranqueo()
 {	
-	var consulta = "accion=mostrarRegistrosFranqueoTipos";	
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');	
-	consulta +="&anioSeleccionado=" + document.getElementById("anioSeleccionado").value;
+	var consulta = "accion=cargarFranqueoTipo";
+
+	var campos = [
+		'fecha',
+		'idCliente',
+		'producto_Padre_left',
+		'tituloTarifasProducto2',
+		'ot',
+		'unidades',
+		'importe',
+		'idProductoPadre_left',
+		'referencia',
+		'nombre_franqueo'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+
+	var filtros = {
+    	anio: document.getElementById("anioSeleccionado").value		
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
+	var joins = [
+		'tabla2',
+		'tabla3',
+		'tabla11',
+		'tabla10',
+	];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins)); 
+
+	var filtrosLike = [
+		{
+			campo: document.getElementById("buscarCampo").value,
+			valor: document.getElementById("buscarTexto").value
+		}
+	];
+
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+
+
+	var order = [
+		{
+			campo: document.getElementById("ordenBuscar").value,
+			dir: document.getElementById("buscarDesc").checked ? 'DESC' : 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	consulta += "&anioTarifas=" + document.getElementById("anioSeleccionado").value;
+
 	return consulta;	
 }
 
@@ -69,14 +196,15 @@ function mostrarCargarRegistrosFranqueo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
+			{
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
@@ -115,8 +243,26 @@ function mostrarCargarRegistrosFranqueo()
 
 					contenido += '<td>'+datos[contador]["idCliente"] + " - " +datos[contador]["nombre_franqueo"] + '</td>';		
 					
-					contenido += '<td>'+datos[contador]["producto"]+'</td>';		
-					contenido += '<td>'+datos[contador]["titulo"]+'</td>';		
+					var producto = datos[contador]["producto"];					
+					if (producto == null)
+					{
+						producto = '';
+					}
+
+					var titulo = datos[contador]["titulo"];					
+					if (titulo == null)
+					{
+						titulo = '';
+					}
+
+					var referencia = datos[contador]["referencia"];					
+					if (referencia == null)
+					{
+						referencia = '';
+					}
+				
+					contenido += '<td>'+producto+'</td>';		
+					contenido += '<td>'+titulo+'</td>';		
 					contenido += '<td>'+datos[contador]["ot"]+'</td>';		
 					contenido += '<td align="right" >'+datos[contador]["unidades"]+'</td>';					
 					contenido += '<td align="right" style="overflow:hidden; white-space: nowrap;">'+Number(datos[contador]["importe"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €</td>'; 
@@ -124,13 +270,13 @@ function mostrarCargarRegistrosFranqueo()
 					
 
 					//contenido += '<td>'+datos[contador]["referencia"]+'</td>';	
-					if (datos[contador]["producto"]=="null" || datos[contador]["producto"] == null )
+					if (producto=="null" || producto == null )
 					{
-						contenido += '<td>'+datos[contador]["referencia"]+'</td>';
+						contenido += '<td>'+referencia+'</td>';
 					}
 					else
 					{
-						contenido += '<td><a href="franqueoGrabacion.php?producto='+datos[contador]["idProductoPadre"]+'&fecha='+anio + "-" + mes+ "-" + dia+'&referencia='+datos[contador]["referencia"]+'" target="_blank"  style="color:#FFFFFF;">'+datos[contador]["referencia"]+'</a></td>';
+						contenido += '<td><a href="franqueoGrabacion.php?producto='+datos[contador]["idProductoPadre"]+'&fecha='+anio + "-" + mes+ "-" + dia+'&referencia='+referencia+'" target="_blank"  style="color:#FFFFFF;">'+referencia+'</a></td>';
 					}
 
 							

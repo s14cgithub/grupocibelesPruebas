@@ -16,22 +16,58 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 	$idProducto = $_POST["imprimirInformeClienteProducto"];	
 	$fecha = $_POST["imprimirInformeClienteFecha"];
 	
+	$fecha = date("d-m-Y", strtotime($fecha));
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = [
+		'idCliente',
+		'anadidos',
+		'importe',
+		'envios',
+		'nombreProducto',
+		'nombre_franqueo',
+		'numAlbaranes1',
+		'idProducto',
+		'detalle'
+	];
+
+	$joins = [
+		'tabla3',
+		'tabla2'
+	];
+
+	$filtros = [
+		'producto' => $idProducto,
+		'fecha' => $fecha
+	];
+	$filtrosOperadores = array();
+
+	$order = array(
+		'nombre_franqueo' => 'ASC',
+		'idCliente' => 'ASC'
+	);
+
+	$datosInforme = cargarFranqueo($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order);
+
+	//echo json_encode($datosInforme);
+	//exit;
 	
-	$datosInforme = mostrarInformeFranqueoPorProductoYfecha($conexion,$idProducto,$fecha);
-	
-	
+
 	$prueba = array();
 	$datos=array();
-	foreach ($datosInforme as $row) 
+	foreach ($datosInforme["datos"] as $row) 
 	{
 		$cliente=$row["idCliente"];
 		$anadidos=$row["anadidos"];
-		$importeTotal=$row["importeTotal"];
-		$enviosTotal=$row["enviosTotal"];
+		$importeTotal=$row["importe"];
+		$enviosTotal=$row["envios"];
 		$producto=$row["nombreProducto"];
-		$nombre=$row["nombre"];
-		$numAlbaranes = $row["numAlbaranes"];
-		$idProducto = $row["producto"];
+		$nombre=$row["nombre_franqueo"];
+		$numAlbaranes = $row["numAlbaranes1"];
+		$idProducto = $row["idProducto"];
 		
 		
 		$detalles=explode("|", $row["detalle"]);
@@ -47,7 +83,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 			
 			//echo '<br>'.$cliente."-".$anadidos."-".$titulo."-".$gramos."-".$envios;
 			
-			$datos[] = 
+			$datos[] =
 						array(
 							"cliente"=>$cliente,
 							"titulo"=>$titulo,
@@ -60,9 +96,6 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 							"nombre"=>$nombre,
 							"numAlbaranes"=>$numAlbaranes,
 							"idProducto"=>$idProducto
-					
-						
-				
 						);
 			
 		
@@ -130,15 +163,31 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 					if (!in_array($datos[$contador2]["titulo"],$titulos) )
 					{
 						//echo '<br>'.$datos[$contador2]["titulo"];
-						$ordenTitulo = verOrdenTarifasProducto($conexion,$datos[$contador2]["idProducto"],$datos[$contador2]["titulo"]);
+						
+						$campos2 = [
+							'orden'
+						];
+		
+						$joins2 = array();
+						$filtros2 = array(
+							'idProductoPadre' => $datos[$contador2]["idProducto"],
+							'titulo' => $datos[$contador2]["titulo"]
+						);
+						 
+						$filtrosOperadores2 = array();
+						$order2 = array();
+
+						$ordenTitulo = cargarListadoTarifasProductos($conn, $bbddSql, $campos2, $joins2, $filtros2, $filtrosOperadores2, $order2);
+						
+						
 						$elOrden="";
-						if (strlen($ordenTitulo[0]["orden"])==1)
+						if (strlen($ordenTitulo["datos"][0]["orden"])==1)
 						{
-							$elOrden="0".$ordenTitulo[0]["orden"];
+							$elOrden="0".$ordenTitulo["datos"][0]["orden"];
 						}
 						else
 						{
-							$elOrden=$ordenTitulo[0]["orden"];
+							$elOrden=$ordenTitulo["datos"][0]["orden"];
 						}
 						
 						array_push($titulos, $datos[$contador2]["titulo"]);
@@ -532,6 +581,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 	
 	
 	$pdf->Output("I",$ruta."Albaran - ".date("dmy")." .pdf","UTF-8");
+	sqlsrv_close($conn);
 	
 	/*if (count($datosInforme)>0)
 	{
@@ -638,6 +688,8 @@ else
 {
 	
 }
+
+
 
 ?>
 	
