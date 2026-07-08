@@ -159,9 +159,9 @@ function visualizarCamposPresuMensual()//js_presupuesto
 	if (document.getElementById("presu_mensual").checked==true)
 	{
 		//document.getElementById("labelNumPresuMensual").style.visibility = "visible";
-		//document.getElementById("labelNumPresuMensual").style.display = "table-cell";
+		//document.getElementById("labelNumPresuMensual").style.display = "inline-block";
 		document.getElementById("tdNumPresuMensual").style.visibility = "visible";
-		document.getElementById("tdNumPresuMensual").style.display = "table-cell";
+		document.getElementById("tdNumPresuMensual").style.display = "inline-block";
 		document.getElementById("tdNumPresuMensual").colSpan = "3";
 		//document.getElementById("labelNumPresuMensual").style.textAlign = "right";
 		document.getElementById("tdNumPresuMensual").style.textAlign = "right";
@@ -681,13 +681,13 @@ function mostrarBuscarPresupuesto()
 						document.getElementById("botonCrearPresupuesto").style.display = "none";
 						
 						document.getElementById("botonNuevoPresupuesto").style.visibility = "visible";
-						document.getElementById("botonNuevoPresupuesto").style.display = "table-cell";	
+						document.getElementById("botonNuevoPresupuesto").style.display = "inline-block";	
 	
 						//document.getElementById("botonCopiarPresupuesto").style.visibility = "hidden";
 						//document.getElementById("botonCopiarPresupuesto").style.display = "none";	
 
 						document.getElementById("botonVersionPresupuesto").style.visibility = "visible";
-						document.getElementById("botonVersionPresupuesto").style.display = "table-cell";
+						document.getElementById("botonVersionPresupuesto").style.display = "inline-block";
 					}
 					
 					
@@ -702,7 +702,7 @@ function mostrarBuscarPresupuesto()
 					
 					
 					document.getElementById("botonProvisionFondo").style.visibility = "visible";
-					document.getElementById("botonProvisionFondo").style.display = "table-cell";
+					document.getElementById("botonProvisionFondo").style.display = "inline-block";
 					
 					
 					var facturado=datos[0]["numeroFacturaCompleto"];
@@ -731,7 +731,7 @@ function mostrarBuscarPresupuesto()
 						if (pdfPresupuestoGenerado=="1")
 						{
 							document.getElementById("botonVerPresupuesto").style.visibility = "visible";
-							document.getElementById("botonVerPresupuesto").style.display = "table-cell";
+							document.getElementById("botonVerPresupuesto").style.display = "inline-block";
 						}
 						else
 						{
@@ -760,13 +760,13 @@ function mostrarBuscarPresupuesto()
 								document.getElementById("botonPrevisualizarPresupuesto").style.display = "none";
 
 								document.getElementById("botonModPedCliente").style.visibility = "visible";
-								document.getElementById("botonModPedCliente").style.display = "table-cell";
+								document.getElementById("botonModPedCliente").style.display = "inline-block";
 							}
 
 							
 
 							document.getElementById("botonVerPresupuesto").style.visibility = "visible";
-							document.getElementById("botonVerPresupuesto").style.display = "table-cell";
+							document.getElementById("botonVerPresupuesto").style.display = "inline-block";
 
 							
 
@@ -780,13 +780,13 @@ function mostrarBuscarPresupuesto()
 							if (!permisosSoloLectura)
 							{
 								document.getElementById("botonImprimirPresupuesto").style.visibility = "visible";
-								document.getElementById("botonImprimirPresupuesto").style.display = "table-cell";
+								document.getElementById("botonImprimirPresupuesto").style.display = "inline-block";
 
 								document.getElementById("botonPrevisualizarPresupuesto").style.visibility = "visible";
-								document.getElementById("botonPrevisualizarPresupuesto").style.display = "table-cell";
+								document.getElementById("botonPrevisualizarPresupuesto").style.display = "inline-block";
 
 								document.getElementById("botonModificarPresupuesto").style.visibility = "visible";
-								document.getElementById("botonModificarPresupuesto").style.display = "table-cell";
+								document.getElementById("botonModificarPresupuesto").style.display = "inline-block";
 
 
 								document.getElementById("anadirDetallesPresupuesto").style.visibility = "visible";
@@ -808,7 +808,7 @@ function mostrarBuscarPresupuesto()
 						
 					}
 							//document.getElementById("botonImprimirPresupuesto").style.visibility = "visible";
-							//document.getElementById("botonImprimirPresupuesto").style.display = "table-cell";
+							//document.getElementById("botonImprimirPresupuesto").style.display = "inline-block";
 					
 							
 					//botonNuevaVersiongetion();//esto es algo puntual		
@@ -1393,10 +1393,10 @@ function mostrarModificarPresupuesto()
 				document.getElementById("botonCrearPresupuesto").style.display = "none";
 				
 				document.getElementById("botonNuevoPresupuesto").style.visibility = "visible";
-				document.getElementById("botonNuevoPresupuesto").style.display = "table-cell";	
+				document.getElementById("botonNuevoPresupuesto").style.display = "inline-block";	
 				
 				document.getElementById("botonModificarPresupuesto").style.visibility = "visible";
-				document.getElementById("botonModificarPresupuesto").style.display = "table-cell";
+				document.getElementById("botonModificarPresupuesto").style.display = "inline-block";
 				
 				document.getElementById("botonModPedCliente").style.visibility = "hidden";
 				document.getElementById("botonModPedCliente").style.display = "none";
@@ -1577,13 +1577,13 @@ function mostrarCrearPresupuesto()
 				document.getElementById("botonCrearPresupuesto").style.display = "none";
 				
 				document.getElementById("botonNuevoPresupuesto").style.visibility = "visible";
-				document.getElementById("botonNuevoPresupuesto").style.display = "table-cell";	
+				document.getElementById("botonNuevoPresupuesto").style.display = "inline-block";	
 				
 				//document.getElementById("botonCopiarPresupuesto").style.visibility = "hidden";
 				//document.getElementById("botonCopiarPresupuesto").style.display = "none";	
 				
 				document.getElementById("botonModificarPresupuesto").style.visibility = "visible";
-				document.getElementById("botonModificarPresupuesto").style.display = "table-cell";
+				document.getElementById("botonModificarPresupuesto").style.display = "inline-block";
 				
 				document.getElementById("datosPresupuestoGenerico").style.visibility = "hidden";
 				document.getElementById("datosPresupuestoGenerico").style.display = "none";
@@ -1593,10 +1593,10 @@ function mostrarCrearPresupuesto()
 				document.getElementById("anadirDetallesPresupuesto").colSpan = "7";
 				
 				document.getElementById("botonVersionPresupuesto").style.visibility = "visible";
-				document.getElementById("botonVersionPresupuesto").style.display = "table-cell";
+				document.getElementById("botonVersionPresupuesto").style.display = "inline-block";
 				
 				document.getElementById("botonProvisionFondo").style.visibility = "visible";
-				document.getElementById("botonProvisionFondo").style.display = "table-cell";
+				document.getElementById("botonProvisionFondo").style.display = "inline-block";
 				
 				document.getElementById("botonModPedCliente").style.visibility = "hidden";
 				document.getElementById("botonModPedCliente").style.display = "none";
@@ -1916,12 +1916,12 @@ function visualizarCamposPresuMensualModal()//js_presupuestosAlta
 		document.getElementById("copiarPresuNoMensualModal").style.visibility = "hidden";
 		document.getElementById("copiarPresuNoMensualModal").style.display = "none";
 		document.getElementById("copiarPresuMensualModal").style.visibility = "visible";
-		document.getElementById("copiarPresuMensualModal").style.display = "table-cell";		
+		document.getElementById("copiarPresuMensualModal").style.display = "inline-block";		
 	}
 	else
 	{		
 		document.getElementById("copiarPresuNoMensualModal").style.visibility = "visible";
-		document.getElementById("copiarPresuNoMensualModal").style.display = "table-cell";
+		document.getElementById("copiarPresuNoMensualModal").style.display = "inline-block";
 		document.getElementById("copiarPresuMensualModal").style.visibility = "hidden";
 		document.getElementById("copiarPresuMensualModal").style.display = "none";
 	}
@@ -2202,10 +2202,10 @@ function mostrarInsertarProvisionDeFondos_presupuesto()
 				document.getElementById("tipoProvisionFondo").disabled = true;
 				
 				document.getElementById("botonImprimirProvision").style.visibility = "visible";
-				document.getElementById("botonImprimirProvision").style.display = "table-cell";
+				document.getElementById("botonImprimirProvision").style.display = "inline-block";
 				
 				document.getElementById("botonImprimirProvisionPagoCuenta").style.visibility = "visible";
-				document.getElementById("botonImprimirProvisionPagoCuenta").style.display = "table-cell";*/
+				document.getElementById("botonImprimirProvisionPagoCuenta").style.display = "inline-block";*/
 				
 				
 			}

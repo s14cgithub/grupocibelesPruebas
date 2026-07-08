@@ -2,7 +2,7 @@
 session_start(); 
 require("comprobarSesion.php");
 
-if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="libroConta")
+if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="libroConta")
 {
 	$ruta = '/';
 	//require($ruta.$rutaCabecera);
@@ -30,8 +30,8 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="libroConta")
 
 	//$pdf->SetXY(-10,-5);
 
-	$pdf->SetLeftMargin(20);
-	$pdf->SetRightMargin(20);
+	$pdf->SetLeftMargin(5);
+	$pdf->SetRightMargin(5);
 	
 	//$pdf->AddPage();
 		
@@ -41,7 +41,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="libroConta")
 	
 	$altura=10;
 	
-	$margenInicial=20;
+	$margenInicial=5;
 	$margen=$margenInicial;
 	
 	
@@ -77,12 +77,62 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="libroConta")
 	$contador=0;
 	//$alturaSiguientePagina=50;
 	$limiteAlturaDatos=260;
-	$datosFactura = verLibroContabilidad($conexion,$fechaInicio, $fechaFin);	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+	
+
+
+	$campos = [
+		 'numeroFacturaCompleto',
+        'idCodigoCliente',
+        'cliente',
+        'fecha',
+        'aPagar',
+        'precioNeto',
+        'tipoIva',
+        'iva',
+        'precioTotal',
+        'origenFactura'
+	];
+
+	$joins = array();
+
+	$filtros = array();
+
+
+	$fechaInicio = date("d-m-Y", strtotime($fechaInicio));
+	$fechaFin = date("d-m-Y", strtotime($fechaFin));
+
+	$filtrosOperadores = array(
+			array(
+				'campo1' => 'fecha',
+				'operador' => '>=',
+				'valor' => $fechaInicio
+			),
+			array(
+				'campo1' => 'fecha',
+				'operador' => '<=',
+				'valor' => $fechaFin
+			)
+		);
+		
+	$order = array(
+		array('campo' => 'numeroFacturaCompleto', 'dir' => 'ASC')
+	);
+
+	//echo $fechaInicio;
+	//echo $fechaFin;
+	$datosFactura = mostrarFacturacion($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order);
+
+	//echo json_encode($datosFactura);
+	//exit();
 	
 	nuevaPagina($pdf,$altura,$margen,$margenInicial);
 	
 	
-	foreach ($datosFactura as $row) 
+	foreach ($datosFactura["datos"] as $row) 
 	{
 		//$pdf->Cell(35,5,$contador,0,1,'L',false);
 		$contador++;
@@ -94,6 +144,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="libroConta")
 		{
 			$pdf->AddPage();
 			nuevaPagina($pdf,$altura,$margen,$margenInicial);
+			$altura += 5;
 		}
 		
 		
@@ -114,16 +165,16 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="libroConta")
 		//$altura += 5;
 		
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(10,5,($row["numero"].$row["serie"]),0,1,'R',true);
+		$pdf->Cell(18,5,($row["numeroFacturaCompleto"]),0,1,'R',true);
 
-		$margen += 10;
+		$margen += 18;
 		$pdf->SetXY($margen,$altura);
-		$empresa = $row["codigo"]." ".$row["cliente"];
+		$empresa = $row["idCodigoCliente"]." ".$row["cliente"];
 		$empresa = substr($empresa,0,30);
-		$pdf->Cell(50,5,utf8_decode($empresa),0,0,'L',true);
+		$pdf->Cell(55,5,utf8_decode($empresa),0,0,'L',true);
 
 
-		$margen += 50;
+		$margen += 55;
 		$pdf->SetXY($margen,$altura);
 		$pdf->Cell(15,5,$row["fecha"]->format('d/m/Y'),0,0,'C',true);
 		$margen += 15;
@@ -134,15 +185,17 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="libroConta")
 		$pdf->SetXY($margen,$altura);
 		$pdf->Cell(18,5,number_format($row["precioNeto"],2,',','.')." ".EURO,0,1,'R',true);
 		$margen += 18;
-		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(18,5,number_format($row["iva"],2,',','.')." ".EURO,0,1,'R',true);
-		$margen += 18;
+
+		$pdf->SetXY($margen,$altura);		
+		$pdf->Cell(25,5,number_format($row["iva"],2,',','.')." (".$row["tipoIva"]."21%)"." ".EURO,0,1,'R',true);
+		$margen += 25;
+		
 		$pdf->SetXY($margen,$altura);
 		$pdf->Cell(22,5,number_format($row["precioTotal"],2,',','.')." ".EURO,0,1,'R',true);
 		
 		$margen += 22;
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(16,5,$row["abono"],0,1,'R',true);
+		$pdf->Cell(20,5,$row["origenFactura"],0,1,'R',true);
 		
 		
 	}
@@ -154,7 +207,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="libroConta")
 	
 	
 	$pdf->Output("I",date("dmy")." .pdf","UTF-8");
-	
+	sqlsrv_close($conn);
 	
 }
 	
@@ -169,14 +222,14 @@ function nuevaPagina(&$pdf,&$altura,&$margen,$margenInicial)
 	
 	//$margen += 20;
 	$pdf->SetXY($margen,$altura);
-	$pdf->Cell(10,5,utf8_decode("Nº Fac"),"B",1,'C',false);
+	$pdf->Cell(18,5,utf8_decode("Nº Fac"),"B",1,'C',false);
 	
-	$margen += 10;
+	$margen += 18;
 	$pdf->SetXY($margen,$altura);
-	$pdf->Cell(50,5,utf8_decode("Empresa"),'B',1,'C',false);
+	$pdf->Cell(55,5,utf8_decode("Empresa"),'B',1,'C',false);
 	
 	
-	$margen += 50;
+	$margen += 55;
 	$pdf->SetXY($margen,$altura);
 	$pdf->Cell(15,5,utf8_decode("Fecha"),'B',1,'C',false);
 	$margen += 15;
@@ -187,15 +240,17 @@ function nuevaPagina(&$pdf,&$altura,&$margen,$margenInicial)
 	$pdf->SetXY($margen,$altura);
 	$pdf->Cell(18,5,utf8_decode("Neto"),'B',1,'R',false);
 	$margen += 18;
+	
 	$pdf->SetXY($margen,$altura);
-	$pdf->Cell(18,5,utf8_decode("IVA"),'B',1,'R',false);
-	$margen += 18;
+	$pdf->Cell(25,5,utf8_decode("IVA"),'B',1,'R',false);
+	$margen += 25;
+	
 	$pdf->SetXY($margen,$altura);
 	$pdf->Cell(22,5,utf8_decode("Total"),'B',1,'R',false);
 	
 	$margen += 22;
 	$pdf->SetXY($margen,$altura);
-	$pdf->Cell(16,5,utf8_decode("Abo."),'B',1,'R',false);
+	$pdf->Cell(20,5,utf8_decode("Abo."),'B',1,'R',false);
 	
 	
 	

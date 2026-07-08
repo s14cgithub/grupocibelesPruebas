@@ -1,7 +1,103 @@
 var peticionUnica1 = null;
 
 
-function imprimirLibroContrabilidad() //js_admContabilidad.js
+function cargarClientes()
+{
+	peticionUnica1=null;
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarClientes;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarClientes();
+		peticionUnica1.send(query_string);
+	}	
+} 
+
+
+function consultaCargarClientes()
+{
+	var consulta = "accion=cargarClientes";	
+	var campos = [
+		'codigo_saldo',
+		'nombre_empresa'		
+	];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	activo: 1
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
+	var filtrosOperadores = [
+			{
+				campo1: 'codigo_saldo',
+				operador: '=',
+				campo2: 'codigo'
+			}
+		];
+
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+
+
+	var order = [
+    	{ campo: 'codigo_saldo', dir: 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
+	
+	return consulta;	
+}
+
+function mostrarCargarClientes()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				
+				if (datos != "")
+				{		
+							
+					var contenido = "";
+					if (booleano==true)
+					{
+						contenido += '  <option value="todos">todos</option>';	
+					}
+					booleano=false;
+
+					var contador = 0;					
+					
+
+					while  (contador<datos.length)
+					{						
+						contenido += '  <option value="'+datos[contador]["codigo_saldo"]+'">'+datos[contador]["codigo_saldo"]+' - '+datos[contador]["nombre_empresa"]+'</option>';	
+												
+						contador++;
+					}
+
+					document.getElementById("clienteAjusteModal").innerHTML = contenido;
+				}			
+				
+			}
+			peticionUnica1=null;
+				
+		}
+	}						
+}
+
+function imprimirLibroContabilidad() //js_admContabilidad.js
 {
 	if (document.getElementById("fechaInicioModal").value=="" || document.getElementById("fechaInicioModal").value == null)
 	{
@@ -109,12 +205,14 @@ function mostrarExportarAsage()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{	
+			{
 				
 				if (document.getElementById("claymaSageModal").checked==true)
 				{
@@ -164,12 +262,49 @@ function exportarAsageCorreos() //js_admContabilidad
 
 
 function consultaExportarAsageCorreos()
-{	
-	var consulta = "accion=mostrarFacturas";
+{
+
+	consulta = "&accion=mostrarFacturas";
 	
-	consulta+="&fechaInicio="+document.getElementById("fechaInicioSageCorreosModal").value;
-	consulta+="&fechaFin="+document.getElementById("fechaFinSageCorreosModal").value;
-	return consulta;	
+	var campos = [
+		'codigo_saldo',
+		'importe',
+		'fecha',
+		'numeroOficial'
+	];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtrosOperadores = [
+		{
+			campo1: 'fecha',
+			operador: '>=',
+			valor: document.getElementById("fechaInicioSageCorreosModal").value
+		},
+		{
+			campo1: 'fecha',
+			operador: '<=',
+			valor: document.getElementById("fechaFinSageCorreosModal").value
+		}
+	];
+
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+
+	var joins = [
+		'tabla2'
+	];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var order = [
+    	{ 
+			campo: 'codigo_saldo', dir: 'ASC' 
+		}		
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;
+
+
 }
 
 
@@ -179,12 +314,14 @@ function mostrarExportarAsageCorreos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{	
+			{
 				document.getElementById("correosAsage").click();				
 			}				
 		}
@@ -225,14 +362,19 @@ function gestionAjustarSaldo()
 
 function consultaGestionAjustarSaldo()
 {	
+
 	var consulta = "accion=gestionAjustarSaldo";
+
+	var datos = {		
+		idCliente: document.getElementById("clienteAjusteModal").value,
+		importe: document.getElementById("importeAjusteModal").value,
+		concepto: document.getElementById("conceptoAjusteModal").value
+
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	return consulta;
 	
-	consulta+="&idCliente="+document.getElementById("clienteAjusteModal").value;
-	//consulta+="&fecha="+document.getElementById("fechaAjusteModal").value;
-	consulta+="&importe="+document.getElementById("importeAjusteModal").value;
-	consulta+="&concepto="+document.getElementById("conceptoAjusteModal").value;
-	
-	return consulta;	
 }
 
 
@@ -242,12 +384,14 @@ function mostrarGestionAjustarSaldo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{	
+			{
 				alert("Saldo Ajustado");
 				document.getElementById("importeAjusteModal").value="";
 				document.getElementById("conceptoAjusteModal").value="";
@@ -307,11 +451,29 @@ function cobroMasivoDomiciliado()
 function consultaCobroMasivoDomiciliado()
 {	
 	var consulta = "accion=cobroMasivoDomiciliado";
-	
-	consulta+="&fechaInicio="+document.getElementById("fechaInicioCobMasModal").value;
-	consulta+="&fechaFin="+document.getElementById("fechaFinCobMasModal").value;
-	consulta+="&formaPago="+document.getElementById("formaPagoCobMasModal").value;
-	//consulta+="&fechaPago="+document.getElementById("fechaCobroCobMasModal").value;
+
+	var datos = {		
+		formaPagoReal: document.getElementById("formaPagoCobMasModal").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+
+	var filtrosOperadores = [
+			{
+				campo1: 'fecha',
+				operador: '>=',
+				valor: document.getElementById("fechaInicioCobMasModal").value
+			},
+			{
+				campo1: 'fecha',
+				operador: '<=',
+				valor: document.getElementById("fechaFinCobMasModal").value
+			}
+		];
+
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+		
 	
 	return consulta;	
 }
@@ -323,12 +485,14 @@ function mostrarCobroMasivoDomiciliado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{	
+			{
 				alert("Cobro Masivo Realizado");
 			}				
 		}

@@ -250,8 +250,10 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="grabarFranqueo")
 
 		$fechaActual = date('d-m-Y');
 		$fechaGuardada = date("d-m-Y", strtotime($datos["fecha"]));
-
-		if (($_SESSION["permiso_franqueoF12"]==1||$_SESSION["permiso_franqueoF12"]==2) && $fechaGuardada<$fechaActual)
+		//echo "fechaactual: ".$fechaActual;
+		//echo "<br>fechaguardada: ".$fechaGuardada;
+		//echo "<br>".$fechaGuardada<$fechaActual;
+		if (($_SESSION["permiso_franqueoF12"]==1||$_SESSION["permiso_franqueoF12"]==2) && strtotime($fechaGuardada)<strtotime($fechaActual))
 		{
 			$datos9 = [
 				'comprobado' => 1

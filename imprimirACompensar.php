@@ -2,7 +2,7 @@
 session_start(); 
 require("comprobarSesion.php");
 
-if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="aCompensar")
+if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="aCompensar")
 {
 	$ruta = '/';
 	//require($ruta.$rutaCabecera);
@@ -71,7 +71,64 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="aCompensar")
 	$contador=0;
 	//$alturaSiguientePagina=50;
 	$limiteAlturaDatos=260;
-	$datosFactura = verFacturasAcompensarSinPagar($conexion,$fechaInicio, $fechaFin);	
+
+
+
+	$campos = [
+		'nombreFranqueoReal2',
+		'codigo_saldo',
+		'importePF',		
+		'concepto',
+		'factura',
+		'fecha',
+		'aPagar'		
+        //'domiciliada', //siempre debe estar
+        //'formaPagoReal' //siempre debe estar
+	];
+
+	$joins = array();
+
+	
+	$fechaInicio = date("d-m-Y", strtotime($fechaInicio));
+	$fechaFin = date("d-m-Y", strtotime($fechaFin));
+
+	$filtros = array(
+		"conCompensacion" => 1,
+		"sinFormaPago" => 1
+	);	
+
+	$filtrosOperadores = array(
+		array(
+			'campo1' => 'fecha',
+			'operador' => '>=',
+			'valor' => $fechaInicio
+		),
+		array(
+			'campo1' => 'fecha',
+			'operador' => '<=',
+			'valor' => $fechaFin
+		)
+	);	
+
+	$joins = array();
+	$filtrosLike = array();
+
+
+	$order = array(
+		array('campo' => 'nombreFranqueoReal2', 'dir' => 'ASC'),
+		array('campo' => 'factura', 'dir' => 'ASC')
+	);
+
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+
+	$datosFactura = mostrarFacturacionCibelesYCorreos($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $filtrosLike, $order);
+	
+	//echo json_encode($datosFactura);
+	//exit();
 	
 	nuevaPagina($pdf,$altura,$margen,$margenInicial);
 	
@@ -82,7 +139,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="aCompensar")
 	$importeTotalCorreos = 0.00;
 	
 	$primeraVez=true;
-	foreach ($datosFactura as $row) 
+	foreach ($datosFactura["datos"] as $row) 
 	{		
 		$contador++;
 		$pdf->SetFont('Arial','',8);
@@ -107,12 +164,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="aCompensar")
 		
 		$margen = $margenInicial;
 		
-		$nombreFranqueo=$row["franqueoCliente"];
+		$nombreFranqueo=$row["nombreFranqueoReal2"];
+		
+		/*
 		if ($nombreFranqueo=='')
 		{
 			$nombreFranqueo = $row["nombre_franqueo"];
 		}
-		
+		*/
 		if ($clienteAntiguo!=$nombreFranqueo)
 		{
 			$altura +=10;
@@ -260,7 +319,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="aCompensar")
 	
 	
 	$pdf->Output("I",date("dmy")." .pdf","UTF-8");
-	
+	sqlsrv_close($conn);
 	
 }
 	

@@ -30,6 +30,25 @@ require($ruta."Archivos Comunes/cabecera.php");
 
 
 <?php
+
+	//OT - ADMINISTRACION
+	if ($_SESSION["permiso_administracion"]==1 || $_SESSION["permiso_administracion"] == 2)
+	{
+		echo ('<br><br>');	
+		echo ('<h4>ADMINISTRACION</h4>');
+		/*echo ('<button type="button" class="btn btn-info" onClick="location.href = \'administracion.php\'">ADMINISTRACION</button>');*/	
+		
+		if ($_SESSION["permiso_administracion_contabilidad"] == 1 || $_SESSION["permiso_administracion_contabilidad"] == 2)
+		{
+			echo '<button type="button" class="btn btn-info" onClick="location.href = \'admContabilidad.php\'">CONTABILIDAD</button>';
+		}
+
+		if ($_SESSION["permiso_administracion_facturacion"] == 1 || $_SESSION["permiso_administracion_facturacion"] == 2)
+		{
+			echo '<button type="button" class="btn btn-info" onClick="location.href = \'admFacturacion.php\'">FACTURACION</button>';
+		}
+		
+	}
 	//PRESUPUESTOS
 	if ($_SESSION["permiso_presupuestos"]==1 || $_SESSION["permiso_presupuestos"] == 2)
 	{

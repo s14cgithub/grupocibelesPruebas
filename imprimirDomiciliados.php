@@ -2,7 +2,7 @@
 session_start(); 
 require("comprobarSesion.php");
 
-if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="domiciliados")
+if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="domiciliados")
 {
 	$ruta = '/';
 	//require($ruta.$rutaCabecera);
@@ -23,19 +23,76 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="domiciliados")
 	$numClienteDomiciliado = $_POST["numClienteDomiciliado"];
 	
 	
-	$fechaInicio1 = date("d-m-Y", strtotime($fechaInicio));
-	$fechaFin1 = date("d-m-Y", strtotime($fechaFin));
 	
+	
+
+	$campos = [
+		'factura',
+		'codigo_saldo',
+		'nombre_empresa',
+		'nombreFranqueoReal',
+		'concepto',
+		'neto',
+        'iva',
+        'importe',
+        'anticipo',
+        'aPagar',
+        'codigoSubcliente',
+        'franqueoCliente',
+        'vencimiento',
+        'fecha',
+        'presupuesto',
+        'domiciliada', //siempre debe estar
+        'formaPagoReal' //siempre debe estar
+	];
+
+	$joins = array();
+
+	
+	$fechaInicio = date("d-m-Y", strtotime($fechaInicio));
+	$fechaFin = date("d-m-Y", strtotime($fechaFin));
+
+	$filtros = array(
+		"domiciliada" => 1,
+		"sinFormaPago" => 1
+	);
+
 	if ($numClienteDomiciliado!="")
-	{
-		$datosFactura = verFacturasDomiciliadasSinPagarPorCliente($conexion,$fechaInicio, $fechaFin,$numClienteDomiciliado);	
-	}
-	else
-	{
-		$datosFactura = verFacturasDomiciliadasSinPagar($conexion,$fechaInicio, $fechaFin);	
-	}
+	{		
+		$filtros["codigo_saldo"] = $numClienteDomiciliado;
+	}	
+
 	
-	
+
+	$filtrosOperadores = array(
+		array(
+			'campo1' => 'fecha',
+			'operador' => '>=',
+			'valor' => $fechaInicio
+		),
+		array(
+			'campo1' => 'fecha',
+			'operador' => '<=',
+			'valor' => $fechaFin
+		)
+	);	
+
+	$joins = array();
+	$filtrosLike = array();
+
+	$order = array(
+		'nombre_empresa' => 'ASC',
+		'fecha' => 'ASC',
+		'factura' => 'ASC'
+	);	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+
+	$datosFactura = mostrarFacturacionCibelesYCorreos($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $filtrosLike, $order);
+
 	
 	$pdf = new FPDF('P','mm','A4');
 
@@ -94,7 +151,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="domiciliados")
 	$importeTotal = 0.00;
 	$importeTotalTodo = 0.00;
 	$primeraVez=true;
-	foreach ($datosFactura as $row) 
+	foreach ($datosFactura["datos"] as $row) 
 	{		
 		$contador++;
 		$pdf->SetFont('Arial','',8);
@@ -144,14 +201,42 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="domiciliados")
 			
 			if (!$primeraVez)
 			{
+				$campos = [
+					'presupuesto',
+					'importe',
+					'fechaCreacion'
+				];
+
+				$joins = array();
+				$filtros = array(
+					"cobrada" => 2,
+					"idCliente" => $idCliente
+				);
+
+				$filtrosOperadores = array(
+					array(
+						'campo1' => 'fechaCreacion',
+						'operador' => '>=',
+						'valor' => $fechaInicio
+					),
+					array(
+						'campo1' => 'fechaCreacion',
+						'operador' => '<=',
+						'valor' => $fechaFin
+					)
+				);
+
+				$order = array();
+				$group = array();
+
+				$datosPF = cargarProvisionDeFondos($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $group, $order);
 				///////////////////////////////////////////
 
-				$condicionPF = " where fechaCreacion>='".($fechaInicio1)."' and fechaCreacion <= '".($fechaFin1)."' and cobrada=2 and idCliente = ".$idCliente;
-				$datosPF = registrosProvisionesFondo($conexion, $condicionPF);
+				
 				
 				$pdf->SetTextColor(255,128,0);
 				
-				foreach ($datosPF as $rowPF) 
+				foreach ($datosPF["datos"] as $rowPF) 
 				{
 					$margen = $margenInicial+20;
 					$altura += 5;
@@ -302,12 +387,43 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="domiciliados")
 
 	///////////////////////////////////////////
 
-	$condicionPF = " where fechaCreacion>='".($fechaInicio1)."' and fechaCreacion <= '".($fechaFin1)."' and cobrada=2 and idCliente = ".$idCliente;
-	$datosPF = registrosProvisionesFondo($conexion, $condicionPF);
+	$campos = [
+		'presupuesto',
+		'importe',
+		'fechaCreacion'
+	];
+
+	$joins = array();
+	$filtros = array(
+		"cobrada" => 2,
+		"idCliente" => $idCliente
+	);
+
+	$filtrosOperadores = array(
+		array(
+			'campo1' => 'fechaCreacion',
+			'operador' => '>=',
+			'valor' => $fechaInicio
+		),
+		array(
+			'campo1' => 'fechaCreacion',
+			'operador' => '<=',
+			'valor' => $fechaFin
+		)
+	);
+
+	$order = array(		
+		'fechaCreacion' => 'ASC',
+		'presupuesto' => 'ASC'
+	);	
+	$group = array();
+
+	$datosPF = cargarProvisionDeFondos($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $group, $order);
+	
 	
 	$pdf->SetTextColor(255,128,0);
 	
-	foreach ($datosPF as $rowPF) 
+	foreach ($datosPF["datos"] as $rowPF) 
 	{
 		$margen = $margenInicial+20;
 		$altura += 5;
@@ -353,7 +469,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="domiciliados")
 	
 	
 	$pdf->Output("I",date("dmy")." .pdf","UTF-8");
-	
+	sqlsrv_close($conn);
 	
 }
 	

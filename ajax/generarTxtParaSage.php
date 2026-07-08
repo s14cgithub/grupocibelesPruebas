@@ -2,7 +2,7 @@
 
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
+if(isset($_POST["accion"]) && $_POST["accion"]=="mostrarFacturas")
 {
 	session_start(); 
 	$ruta = '../';	
@@ -14,16 +14,61 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 	$fechaFin = $_POST["fechaFin"];
 	$clayma = $_POST["clayma"];
 	
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = [
+			'numero',
+			'nif',
+			'cliente',
+			'precioTotal',
+			'fecha',
+			'abono',
+			'origenFactura',
+			'numeroFacturaCompleto',
+			'precioNeto',
+			'iva',
+			'tipoIva',
+			'idCodigoCliente'		
+		];
+
+		$joins = array('tabla2');
+
+		$filtros = array();
+
+
+		$fechaInicio = date("d-m-Y", strtotime($fechaInicio));
+		$fechaFin = date("d-m-Y", strtotime($fechaFin));
+
+		$filtrosOperadores = array(
+				array(
+					'campo1' => 'fecha',
+					'operador' => '>=',
+					'valor' => $fechaInicio
+				),
+				array(
+					'campo1' => 'fecha',
+					'operador' => '<=',
+					'valor' => $fechaFin
+				)
+			);
+			
+		$order = array(
+			array('campo' => 'numero', 'dir' => 'ASC')
+		);
+
 	if ($clayma=="true")
 	{
-		$resultado = mostrarFacturaYAbonosPorFechasClayma($conexion,$fechaInicio,$fechaFin);
+		$resultado = mostrarFacturacionClayma($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order);
 	}
 	else
 	{
-		$resultado = mostrarFacturaYAbonosPorFechas($conexion,$fechaInicio,$fechaFin);
-		//echo $resultado;
+		$resultado = mostrarFacturacion($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order);
 	}
 	
+	echo json_encode($resultado);
+	sqlsrv_close($conn);
 	
 	
 	$fp = fopen("../archivosDescargas/exportarFacturas.txt", "w");
@@ -32,7 +77,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 	
 	
 	$delimitador = "|";
-	foreach ($resultado as $row) 
+	foreach ($resultado["datos"] as $row) 
 	{
 		fwrite($fp,PHP_EOL);
 		fwrite($fp,$row["numero"]);//asiento
@@ -40,11 +85,11 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 		
 		if ($clayma=="true")
 		{
-			$codigoCuenta = 4300000 + $row["codigo"];//codigo cuenta
+			$codigoCuenta = 4300000 + $row["idCodigoCliente"];//codigo cuenta
 		}
 		else
 		{
-			$codigoCuenta = 430000000 + $row["codigo"];//codigo cuenta
+			$codigoCuenta = 430000000 + $row["idCodigoCliente"];//codigo cuenta
 		}
 		
 		fwrite($fp,$codigoCuenta);
@@ -54,7 +99,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 		fwrite($fp,$delimitador);
 		
 		
-		fwrite($fp,$row["nif_subcliente"]);//CifDni
+		fwrite($fp,$row["nif"]);//CifDni
 		fwrite($fp,$delimitador);
 		
 		fwrite($fp,$row["cliente"]);//Nombre
@@ -63,7 +108,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 		fwrite($fp,$row["precioTotal"]);//ImporteAsiento
 		fwrite($fp,$delimitador);
 		
-		fwrite($fp,$row["numero"]);//Factura
+		fwrite($fp,$row["numeroFacturaCompleto"]);//Factura
 		fwrite($fp,$delimitador);
 		
 		//$ejercicio = date("Y", $row["fecha"]);;
@@ -82,26 +127,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 		$anio2Digitos =  date_format($row["fecha"],"y");
 		//fwrite($fp,"N/Factura Num. ".$row["numero"]."/".$anio2Digitos);//Comentario
 		
-		if ($row["origenFactura"]=='abono')
-		{
-			fwrite($fp,"N/Abono Num. ".$row["numero"]."/".$anio2Digitos);//Comentario
-		}
-		else if ($row["origenFactura"]=='mensual'|| $row["origenFactura"]=='' || $row["origenFactura"]=='null') //FAC
-		{
-			if (fechaCambioVerifactu <= $row["fecha"])
-			{
-				fwrite($fp,"N/Factura Num. ".$row["numero"]."/".$anio2Digitos);//Comentario
-			}
-			else
-			{
-				fwrite($fp,"N/Factura Num. ".$row["numeroFacturaCompleto"]);//Comentario
-			}
-			
-		}
-		else //REC Y SUST
-		{
-			fwrite($fp,"N/Factura Num. ".$row["numeroFacturaCompleto"]);//Comentario
-		}
+		fwrite($fp,"N/Factura Num. ".$row["numeroFacturaCompleto"]);//Comentario
 		
 		
 		fwrite($fp,$delimitador);
@@ -118,7 +144,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 		fwrite($fp,'E'); //TipoFactura
 		fwrite($fp,$delimitador);
 		
-		fwrite($fp,'21');//porIva
+		fwrite($fp,$row["tipoIva"]);//porIva
 		fwrite($fp,$delimitador);
 		
 		
@@ -145,7 +171,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 				fwrite($fp,$tipo);//tipo de serie de factura a  la que rectifica
 				fwrite($fp,$delimitador); 
 				
-				fwrite($fp,$num1);//numero de factura a  la que rectifica
+				fwrite($fp,$row["origenFactura"]);//numero de factura a  la que rectifica
 				//fwrite($fp,$delimitador); 
 			}	
 			else
@@ -210,27 +236,10 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 		fwrite($fp,$delimitador);
 		
 		$anio2Digitos =  date_format($row["fecha"],"y");
+				
 		
-		if ($row["origenFactura"]=='abono')
-		{
-			fwrite($fp,"N/Abono Num. ".$row["numero"]."/".$anio2Digitos);//Comentario
-		}
-		else if ($row["origenFactura"]=='mensual'|| $row["origenFactura"]=='' || $row["origenFactura"]=='null') //FAC
-		{
-			if (fechaCambioVerifactu <= $row["fecha"])
-			{
-				fwrite($fp,"N/Factura Num. ".$row["numero"]."/".$anio2Digitos);//Comentario
-			}
-			else
-			{
-				fwrite($fp,"N/Factura Num. ".$row["numeroFacturaCompleto"]);//Comentario
-			}
-			
-		}
-		else //REC Y SUST
-		{
-			fwrite($fp,"N/Factura Num. ".$row["numeroFacturaCompleto"]);//Comentario
-		}
+		fwrite($fp,"N/Factura Num. ".$row["numeroFacturaCompleto"]);//Comentario
+		
 		
 		
 		
@@ -274,7 +283,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 				fwrite($fp,$tipo);//tipo de serie de factura a  la que rectifica
 				fwrite($fp,$delimitador); 
 				
-				fwrite($fp,$num1);//numero de factura a  la que rectifica
+				fwrite($fp,$row["origenFactura"]);//numero de factura a  la que rectifica
 				//fwrite($fp,$delimitador); 
 			}
 			else
@@ -340,26 +349,10 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 		$anio2Digitos =  date_format($row["fecha"],"y");
 		
 		
-		if ($row["origenFactura"]=='abono')
-		{
-			fwrite($fp,"N/Abono Num. ".$row["numero"]."/".$anio2Digitos);//Comentario
-		}
-		else if ($row["origenFactura"]=='mensual'|| $row["origenFactura"]=='' || $row["origenFactura"]=='null') //FAC
-		{
-			if (fechaCambioVerifactu <= $row["fecha"])
-			{
-				fwrite($fp,"N/Factura Num. ".$row["numero"]."/".$anio2Digitos);//Comentario
-			}
-			else
-			{
-				fwrite($fp,"N/Factura Num. ".$row["numeroFacturaCompleto"]);//Comentario
-			}
-			
-		}
-		else //REC Y SUST
-		{
-			fwrite($fp,"N/Factura Num. ".$row["numeroFacturaCompleto"]);//Comentario
-		}
+		
+		
+		fwrite($fp,"N/Factura Num. ".$row["numeroFacturaCompleto"]);//Comentario
+		
 		
 		
 		//fwrite($fp,"N/Factura Num. ".$row["numero"]."/".$anio2Digitos);//Comentario		
@@ -406,7 +399,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 				fwrite($fp,$tipo);//tipo de serie de factura a  la que rectifica
 				fwrite($fp,$delimitador); 
 				
-				fwrite($fp,$num1);//numero de factura a  la que rectifica
+				fwrite($fp,$row["origenFactura"]);//numero de factura a  la que rectifica
 				//fwrite($fp,$delimitador); 
 			}	else
 			{//echo '\nentra3';

@@ -2,7 +2,7 @@
 
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
+if(isset($_POST["accion"]) && $_POST["accion"]=="mostrarFacturas")
 {
 	session_start(); 
 	$ruta = '../';	
@@ -10,18 +10,40 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
+
+
+	$campos = isset($_POST["campos"]) ? json_decode($_POST["campos"], true) : array();
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
+	$joins = isset($_POST["joins"]) ? json_decode($_POST["joins"], true) : array();
+	$filtrosOperadores = isset($_POST["filtrosOperadores"]) ? json_decode($_POST["filtrosOperadores"], true) : array();
+	$order = isset($_POST["order"]) ? json_decode($_POST["order"], true) : array();
+
+
+	foreach ($filtrosOperadores as &$f)
+	{
+		if (isset($f['campo1']) && $f['campo1'] == 'fecha' && !empty($f['valor']))
+		{
+			$f['valor'] = date("d-m-Y", strtotime($f['valor']));
+		}
+	}
+	unset($f);
+/*
 	$fechaInicio = $_POST["fechaInicio"];
 	$fechaFin = $_POST["fechaFin"];
 	
 	$fechaInicio1 = date("d-m-Y", strtotime($fechaInicio));
 	$fechaFin1 = date("d-m-Y", strtotime($fechaFin));
-
-	$condicion = "where fecha>='".$fechaInicio1."' and fecha <= '".$fechaFin1."' order by codigo_saldo";
+*/
 	
-	$resultado = mostrarFacturasCorreosTodos($conexion,$condicion);
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+	
+	$resultado = mostrarFacturacionCorreos($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order);
 		
 	
-	
+	sqlsrv_close($conn);
+	//exit;
 	
 	
 	$fp = fopen("../archivosDescargas/exportarFacturasCorreos.txt", "w");
@@ -31,7 +53,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 	
 	$delimitador = "|";
 	$contador=0;
-	foreach ($resultado as $row) 
+	foreach ($resultado["datos"] as $row) 
 	{
 		$contador++;
 		fwrite($fp,PHP_EOL);
@@ -123,8 +145,8 @@ if(isset($_POST["accion"])&$_POST["accion"]=="mostrarFacturas")
 	}
 	
 	
-	$fclose($fp);
-	
+	fclose($fp);
+	echo json_encode($resultado);
 	
 }
 

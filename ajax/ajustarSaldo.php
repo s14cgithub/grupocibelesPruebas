@@ -10,52 +10,83 @@ if(isset($_POST["accion"])&$_POST["accion"]=="gestionAjustarSaldo")
 	
 		
 	
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
 	
-	$idCliente = $_POST["idCliente"];	
-	$importe = $_POST["importe"];
-	$concepto = $_POST["concepto"];
+	$idCliente = $datos["idCliente"];
+	$importe = $datos["importe"];
+	$concepto = $datos["concepto"];
+	$fechaCuadre = date('d-m-Y');
+	$fecha = $fechaCuadre;
 	//$fechaCuadre = $_POST["fecha"];
 	
 	//$fechaCuadre = date("d-m-Y", strtotime($fechaCuadre));
 	
-	$fechaCuadre = date('d-m-Y');
-	$fecha = $fechaCuadre;
 	
 	
 	
-	$clayma1=0;
-	$informacionCuadre='Ajuste de Saldo';
+	$campos = [
+		'importePF'	
+	];
+
+	$filtros = array(
+		"codigo" => $idCliente,
+		"codigo_saldo" => $idCliente
+	);	
+
+	$filtrosOperadores = array();
+	$order = array();
+	$joins = array();
+	$filtrosLike = array();
 	
-	$saldo = cargarClientes($conexion," where codigo = ".$idCliente);
-	
-	
-	
-	$nuevoSaldo = $saldo[0]["importePF"] + $importe;
-	$presupuesto = '';
-	$formaPago = '';
-	
-	
-	echo insertarMovimientoPF($conexion,$idCliente,$fecha,$formaPago,$importe,$presupuesto,$fechaCuadre,$informacionCuadre,$nuevoSaldo,$clayma1);	
-	
-	
-	echo modificarDatosPFenCliente($conexion,$idCliente,$fecha,$importe);
-	
-	
-	/*$usuario = $_SESSION['usuario'];
-	$tabla = provisionDeFondoMovimientos_tabla;
-	$descripcion = "creacion";
-	$columna = "todas";
-	$datosAntiguos = "";
-	$idRegistro=0;
-	
-	$datosNuevos = "codigoCliente: ".$codigoCliente."||Clayma: ".$clayma1."||fecha: ".$fecha."||formaPago: ".$formaPago."||importe: ".$importe."||presupuesto: ".$presupuesto."||fechaCuadre: ".$fechaCuadre."||informacionCuadre: ".$informacionCuadre;
-	
-	//echo("\n".$datosAntiguos."\n");
-	insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,'');*/
+
 	
 	
 	
-			
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$saldo = cargarClientes($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, $order, $joins, $filtrosLike);
+	
+	
+	
+	$nuevoSaldo = $saldo["datos"][0]["importePF"] + $importe;
+	
+
+
+
+	$datos2 = [
+			'codigoCliente' => $idCliente,
+			'fecha' => $fecha,
+			'formaPago' => '',
+			'importe' => $importe,
+			'presupuesto' => '',
+			'fechaCuadre' => $fecha,
+			'informacionCuadre' => $concepto,
+			'saldoPostPF' => $nuevoSaldo,
+			'clayma' => 0
+		];
+
+	insertarProvisionDeFondo_movimientos($conn, $bbddSql, $datos2);
+	
+	
+	$datos3 = [
+		'fechaCobroPF' => $fecha,
+		'importePF' => $nuevoSaldo
+	];
+
+	$datosIncremento3 = array();		
+
+	$filtros3 = [
+		'codigo' => $idCliente
+	];
+
+	$filtrosOperadores3 = array();
+
+	$res = modificarClientes($conn, $bbddSql, $datos3, $filtros3, $filtrosOperadores3, $datosIncremento3);
+	
+	echo json_encode($res);
+	sqlsrv_close($conn);
 	
 }
 

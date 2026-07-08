@@ -80,7 +80,7 @@ else
 		
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary" data-dismiss="" onClick="imprimirLibroContrabilidad()">Aceptar</button>
+        <button type="button" class="btn btn-primary" data-dismiss="" onClick="imprimirLibroContabilidad()">Aceptar</button>
       </div>
     </div>
   </div>
@@ -376,10 +376,11 @@ echo ("</html>");
 
 
 <script>
-	idInputListado = 'clienteAjusteModal';
+	
 	//cargarListadoNombreFranqueo(' where codigo_saldo = codigo and activo = 1 order by nombre_franqueo');
-	cargarClientes(' where codigo_saldo = codigo and activo = 1 order by codigo_saldo', idInputListado, 'codigoynombre');
-	document.getElementById("button-up").addEventListener("click", scrollUp);
+	//cargarClientes(' where codigo_saldo = codigo and activo = 1 order by codigo_saldo', idInputListado, 'codigoynombre');
+	cargarClientes();
+  document.getElementById("button-up").addEventListener("click", scrollUp);
 </script>
 
 
