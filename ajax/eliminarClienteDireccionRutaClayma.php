@@ -31,7 +31,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="eliminarRutaDireccionCliente")
 	$filtrosOperadores = array();
 	$order = array();
 
-	$datosRutaDireccionCliente = cargarClientesDirecRutas ($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, $order);
+	$datosRutaDireccionCliente = cargarClientesDirecRutasClayma ($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, $order);
 
 
 	$id = $datosRutaDireccionCliente["datos"][0]["id"];
@@ -46,7 +46,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="eliminarRutaDireccionCliente")
 	
 
 
-	$datosAntiguos = "clayma: 0 |id: ".$id."|idCliente: .".$idCliente."|att: ".$att."|nombre: ".$nombre."|direccion: ".$direccion."|cp: ".$cp."|poblacion: ".$poblacion."|provincia: ".$provincia."|pais: ".$pais;	
+	$datosAntiguos = "clayma: 1 |id: ".$id."|idCliente: .".$idCliente."|att: ".$att."|nombre: ".$nombre."|direccion: ".$direccion."|cp: ".$cp."|poblacion: ".$poblacion."|provincia: ".$provincia."|pais: ".$pais;	
 	$datos = array(
 			'usuario' => $_SESSION['usuario'],
 			'descripcion' => log_eliminacion,
@@ -61,7 +61,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="eliminarRutaDireccionCliente")
 
 
 
-	$res = eliminarClientesDirecRutas($conn, $bbddSql, $filtros, $filtrosOperadores);
+	$res = eliminarClientesDirecRutasClayma($conn, $bbddSql, $filtros, $filtrosOperadores);
 
 	sqlsrv_close($conn);	
 	echo json_encode($res);

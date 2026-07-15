@@ -22,7 +22,7 @@ if ($_SESSION["usuario"]<>"")
 	<table border ="0" align="center">		
 		<tr>
 			<td align="right">Clayma:</td>
-			<td align="left"><input type="checkbox" id="clienteOrigen" name="clienteOrigen" value="" onchange="buscarFactura('buscarCliente')" style="" > </input></td>
+			<td align="left"><input type="checkbox" id="clienteOrigen" name="clienteOrigen" value="" onchange="cargarClientesObservacionesCompleto()" style="" > </input></td>
 			<td>&nbsp;</td>
 		</tr>
 	
@@ -59,7 +59,7 @@ if ($_SESSION["usuario"]<>"")
 			Desc: <input type="checkbox" id="ordenDesc"></input>
 		
 
-			<button type="button" class="btn btn-info" onClick="buscarFactura()">Buscar</button>
+			<button type="button" class="btn btn-info" onClick="cargarClientesObservacionesCompleto()">Buscar</button>
 			<!--<input type="submit" class="btn btn-info" onClick="gestionExportarExcelClientesCibeles()" value="Excel" ></input>-->
 			
 
@@ -126,7 +126,7 @@ echo ("</html>");
 <script  src="js/js_clientesDatosEnvioFacturas.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
 
 <script language="javascript">
-	buscarFactura();
+	cargarClientesObservacionesCompleto();
 	document.getElementById("button-up").addEventListener("click", scrollUp);
 	
 </script>

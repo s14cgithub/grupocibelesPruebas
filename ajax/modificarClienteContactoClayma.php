@@ -22,7 +22,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="modificarClienteContacto")
 	$bbddSql = $conn1['bbdd'];		
 	
 
-	$res = modificarClientesContactos($conn, $bbddSql, $datos, $filtros, $filtrosOperadores);
+	$res = modificarClientesContactosClayma($conn, $bbddSql, $datos, $filtros, $filtrosOperadores);
 
 	
 	sqlsrv_close($conn);

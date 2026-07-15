@@ -15,7 +15,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="crearClienteNuevo")
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];
 	
-	$res =  insertarClientes($conn,$bbddSql, $datos);
+	$res =  insertarClientesClayma($conn,$bbddSql, $datos);
 
 	sqlsrv_close($conn);	
 	echo json_encode($res);		

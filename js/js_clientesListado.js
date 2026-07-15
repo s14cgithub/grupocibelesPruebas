@@ -11,9 +11,19 @@ function buscarFactura()
 	var orden = document.getElementById("ordenBuscar").value;
 	var desc = document.getElementById("ordenDesc").checked;
 	var retener = document.getElementById("clienteRetener").checked;
-	var clienteActivosFijosMensual = document.getElementById("clienteActivosFijosMensual").checked;
-	var clienteActivoFijos = document.getElementById("clienteActivosFijos").checked;
+	//var clienteActivosFijosMensual = document.getElementById("clienteActivosFijosMensual").checked;
+	//var clienteActivoFijos = document.getElementById("clienteActivosFijos").checked;
 	var clienteActivos = document.getElementById("clienteActivos").checked;
+	var clienteCorreoDiario = document.getElementById("clienteCorreoDiario").checked;
+	var clienteMensuales = document.getElementById("clienteMensuales").checked;
+	var clienteEspeciales = document.getElementById("clienteEspeciales").checked;
+	var clienteFijos = document.getElementById("clienteFijos").checked;
+	var clienteSinSubclientes = document.getElementById("clienteSinSubclientes").checked;
+
+	
+	
+	
+	//var clienteActivosCorreoDiario = document.getElementById("clienteActivosCorreoDiario").checked;
 	
 	if (campoAbuscar =="codigo" && textoAbuscar!="")
 	{
@@ -29,20 +39,56 @@ function buscarFactura()
 		condicion += " and retener=1";
 	}
 	
+	/*
 	if (clienteActivosFijosMensual == true)
 	{
 		condicion += " and activo = 1 and correoDiario = 1 and fac_idProvisionFondos = 1 and fac_idPeriodo = 1 and codigo=codigo_saldo";
 	}
+		*/
+	/*	
 	if (clienteActivoFijos)
 	{
 		condicion += " and fac_idProvisionFondos=1 and fac_pfFijaImporte>0 and activo=1";
 	}
+		*/
 	if (clienteActivos)
 	{
 		condicion += " and activo=1";
 	}
+
+	if (clienteCorreoDiario)
+	{
+		condicion += " and CorreoDiario=1";
+	}
+	if (clienteMensuales)
+	{
+		condicion += " and fac_idPeriodo = 1";
+	}
+	if (clienteEspeciales)
+	{
+		condicion += " and fac_idPeriodo = 2";
+	}
+	if (clienteFijos)
+	{
+		condicion += " and fac_idProvisionFondos = 1";
+	}
+
+	if (clienteSinSubclientes)
+		{
+		condicion += " and  codigo=codigo_saldo";
+	}
 	
+
+
 	
+
+	/*
+	if (clienteActivosCorreoDiario)
+	{
+		condicion += " and activo = 1 and correoDiario = 1";
+	}
+	
+	*/
 	condicion += " order by " + orden;
 	
 	if (desc==true)
@@ -90,10 +136,89 @@ function cargarListadoClientes()//js_presupuestosListado
 
 function consultaCargarListadoClientes()
 {	
-	var consulta = "accion=cargarClientes";	
+	var consulta = "accion=cargarClientes";
+
+	var campos = [
+		'activo',
+		'codigo_saldo',
+		'codigo',
+		'nombre_empresa',
+		'nombre_franqueo',
+		'direccion',
+		'codigo_postal',
+		'localidad'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+
+	var filtros = {
+    	clayma: document.getElementById("clienteOrigen").checked ? 1 : 0		
+	};
+
+	if (document.getElementById("clienteRetener").checked)
+	{
+		filtros["retener"] = 1;
+	}
+	if (document.getElementById("clienteActivos").checked)
+	{
+		filtros["activo"] = 1;
+	}
+	if (document.getElementById("clienteCorreoDiario").checked)
+	{
+		filtros["correoDiario"] = 1;
+	}
+	if (document.getElementById("clienteMensuales").checked)
+	{
+		filtros["fac_idPeriodo"] = 1;
+	}
+	if (document.getElementById("clienteEspeciales").checked)
+	{
+		filtros["fac_idPeriodo"] = 2;
+	}
+	if (document.getElementById("clienteFijos").checked)
+	{
+		filtros["fac_idProvisionFondos"] = 1;
+	}	
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 	
 	
-	consulta += "&condicion=" + reemplazarSimbolosBusqueda(laCondicion);
+		
+	var filtrosOperadores = [];
+
+	if (document.getElementById("clienteSinSubclientes").checked)
+	{
+		var filtrosOperadores = [
+		{
+			campo1: 'codigo_saldo',
+			operador: '=',
+			campo2: 'codigo'
+		}
+	];
+
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	}
 	
+	var filtrosLike = [
+		{
+			campo: document.getElementById("buscarCampo").value,
+			valor: document.getElementById("buscarTexto").value
+		}
+	];
+
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+
+
+	var order = [
+		{
+			campo: document.getElementById("ordenBuscar").value,
+			dir: document.getElementById("ordenDesc").checked ? 'DESC' : 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
+	document.getElementById("exportarCondiciones").value = consulta;
+	document.getElementById("exportarClayma").value = document.getElementById("clienteOrigen").checked ? 1 : 0;
 	return consulta;	
 }
 
@@ -103,14 +228,15 @@ function mostrarCargarListadoClientes()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+			{
+				var datos = res.datos;			
 				
 				var contenido = "";
 				
@@ -193,7 +319,15 @@ function listadoSaldosClientes_Sumatorio()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarListadoSaldosClientes_Sumatorio;
-		peticionUnica1.open("POST","ajax/mostrarListadoSaldosSumatorio.php",false);
+		//peticionUnica1.open("POST","ajax/mostrarListadoSaldosSumatorio.php",false);
+		if (document.getElementById("clienteOrigen").checked==true)
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultarListadoSaldosClientes_Sumatorio();
 		peticionUnica1.send(query_string);
@@ -202,20 +336,77 @@ function listadoSaldosClientes_Sumatorio()
 
 function consultarListadoSaldosClientes_Sumatorio()
 {	
-	var consulta = "accion=mostrarListadoSaldosSumatorio";	
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');
-	
-	
-	if (document.getElementById("clienteOrigen").checked==true)
+	var consulta = "accion=cargarClientes";
+
+	var campos = [
+		'saldoTotal',
+		'importeFijoTotal'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+
+	var filtros = {
+    	clayma: document.getElementById("clienteOrigen").checked ? 1 : 0		
+	};
+
+	if (document.getElementById("clienteRetener").checked)
 	{
-		consulta += "&clayma=1";
+		filtros["retener"] = 1;
 	}
-	else
+	if (document.getElementById("clienteActivos").checked)
 	{
-		consulta += "&clayma=0";
+		filtros["activo"] = 1;
+	}
+	if (document.getElementById("clienteCorreoDiario").checked)
+	{
+		filtros["correoDiario"] = 1;
+	}
+	if (document.getElementById("clienteMensuales").checked)
+	{
+		filtros["fac_idPeriodo"] = 1;
+	}
+	if (document.getElementById("clienteEspeciales").checked)
+	{
+		filtros["fac_idPeriodo"] = 2;
+	}
+	if (document.getElementById("clienteFijos").checked)
+	{
+		filtros["fac_idProvisionFondos"] = 1;
+	}	
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 	
+	
+		
+	var filtroOperadores = [];
+
+	if (document.getElementById("clienteSinSubclientes").checked)
+	{
+		var filtrosOperadores = [
+		{
+			campo1: 'codigo_saldo',
+			operador: '=',
+			campo2: 'codigo'
+		}
+	];
+
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
 	}
 	
-	return consulta;	
+	var filtrosLike = [
+		{
+			campo: document.getElementById("buscarCampo").value,
+			valor: document.getElementById("buscarTexto").value
+		}
+	];
+
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+
+
+	
+
+	return consulta;
 }
 
 function mostrarListadoSaldosClientes_Sumatorio()
@@ -224,29 +415,22 @@ function mostrarListadoSaldosClientes_Sumatorio()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
-				
+			{
+				var datos = res.datos;				
 				
 				document.getElementById("sumatorioSaldos").innerHTML = "Total Saldos: " + Number(datos[0]["saldoTotal"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €';	
-				
-				
+								
 				document.getElementById("sumatorioPFfijos").innerHTML = "Total PF-Fijo: " + Number(datos[0]["importeFijoTotal"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €';	
-				
-				
-				
-				
-				
 								
 			}
-			peticionUnica1 = null;
-			
+			peticionUnica1 = null;			
 			
 		}
 	}						
@@ -271,8 +455,7 @@ function irAVerCliente(idCliente)//js_presupuestoListado
 
 function gestionExportarExcelClientesCibeles() //js_facturas
 {
-	
-	document.getElementById("exportarCondiciones").value = laCondicion;		
+	//document.getElementById("exportarCondiciones").value = laCondicion;		
 	document.getElementById("formExportarExcel").submit();
 }
 

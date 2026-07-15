@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarObservacionesClientes")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarObservacionesClientes")
 {
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -8,35 +8,23 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarObservacionesClientes")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 		
 	
-	$condicion=isset($_POST["condicion"])?$_POST["condicion"]:"";
+
+	$campos = isset($_POST["campos"]) ? json_decode($_POST["campos"], true) : array();
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
+	$filtrosOperadores = isset($_POST["filtrosOperadores"]) ? json_decode($_POST["filtrosOperadores"], true) : array();
+	$joins = isset($_POST["joins"]) ? json_decode($_POST["joins"], true) : array();
+	$order = isset($_POST["order"]) ? json_decode($_POST["order"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+
+	$res = cargarClientesObservaciones($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, $order,$joins);
 	
-	
-	$idCliente = $_POST["idCliente"];
-	
-	
-	$clayma = $_POST["clayma"];
-	
-	if ($clayma=="true")
-	{
-		$clientes=cargarObservacionesClientesClayma($conexion,$idCliente);
-	}
-	else
-	{
-		$clientes=cargarObservacionesClientes($conexion,$idCliente);
-	}
-	
-	
-	
-	
-	if (count($clientes)<=0)
-	{
-		echo json_encode("");
-		//echo ("Error2: No hay subprocesos para mostrar: ");
-	}
-	else
-	{
-		echo json_encode($clientes);
-	}
+	echo json_encode($res);
+	sqlsrv_close($conn);
+
 		
 }
 

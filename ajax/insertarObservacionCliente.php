@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="insertarObservacionCliente")
+if(isset($_POST["accion"]) && $_POST["accion"]=="insertarObservacionCliente")
 {
 	
 	session_start(); 
@@ -8,27 +8,20 @@ if(isset($_POST["accion"])&$_POST["accion"]=="insertarObservacionCliente")
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");	
 	
-	$idCliente = $_POST["idCliente"];
-	$asunto = $_POST["asunto"];
-	$texto = $_POST["texto"];
+
+
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
+
+	$datos["idEmpleado"] = $_SESSION["idEmpleado"];
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 	
-	$idEmpleado = $_SESSION["idEmpleado"];
-	
-	
-	$clayma = $_POST["clayma"];
-	
-	if ($clayma=="true")
-	{
-		echo insertarObservacionClienteClayma($conexion,$idCliente,$asunto,$texto,$idEmpleado);	
-	}
-	else
-	{
-		echo insertarObservacionCliente($conexion,$idCliente,$asunto,$texto,$idEmpleado);	
-	}	
-	
-		
-	
-	
+	$res =  insertarClientesObservaciones($conn,$bbddSql, $datos);
+
+	sqlsrv_close($conn);	
+	echo json_encode($res);
 }
 
 

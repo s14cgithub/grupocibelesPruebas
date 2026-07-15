@@ -59,7 +59,7 @@ function buscarFactura()
 
 
 
-function cargarClientesObservacionesCompleto()//js_presupuestosListado
+function cargarClientesObservacionesCompleto()
 {	
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
@@ -67,11 +67,14 @@ function cargarClientesObservacionesCompleto()//js_presupuestosListado
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarClientesObservacionesCompleto;
 		
-		
-		peticionUnica1.open("POST","ajax/cargarObservacionesClientesCompleto.php",false);
-		
-		
-		
+		if (document.getElementById("clienteOrigen").checked==true)
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}		
 	
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarClientesObservacionesCompleto();
@@ -80,13 +83,65 @@ function cargarClientesObservacionesCompleto()//js_presupuestosListado
 }
 
 function consultaCargarClientesObservacionesCompleto()
-{	
-	var consulta = "accion=cargarObservacionesClientes";	
+{
+
+	var consulta = "accion=cargarClientes";
 	
-	consulta += "&condicion="+laCondicion;
-	consulta += "&clayma="+document.getElementById("clienteOrigen").checked;
+	var campos = [
+		'codigo_saldo',
+		'nombre_empresa',
+		'fechaObservacion',
+		'idObservacion',
+		'observacion'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [
+		'tabla3'		
+	];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {
+    	activo: 1,
+		asunto: asunto
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
 	
-	return consulta;	
+	var filtrosOperadores = [
+		{
+			campo1: 'codigo',
+			operador: '=',
+			campo2: 'codigo_saldo'
+		},
+		{
+			campo1: 'idObservacion',
+    		operador: 'IN',
+    		tipoSubconsulta: 'ultimaObservacionEnvioFacturas'
+		}
+
+	];
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var filtrosLike = [
+		{
+			campo: document.getElementById("buscarCampo").value,
+			valor: document.getElementById("buscarTexto").value
+		}
+	];
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+
+	var order = [
+		{
+			campo: document.getElementById("ordenBuscar").value,
+			dir: document.getElementById("ordenDesc").checked ? 'DESC' : 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	return consulta;
+	
 }
 
 function mostrarCargarClientesObservacionesCompleto()
@@ -95,14 +150,15 @@ function mostrarCargarClientesObservacionesCompleto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+			{
+				var datos = res.datos;
 				
 				var contenido = "";
 				
@@ -267,7 +323,17 @@ function insertarObservacionCliente2(idObservacion,idCliente)
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarObservacionCliente2;
-		peticionUnica1.open("POST","ajax/insertarObservacionCliente.php",false);
+
+		if (document.getElementById("clienteOrigen").checked==true)
+		{
+			peticionUnica1.open("POST","ajax/insertarObservacionClienteClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/insertarObservacionCliente.php",false);
+		}
+
+		//peticionUnica1.open("POST","ajax/insertarObservacionCliente.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarObservacionCliente2(idObservacion,idCliente);
 		peticionUnica1.send(query_string);						
@@ -276,15 +342,18 @@ function insertarObservacionCliente2(idObservacion,idCliente)
 
 function consultaInsertarObservacionCliente2(idObservacion,idCliente)
 {	
+
 	var consulta = "accion=insertarObservacionCliente";	
-	consulta += "&idCliente="+idCliente;
-	consulta += "&asunto="+asunto;
-	consulta += "&texto="+document.getElementById(idObservacion+"_textArea").value;
+
+	var datos = {
+		idCliente: idCliente,
+		asunto: asunto,
+		observacion: document.getElementById(idObservacion+"_textArea").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	return consulta;
 	
-	consulta += "&clayma="+document.getElementById("clienteOrigen").checked;
-	
-	
-	return consulta;	
 }
 
 function mostrarInsertarObservacionCliente2()
@@ -293,14 +362,15 @@ function mostrarInsertarObservacionCliente2()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				//cargarObservacionesClientes();
-				
+			{			
+				//cargarObservacionesClientes();				
 			}
 			peticionUnica1=null;
 		}

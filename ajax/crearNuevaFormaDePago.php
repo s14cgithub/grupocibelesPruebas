@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="crearFormaDePago")
+if(isset($_POST["accion"]) && $_POST["accion"]=="crearFormaDePago")
 {
 	
 	session_start(); 
@@ -9,25 +9,32 @@ if(isset($_POST["accion"])&$_POST["accion"]=="crearFormaDePago")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	$formaPago = $_POST["formaPago"];	
 	
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 	
+	$res =  insertarFormaPago($conn,$bbddSql, $datos);
+
+
+
+	$datos = array(
+		'usuario' => $_SESSION['usuario'],
+		'descripcion' => log_creacion,
+		'tabla' => presupuesto_tabla ,
+		'datosAntiguos' => '',
+		'datosNuevos' => $datos["concepto"],//fprma de pago
+		'columna' => presupuesto_formaPago_tabla,
+		'idRegistro' => 0
+	);
+
+	insertarRegistro($conn,$bbddSql, $datos);
+
+	sqlsrv_close($conn);
 	
-	
-	
-		
-	crearNuevaFormaPago($conexion,$formaPago);
-	
-	$usuario = $_SESSION['usuario'];
-	$descripcion="creacion";
-	$tabla = presupuesto_tabla;
-	$columna = presupuesto_formaPago_tabla;
-	$datosAntiguos="";	
-	$datosNuevos = $formaPago;	
-	$idRegistro=0;
-		
-	insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,'');	
-	
+	echo json_encode($res);
 	
 	
 }

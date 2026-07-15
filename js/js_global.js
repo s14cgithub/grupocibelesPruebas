@@ -58,6 +58,8 @@ setInterval(function () {
 
 }, 300000);
 
+
+/*
 function cargarComerciales()				
 {
 	peticionUnica0=crearComunicacion(peticionUnica0);
@@ -132,7 +134,7 @@ function mostrarCargarComerciales()
 		}
 	}						
 }
-
+*/
 function cargarPaises(campo)				
 {
 	peticionUnica0=crearComunicacion(peticionUnica0);
@@ -149,8 +151,25 @@ function cargarPaises(campo)
 
 function consultaCargarPaises()
 {	
+
 	var consulta = "accion=cargarPaises";
-	return consulta;	
+
+	var campos = [
+		'id',
+		'nombreComun'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [
+		{
+			campo: 'nombreComun', dir: 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
+
+	return consulta;
+
 }
 
 
@@ -160,21 +179,15 @@ function mostrarCargarPaises()
 	{
 		if(peticionUnica0.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica0.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				try 
-				{
-					datos = JSON.parse(peticionUnica0.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
+			{
+				var datos = res.datos;
 				
 				if (datos != "")
 				{					

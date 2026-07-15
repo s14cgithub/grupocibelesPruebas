@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarPeriodosFacturacion")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarPeriodosFacturacion")
 {
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -9,20 +9,19 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarPeriodosFacturacion")
 		
 	
 	
+	$campos = isset($_POST["campos"]) ? json_decode($_POST["campos"], true) : array();
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
+	$order = isset($_POST["order"]) ? json_decode($_POST["order"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+
+	$res = cargarPeriodosFacturacion($conn, $bbddSql, $campos, $filtros, $order);
 	
-	
-	
-	$comerciales=cargarPeriodosFacturacion($conexion);
-	
-	if (count($comerciales)<=0)
-	{
-		echo json_encode("");
-		//echo ("Error2: No hay subprocesos para mostrar: ");
-	}
-	else
-	{
-		echo json_encode($comerciales);
-	}
+	echo json_encode($res);
+	sqlsrv_close($conn);
 		
 }
 

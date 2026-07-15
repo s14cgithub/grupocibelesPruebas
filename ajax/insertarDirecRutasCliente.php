@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="insertarClienteDireccionesRutas")
+if(isset($_POST["accion"]) && $_POST["accion"]=="insertarClienteDireccionesRutas")
 {
 	
 	session_start(); 
@@ -9,36 +9,17 @@ if(isset($_POST["accion"])&$_POST["accion"]=="insertarClienteDireccionesRutas")
 	require($ruta."Archivos Comunes/codigoInclude.php");	
 	
 	
-	$idCliente = $_POST["idCliente"];
-	$att = $_POST["att"];
-	$nombre = $_POST["nombre"];
-	$direccion = $_POST["direccion"];
-	$cp = $_POST["cp"];
-	$poblacion = $_POST["poblacion"];
-	$provincia = $_POST["provincia"];
-	$pais = $_POST["pais"];
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
 
-	//$activo = $_POST["activo"];
-	$activo="false";
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+	
+	$res =  insertarClientesDirecRutas($conn,$bbddSql, $datos);
 
-	$activo1=0;
-	if ($activo =="true")
-	{
-		$activo1=1;
-	}
+	sqlsrv_close($conn);	
+	echo json_encode($res);	
 	
-	
-	
-	$clayma = $_POST["clayma"];
-	
-	if ($clayma=="true")
-	{
-		echo insertarDireccionRutaClienteClayma($conexion,$idCliente,$att,$nombre,$direccion,$cp,$poblacion,$provincia,$pais,$activo1);
-	}
-	else
-	{
-		echo insertarDireccionRutaCliente($conexion,$idCliente,$att,$nombre,$direccion,$cp,$poblacion,$provincia,$pais,$activo1);
-	}	
 }
 
 

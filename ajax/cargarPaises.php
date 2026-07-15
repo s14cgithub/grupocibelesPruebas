@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarPaises")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarPaises")
 {
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -8,25 +8,20 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarPaises")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 		
 	
-	
-	$condicion = isset($_POST["condicion"]) ? $_POST["condicion"] : "";
-	
-	
-	$paises=cargarPaises($conexion,$condicion);
 
-	
+	$campos = isset($_POST["campos"]) ? json_decode($_POST["campos"], true) : array();
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
+	$order = isset($_POST["order"]) ? json_decode($_POST["order"], true) : array();
 
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+
+	$res = cargarPaises($conn, $bbddSql, $campos, $filtros, $order);
 	
-	if (count($paises)<=0)
-	{
-		echo json_encode("");
-		//echo ("Error2: No hay subprocesos para mostrar: ");
-	}
-	else
-	{
-		echo json_encode($paises);
-	}
-		
+	echo json_encode($res);
+	sqlsrv_close($conn);
 }
 
 ?>

@@ -27,17 +27,45 @@ if ($_SESSION["usuario"]<>"")
 			<td align="right">Solo Retenidas:</td>
 			<td align="left"><input type="checkbox" id="clienteRetener" name="clienteRetener" value="" onchange="" style="" > </input></td>
 
+			<!--
 			<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
 			<td align="right">Activos, Correo Diario, Fijos y Mensuales:</td>
 			<td align="left"><input type="checkbox" id="clienteActivosFijosMensual" name="clienteActivosFijosMensual" value="" onchange="" style="" > </input></td>
-
+			-->
+			<!--
+			<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			<td align="right">Activos y Correo Diario:</td>
+			<td align="left"><input type="checkbox" id="clienteActivosCorreoDiario" name="clienteActivosCorreoDiario" value="" onchange="" style="" > </input></td>
+			-->
+			<!--
 			<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
 			<td align="right">Activos y Fijos:</td>
 			<td align="left"><input type="checkbox" id="clienteActivosFijos" name="clienteActivosFijos" value="" onchange="" style="" > </input></td>
-
+-->
 			<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
 			<td align="right">Activos:</td>
 			<td align="left"><input type="checkbox" id="clienteActivos" name="clienteActivos" value="" onchange="" style="" > </input></td>
+
+			<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			<td align="right">Correo Diario:</td>
+			<td align="left"><input type="checkbox" id="clienteCorreoDiario" name="clienteCorreoDiario" value="" onchange="" style="" > </input></td>			
+			
+			<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			<td align="right">Mensuales:</td>
+			<td align="left"><input type="checkbox" id="clienteMensuales" name="clienteMensuales" value="" onchange="" style="" > </input></td>			
+
+			<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			<td align="right">Especiales:</td>
+			<td align="left"><input type="checkbox" id="clienteEspeciales" name="clienteEspeciales" value="" onchange="" style="" > </input></td>			
+
+			<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			<td align="right">Fijos:</td>
+			<td align="left"><input type="checkbox" id="clienteFijos" name="clienteFijos" value="" onchange="" style="" > </input></td>
+
+			<td>&nbsp;&nbsp;&nbsp;&nbsp;</td>
+			<td align="right">Sin Subclientes:</td>
+			<td align="left"><input type="checkbox" id="clienteSinSubclientes" name="clienteSinSubclientes" value="" onchange="" style="" > </input></td>
+			
 
 
 		</tr>
@@ -55,10 +83,11 @@ if ($_SESSION["usuario"]<>"")
 				<option value="codigo_postal">CP</option>
 				<option value="direccion">Direccion</option>				
 				<option value="nombre_franqueo">Franqueo</option>
-				<option value="Localidad">Localidad</option>
-				<option value="nif" selected>Nifcliente</option>
-				<option value="codigo" selected>Numero</option>
-				<option value="subCliente" >SubCliente</option>
+				<option value="codigoSidi">IdClienteSidi</option>
+				<option value="localidad">Localidad</option>
+				<option value="nif">Nifcliente</option>
+				<option value="codigo" selected>Codigo</option>
+				<option value="subcliente" >SubCliente</option>
 				
 				
 				
@@ -70,12 +99,16 @@ if ($_SESSION["usuario"]<>"")
 		<td align="left" colspan="3">
 			
 			<select class="" id="ordenBuscar">
-				<option value="codigo">Numero</option>
+				
 				<option value="nombre_empresa" selected>Cliente</option>
-				<option value="nombre_franqueo">Franqueo</option>
-				<option value="direccion">Direccion</option>
 				<option value="codigo_postal">CP</option>
-				<option value="Localidad">Localidad</option>
+				<option value="direccion">Direccion</option>
+				<option value="nombre_franqueo">Franqueo</option>				
+				<option value="localidad">Localidad</option>
+				<option value="codigo">Codigo</option>
+				
+				
+				
 			</select>
 		
 			Desc: <input type="checkbox" id="ordenDesc"></input>
@@ -126,6 +159,7 @@ else
 
 <form id="formExportarExcel"  method="post"  target="_blank" action="PHPExcel/archivosCibeles/exportarClientesCibelesExcel.php">	
 	<input type="hidden" id="exportarCondiciones" name="exportarCondiciones" value=""></input>
+	<input type="hidden" id="exportarClayma" name="exportarClayma" value=""></input>
 	<input type="hidden" id="exportarAccion" name="exportarAccion" value="exportarExcel"></input>			
 </form>
 
@@ -148,6 +182,6 @@ echo ("</html>");
 <script  src="js/js_clientesListado.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
 
 <script language="javascript">
-	buscarFactura();
+	cargarListadoClientes();
 	document.getElementById("button-up").addEventListener("click", scrollUp);
 </script>

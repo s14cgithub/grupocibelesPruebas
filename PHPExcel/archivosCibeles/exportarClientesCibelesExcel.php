@@ -10,18 +10,47 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
+	parse_str($_POST["exportarCondiciones"], $datos);
 	
-	$condicion = $_POST["exportarCondiciones"];
+	$clayma = isset($_POST["exportarClayma"]) ? $_POST["exportarClayma"] : 0;
+	$campos = isset($datos["campos"]) ? json_decode($datos["campos"], true) : array();
+	$filtros = isset($datos["filtros"]) ? json_decode($datos["filtros"], true) : array();
+	$filtrosOperadores = isset($datos["filtrosOperadores"]) ? json_decode($datos["filtrosOperadores"], true) : array();
+	$filtrosLike = isset($datos["filtrosLike"]) ? json_decode($datos["filtrosLike"], true) : array();
+	$joins = isset($datos["joins"]) ? json_decode($datos["joins"], true) : array();
+	$order = isset($datos["order"]) ? json_decode($datos["order"], true) : array();
+
+
+	$campos[] = "importePF";
+	$campos[] = "fac_pfFijaImporte";
+
+
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
+	
+	if ($clayma == 1 || $clayma == "1" )
+	{
+		$resultado = cargarClientesClayma($conn,$bbddSql, $campos, $filtros,$filtrosOperadores, $order,$joins,$filtrosLike);
+		$nombreArchivo = 'ClientesClayma_'.date('d-m-Y').'.xlsx';
+	}
+	else
+	{
+		$resultado = cargarClientes($conn,$bbddSql, $campos, $filtros,$filtrosOperadores, $order,$joins,$filtrosLike);
+		$nombreArchivo = 'ClientesCibeles_'.date('d-m-Y').'.xlsx';
+	}
+	
+	//echo $cargarClientes['sql'];
+	sqlsrv_close($conn);
 	
 	
-	//echo $condicion;
-	
-	
-	$resultado = cargarClientes($conexion,$condicion);
+	//echo json_encode($resultado);
 	//echo mostrarOt($conexion,$condicion);
 	
-		
-	$nombreArchivo = 'ClientesCibeles_'.date('d-m-Y').'.xlsx';
+	
+	
 	
 	//echo $resultado;
 	
@@ -56,8 +85,10 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 
 /** Error reporting */
 error_reporting(E_ALL);
-ini_set('display_errors', TRUE);
-ini_set('display_startup_errors', TRUE);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+
+
 date_default_timezone_set('Europe/London');
 
 if (PHP_SAPI == 'cli')
@@ -97,17 +128,17 @@ $objPHPExcel->setActiveSheetIndex(0)
 
 	
 $contador=2;
-while($contador-2 < count($resultado))
+while($contador-2 < count($resultado["datos"]))
 {
 	$objPHPExcel->setActiveSheetIndex(0)
-            ->setCellValue('A'.$contador, $resultado[$contador-2]["codigo"])
-			->setCellValue('B'.$contador, $resultado[$contador-2]["nombre_empresa"])
-            ->setCellValue('C'.$contador, $resultado[$contador-2]["nombre_franqueo"])			
-			->setCellValue('D'.$contador, $resultado[$contador-2]["direccion"])
-			->setCellValue('E'.$contador, $resultado[$contador-2]["codigo_postal"])
-			->setCellValue('F'.$contador, $resultado[$contador-2]["localidad"])
-			->setCellValue('G'.$contador, $resultado[$contador-2]["importePF"])
-			->setCellValue('H'.$contador, $resultado[$contador-2]["fac_pfFijaImporte"])
+            ->setCellValue('A'.$contador, $resultado["datos"][$contador-2]["codigo"])
+			->setCellValue('B'.$contador, $resultado["datos"][$contador-2]["nombre_empresa"])
+            ->setCellValue('C'.$contador, $resultado["datos"][$contador-2]["nombre_franqueo"])			
+			->setCellValue('D'.$contador, $resultado["datos"][$contador-2]["direccion"])
+			->setCellValue('E'.$contador, $resultado["datos"][$contador-2]["codigo_postal"])
+			->setCellValue('F'.$contador, $resultado["datos"][$contador-2]["localidad"])
+			->setCellValue('G'.$contador, $resultado["datos"][$contador-2]["importePF"])
+			->setCellValue('H'.$contador, $resultado["datos"][$contador-2]["fac_pfFijaImporte"])
 			;
 			
 	
@@ -128,7 +159,9 @@ $objPHPExcel->setActiveSheetIndex(0);
 
 
 	
-	
+if (ob_get_length()) {
+	ob_end_clean();
+}
 // Redirect output to a client’s web browser (Excel2007)
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');

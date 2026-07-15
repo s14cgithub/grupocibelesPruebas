@@ -3,7 +3,7 @@
 session_start(); 
 require("comprobarSesion.php");
 
-if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
+if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirCliente")
 //if(isset($_GET["imprimirAccion"])&$_GET["imprimirAccion"]=="imprimirPresu")
 {
 	$ruta = '/';
@@ -22,18 +22,60 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 	$condicion=" where codigo=".$idCodigoSubCliente;
 	
 	$origen="";
+
+	$campos = [
+		'nombre_franqueo',
+		'fecha_alta',
+		'codigo_saldo',
+		'nif',
+		'nombre_empresa',
+		'codigo',
+		'nif_subcliente',
+		'subcliente',
+		'direccion',
+		'localidad',
+		'provincia',
+		'codigo_postal',
+		'activo',	
+		'correoDiario',	
+		'retener',	
+		'domiciliada',	
+		'sinIva',	
+		'fac_cuotaRecogida',	
+		'fac_idPeriodo',	
+		'fac_porCientoNoBonificable',	
+		'fac_otrosConceptosFijos',	
+		'fac_importeFijoOtrosConcepto',	
+		'fac_idProvisionFondos',	
+		'fac_cobroUnitarioEnvio',	
+	];
+
+	$joins = array();
+
+	$filtros = array(
+		"codigo" => $idCodigoSubCliente		
+	);
+	$filtrosOperadores = array();
+	$order = array();
+
+	$conn1 = conectarSQL($conexion);
+
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];	
 	
 	if ($clayma=="1")
 	{ 
-		$datosInforme = cargarClientesClayma($conexion,$condicion);
+		$datosInforme = cargarClientesClayma($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, $order);
 		$origen = "CLAYMA";
 	}
 	else
 	{
-		$datosInforme = cargarClientes($conexion,$condicion);
+		$datosInforme = cargarClientes($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, $order);
 		$origen = "CibelesMailing";
 	}
 	
+	
+	//echo json_encode($datosInforme);
 	
 	//echo $condicion;
 	
@@ -48,9 +90,9 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 	
 	$contador=0;
 	
-	while ($contador<count($datosInforme))
+	while ($contador<count($datosInforme["datos"]))
 	{
-		$nombreFranqueo = utf8_decode($datosInforme[$contador]["nombre_franqueo"]);
+		$nombreFranqueo = utf8_decode($datosInforme["datos"][$contador]["nombre_franqueo"]);
 		
 		nuevaPagina($pdf,$altura, $nombreFranqueo);
 		
@@ -76,7 +118,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(140,0,utf8_decode("Fecha de Alta:"),0,1,'R',false);
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,$datosInforme[$contador]["fecha_alta"]->format('d/m/Y'),0,1,'R',false);
+		$pdf->Cell(0,0,$datosInforme["datos"][$contador]["fecha_alta"]->format('d/m/Y'),0,1,'R',false);
 		$altura+=10;
 		
 		$altura=50;
@@ -86,14 +128,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(0,0,utf8_decode("Código del Cliente:"),0,1,'L',false);
 		$pdf->SetFont('Arial','B',12);	
 		$pdf->SetXY($margen+50,$altura);
-		$pdf->Cell(0,0,$datosInforme[$contador]["codigo_saldo"],0,1,'L',false);
+		$pdf->Cell(0,0,$datosInforme["datos"][$contador]["codigo_saldo"],0,1,'L',false);
 		
 		$pdf->SetFont('Arial','',12);		
 		$pdf->SetXY($margen,$altura);
 		$pdf->Cell(140,0,utf8_decode("Nif del Cliente:"),0,1,'R',false);
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,$datosInforme[$contador]["nif"],0,1,'R',false);
+		$pdf->Cell(0,0,$datosInforme["datos"][$contador]["nif"],0,1,'R',false);
 		$altura+=10;
 		
 		
@@ -102,7 +144,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(0,0,utf8_decode("Cliente:"),0,1,'L',false);
 		$pdf->SetFont('Arial','B',12);
 		$pdf->SetXY($margen+20,$altura-2.5);
-		$pdf->MultiCell(0,5,utf8_decode($datosInforme[$contador]["nombre_empresa"]),0,'L',false);	
+		$pdf->MultiCell(0,5,utf8_decode($datosInforme["datos"][$contador]["nombre_empresa"]),0,'L',false);	
 		$altura+=15;
 		
 		
@@ -112,14 +154,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(0,0,utf8_decode("Código del Sub-Cliente:"),0,1,'L',false);
 		$pdf->SetFont('Arial','B',12);	
 		$pdf->SetXY($margen+50,$altura);
-		$pdf->Cell(0,0,$datosInforme[$contador]["codigo"],0,1,'L',false);
+		$pdf->Cell(0,0,$datosInforme["datos"][$contador]["codigo"],0,1,'L',false);
 		
 		$pdf->SetFont('Arial','',12);		
 		$pdf->SetXY($margen,$altura);
 		$pdf->Cell(140,0,utf8_decode("Nif del Sub-Cliente:"),0,1,'R',false);
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,$datosInforme[$contador]["nif_subcliente"],0,1,'R',false);
+		$pdf->Cell(0,0,$datosInforme["datos"][$contador]["nif_subcliente"],0,1,'R',false);
 		$altura+=10;
 		
 		$pdf->SetFont('Arial','',12);
@@ -127,7 +169,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(0,0,utf8_decode("Sub-Cliente:"),0,1,'L',false);
 		$pdf->SetFont('Arial','B',12);
 		$pdf->SetXY($margen+25,$altura-2.5);
-		$pdf->MultiCell(0,5,utf8_decode($datosInforme[$contador]["subcliente"]),0,'L',false);	
+		$pdf->MultiCell(0,5,utf8_decode($datosInforme["datos"][$contador]["subcliente"]),0,'L',false);	
 		$altura+=15;
 		
 		
@@ -137,14 +179,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(0,0,utf8_decode("Nombre de Franqueo:"),0,1,'L',false);
 		$pdf->SetFont('Arial','B',12);	
 		$pdf->SetXY($margen+50,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosInforme[$contador]["nombre_franqueo"]),0,1,'L',false);
+		$pdf->Cell(0,0,utf8_decode($datosInforme["datos"][$contador]["nombre_franqueo"]),0,1,'L',false);
 		
 		$pdf->SetFont('Arial','',12);		
 		$pdf->SetXY($margen,$altura);
 		$pdf->Cell(140,0,utf8_decode("Fecha de Alta:"),0,1,'R',false);
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,$datosInforme[$contador]["fecha_alta"]->format('d/m/Y'),0,1,'R',false);
+		$pdf->Cell(0,0,$datosInforme["datos"][$contador]["fecha_alta"]->format('d/m/Y'),0,1,'R',false);
 		$altura+=10;*/
 		
 		$pdf->SetLineWidth(0.3);
@@ -155,7 +197,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(0,0,utf8_decode("Dirección:"),0,1,'L',false);
 		$pdf->SetFont('Arial','B',12);
 		$pdf->SetXY($margen+25,$altura-2.5);
-		$pdf->MultiCell(0,5,utf8_decode($datosInforme[$contador]["direccion"]),0,'L',false);	
+		$pdf->MultiCell(0,5,utf8_decode($datosInforme["datos"][$contador]["direccion"]),0,'L',false);	
 		$altura+=15;
 		
 		
@@ -164,14 +206,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(0,0,utf8_decode("Localidad:"),0,1,'L',false);
 		$pdf->SetFont('Arial','B',12);	
 		$pdf->SetXY($margen+25,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosInforme[$contador]["localidad"]),0,1,'L',false);
+		$pdf->Cell(0,0,utf8_decode($datosInforme["datos"][$contador]["localidad"]),0,1,'L',false);
 		
 		$pdf->SetFont('Arial','',12);		
 		$pdf->SetXY($margen,$altura);
 		$pdf->Cell(130,0,utf8_decode("Provincia:"),0,1,'R',false);
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosInforme[$contador]["provincia"]),0,1,'R',false);
+		$pdf->Cell(0,0,utf8_decode($datosInforme["datos"][$contador]["provincia"]),0,1,'R',false);
 		$altura+=10;
 		
 		$pdf->SetFont('Arial','',12);	
@@ -179,7 +221,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(0,0,utf8_decode("Código Postal:"),0,1,'L',false);
 		$pdf->SetFont('Arial','B',12);	
 		$pdf->SetXY($margen+30,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosInforme[$contador]["codigo_postal"]),0,1,'L',false);
+		$pdf->Cell(0,0,utf8_decode($datosInforme["datos"][$contador]["codigo_postal"]),0,1,'L',false);
 		$altura+=10;
 		
 		/*$pdf->SetFont('Arial','',12);		
@@ -187,7 +229,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(140,0,utf8_decode("Comercial:"),0,1,'R',false);
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosInforme[$contador]["comercial"]),0,1,'R',false);
+		$pdf->Cell(0,0,utf8_decode($datosInforme["datos"][$contador]["comercial"]),0,1,'R',false);
 		$altura+=10;*/
 		
 		/*$pdf->SetFont('Arial','',12);	
@@ -195,14 +237,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->Cell(0,0,utf8_decode("Saldo:"),0,1,'L',false);
 		$pdf->SetFont('Arial','B',12);	
 		$pdf->SetXY($margen+30,$altura);
-		$pdf->Cell(0,0,number_format($datosInforme[$contador]["importePF"],2,',','.')." " .EURO,0,1,'L',false);		
+		$pdf->Cell(0,0,number_format($datosInforme["datos"][$contador]["importePF"],2,',','.')." " .EURO,0,1,'L',false);		
 		
 		$pdf->SetFont('Arial','',12);		
 		$pdf->SetXY($margen,$altura);
 		$pdf->Cell(100,0,utf8_decode("IBAN:"),0,1,'R',false);
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosInforme[$contador]["numCuentaBanco"]),0,1,'R',false);
+		$pdf->Cell(0,0,utf8_decode($datosInforme["datos"][$contador]["numCuentaBanco"]),0,1,'R',false);
 		$altura+=10;*/
 		
 		$pdf->Line($margen, $altura-5, 190, $altura-5);
@@ -213,7 +255,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->SetFont('Arial','B',12);	
 		$pdf->SetXY($margen+20,$altura);
 		$check="No";
-		if ($datosInforme[$contador]["activo"]==1)
+		if ($datosInforme["datos"][$contador]["activo"]==1)
 		{
 			$check = "Sí";
 		}
@@ -225,7 +267,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen+85,$altura);
 		$check="No";
-		if ($datosInforme[$contador]["correoDiario"]==1)
+		if ($datosInforme["datos"][$contador]["correoDiario"]==1)
 		{
 			$check = "Sí";
 		}
@@ -237,7 +279,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen,$altura);
 		$check="No";
-		if ($datosInforme[$contador]["retener"]==1)
+		if ($datosInforme["datos"][$contador]["retener"]==1)
 		{
 			$check = "Sí";
 		}
@@ -250,7 +292,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->SetFont('Arial','B',12);	
 		$pdf->SetXY($margen+30,$altura);
 		$check="No";
-		if ($datosInforme[$contador]["domiciliada"]==1)
+		if ($datosInforme["datos"][$contador]["domiciliada"]==1)
 		{
 			$check = "Sí";
 		}
@@ -262,7 +304,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen+85,$altura);
 		$check="No";
-		if ($datosInforme[$contador]["sinIva"]==1)
+		if ($datosInforme["datos"][$contador]["sinIva"]==1)
 		{
 			$check = "Sí";
 		}
@@ -274,7 +316,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$pdf->SetFont('Arial','B',12);		
 		$pdf->SetXY($margen,$altura);
 		$check="No";
-		if ($datosInforme[$contador]["retener"]==1)
+		if ($datosInforme["datos"][$contador]["retener"]==1)
 		{
 			$check = "Sí";
 		}
@@ -283,22 +325,42 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$altura+=10;
 		
 		
+
+		$campos2 = [
+			'sexo',
+			'nombre',
+			'apellidos',
+			'cargo',
+			'departamento',
+			'telefono',
+			'email',
+			'comentario',
+			'movil'			
+		];
+
+		$joins2 = array('tabla2');
+
+		$filtros2 = array(
+			"idCliente" => $datosInforme["datos"][$contador]["codigo"]		
+		);
+		$filtrosOperadores2 = array();
+		$order2 = array();
 		
 		
 		if ($clayma=="1")
 		{ 
 			
-			$contactos  = cargarClientesContactosClayma($conexion, $datosInforme[$contador]["codigo"]);
+			$contactos = cargarClientesContactosClayma ($conn, $bbddSql, $campos2, $filtros2, $filtrosOperadores2, $order2,$joins2);
 		}
 		else
 		{
-			$contactos  = cargarClientesContactos($conexion, $datosInforme[$contador]["codigo"]);
+			$contactos = cargarClientesContactos ($conn, $bbddSql, $campos2, $filtros2, $filtrosOperadores2, $order2,$joins2);		
 		}
 		
-			
+			//echo json_encode($contactos);
 			
 			$contador2=0;
-			while ($contador2 < count($contactos))
+			while ($contador2 < count($contactos["datos"]))
 			{
 				if ($altura>=200)
 				{
@@ -311,14 +373,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 				$pdf->Cell(0,0,utf8_decode("Sexo:"),0,1,'L',false);
 				$pdf->SetFont('Arial','B',12);	
 				$pdf->SetXY($margen+13,$altura);				
-				$pdf->Cell(0,0,utf8_decode($contactos[$contador2]["sexo"]),0,1,'L',false);		
+				$pdf->Cell(0,0,utf8_decode($contactos["datos"][$contador2]["sexo"]),0,1,'L',false);		
 
 				$pdf->SetFont('Arial','',12);		
 				$pdf->SetXY($margen,$altura);
 				$pdf->Cell(60,0,utf8_decode("Nombre:"),0,1,'R',false);
 				$pdf->SetFont('Arial','B',12);		
 				$pdf->SetXY($margen+60,$altura);
-				$pdf->Cell(0,0,utf8_decode($contactos[$contador2]["nombre"]) ." ".utf8_decode($contactos[$contador2]["apellidos"]),0,1,'L',false);
+				$pdf->Cell(0,0,utf8_decode($contactos["datos"][$contador2]["nombre"]) ." ".utf8_decode($contactos["datos"][$contador2]["apellidos"]),0,1,'L',false);
 				$altura+=10;
 				
 				$pdf->SetFont('Arial','',12);	
@@ -326,7 +388,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 				$pdf->Cell(0,0,utf8_decode("Cargo:"),0,1,'L',false);
 				$pdf->SetFont('Arial','B',12);	
 				$pdf->SetXY($margen+13,$altura);				
-				$pdf->Cell(0,0,utf8_decode($contactos[$contador2]["cargo"]),0,1,'L',false);		
+				$pdf->Cell(0,0,utf8_decode($contactos["datos"][$contador2]["cargo"]),0,1,'L',false);		
 				$altura+=10;
 				
 				$pdf->SetFont('Arial','',12);	
@@ -334,7 +396,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 				$pdf->Cell(0,0,utf8_decode("Departamento:"),0,1,'L',false);
 				$pdf->SetFont('Arial','B',12);	
 				$pdf->SetXY($margen+30,$altura);				
-				$pdf->Cell(0,0,utf8_decode($contactos[$contador2]["departamento"]),0,1,'L',false);		
+				$pdf->Cell(0,0,utf8_decode($contactos["datos"][$contador2]["departamento"]),0,1,'L',false);		
 				$altura+=10;
 				
 				$pdf->SetFont('Arial','',12);	
@@ -342,7 +404,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 				$pdf->Cell(0,0,utf8_decode("Telefonos:"),0,1,'L',false);
 				$pdf->SetFont('Arial','B',12);	
 				$pdf->SetXY($margen+23,$altura);				
-				$pdf->Cell(0,0,utf8_decode($contactos[$contador2]["telefono"]) . " " . utf8_decode($contactos[$contador2]["movil"]),0,1,'L',false);		
+				$pdf->Cell(0,0,utf8_decode($contactos["datos"][$contador2]["telefono"]) . " " . utf8_decode($contactos["datos"][$contador2]["movil"]),0,1,'L',false);		
 				$altura+=10;
 				
 				$pdf->SetFont('Arial','',12);	
@@ -350,7 +412,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 				$pdf->Cell(0,0,utf8_decode("Email:"),0,1,'L',false);
 				$pdf->SetFont('Arial','B',12);	
 				$pdf->SetXY($margen+23,$altura);				
-				$pdf->Cell(0,0,utf8_decode($contactos[$contador2]["email"]),0,1,'L',false);	
+				$pdf->Cell(0,0,utf8_decode($contactos["datos"][$contador2]["email"]),0,1,'L',false);	
 				$altura+=10;
 				
 				$pdf->SetFont('Arial','',12);	
@@ -358,9 +420,9 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 				$pdf->Cell(0,0,utf8_decode("Comentario:"),0,1,'L',false);
 				$pdf->SetFont('Arial','B',12);	
 				$pdf->SetXY($margen+25,$altura);				
-				$pdf->MultiCell(0,5,utf8_decode($contactos[$contador2]["comentario"]),0,'L',false);	
+				$pdf->MultiCell(0,5,utf8_decode($contactos["datos"][$contador2]["comentario"]),0,'L',false);	
 
-				$anchoDescripcion = $pdf->GetStringWidth($contactos[$contador2]["comentario"]);
+				$anchoDescripcion = $pdf->GetStringWidth($contactos["datos"][$contador2]["comentario"]);
 				$numeroDeFilas = ceil ($anchoDescripcion / 84);
 				if ($numeroDeFilas<1)
 				{
@@ -383,7 +445,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		
 		$altura+=10;
 		
-		if ($datosInforme[$contador]["correoDiario"]==1)
+		if ($datosInforme["datos"][$contador]["correoDiario"]==1)
 		{
 			$pdf->Line($margen, $altura-5, 190, $altura-5);
 			
@@ -392,7 +454,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 			$pdf->Cell(0,0,utf8_decode("Cuota Recogida:"),0,1,'L',false);
 			$pdf->SetFont('Arial','B',12);	
 			$pdf->SetXY($margen+40,$altura);			
-			$pdf->Cell(0,0,number_format($datosInforme[$contador]["fac_cuotaRecogida"],2,',','.')." " .EURO,0,1,'L',false);		
+			$pdf->Cell(0,0,number_format($datosInforme["datos"][$contador]["fac_cuotaRecogida"],2,',','.')." " .EURO,0,1,'L',false);		
 
 			$pdf->SetFont('Arial','',12);		
 			$pdf->SetXY($margen,$altura);
@@ -400,11 +462,11 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 			$pdf->SetFont('Arial','B',12);		
 			$pdf->SetXY($margen+85,$altura);
 			$valor="";
-			if ($datosInforme[$contador]["fac_idPeriodo"]=="1")
+			if ($datosInforme["datos"][$contador]["fac_idPeriodo"]=="1")
 			{
 				$valor = "Mensual";
 			}
-			else if ($datosInforme[$contador]["fac_idPeriodo"]=="2")
+			else if ($datosInforme["datos"][$contador]["fac_idPeriodo"]=="2")
 			{
 				$valor = "Especial";
 			}
@@ -415,7 +477,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 			$pdf->Cell(150,0,utf8_decode("% Prod. No Bon:"),0,1,'R',false);
 			$pdf->SetFont('Arial','B',12);		
 			$pdf->SetXY($margen,$altura);
-			$pdf->Cell(0,0,number_format($datosInforme[$contador]["fac_porCientoNoBonificable"],2,',','.')." " .EURO,0,1,'R',false);	
+			$pdf->Cell(0,0,number_format($datosInforme["datos"][$contador]["fac_porCientoNoBonificable"],2,',','.')." " .EURO,0,1,'R',false);	
 			$altura+=10;
 			
 			$pdf->SetFont('Arial','',12);	
@@ -423,14 +485,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 			$pdf->Cell(0,0,utf8_decode("Otros Conceptos:"),0,1,'L',false);
 			$pdf->SetFont('Arial','B',10);	
 			$pdf->SetXY($margen+35,$altura);			
-			$pdf->Cell(0,0,$datosInforme[$contador]["fac_otrosConceptosFijos"],0,1,'L',false);		
+			$pdf->Cell(0,0,$datosInforme["datos"][$contador]["fac_otrosConceptosFijos"],0,1,'L',false);		
 
 			$pdf->SetFont('Arial','',12);		
 			$pdf->SetXY($margen+115,$altura);
 			$pdf->Cell(0,0,utf8_decode("Importe Fijo:"),0,1,'L',false);
 			$pdf->SetFont('Arial','B',12);		
 			$pdf->SetXY($margen,$altura);			
-			$pdf->Cell(0,0,number_format($datosInforme[$contador]["fac_importeFijoOtrosConcepto"],2,',','.')." " .EURO,0,1,'R',false);				
+			$pdf->Cell(0,0,number_format($datosInforme["datos"][$contador]["fac_importeFijoOtrosConcepto"],2,',','.')." " .EURO,0,1,'R',false);				
 			$altura+=10;
 			
 			
@@ -440,11 +502,11 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 			$pdf->SetFont('Arial','B',12);	
 			$pdf->SetXY($margen+45,$altura);
 			$valor="";
-			if ($datosInforme[$contador]["fac_idProvisionFondos"]=="1")
+			if ($datosInforme["datos"][$contador]["fac_idProvisionFondos"]=="1")
 			{
 				$valor = "Fija";
 			}
-			else if ($datosInforme[$contador]["fac_idProvisionFondos"]=="2")
+			else if ($datosInforme["datos"][$contador]["fac_idProvisionFondos"]=="2")
 			{
 				$valor = "Variable";
 			}
@@ -455,7 +517,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 			$pdf->Cell(150,0,utf8_decode("Cobro Unitario Envío:"),0,1,'R',false);
 			$pdf->SetFont('Arial','B',12);		
 			$pdf->SetXY($margen,$altura);
-			$pdf->Cell(0,0,number_format($datosInforme[$contador]["fac_cobroUnitarioEnvio"],2,',','.')." " .EURO,0,1,'R',false);	
+			$pdf->Cell(0,0,number_format($datosInforme["datos"][$contador]["fac_cobroUnitarioEnvio"],2,',','.')." " .EURO,0,1,'R',false);	
 			$altura+=10;
 			
 			
@@ -468,7 +530,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCliente")
 		$contador++;
 	}
 
-	
+	sqlsrv_close($conn);
 	$pdf->Output("I",$ruta."Provision de Fondo - ".date("dmy")." .pdf","UTF-8");
 	
 }

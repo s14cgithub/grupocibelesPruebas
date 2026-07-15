@@ -74,7 +74,7 @@ else
 	<tr>
 		
 		<td align="right">Codigo Saldo:</td>
-		<td><input class="input5digitos" type="text" id="cliente_codigoSaldo" name="cliente_codigoSaldo" onChange="mirarDatosEmpresaPorCodigo()" readonly></input></td>
+		<td><input class="input5digitos" type="text" id="cliente_codigoSaldo" name="cliente_codigoSaldo" onChange="verDatosClientePorCodigo()" readonly></input></td>
 		
 
 		<td align="right">Nombre de Empresa:</td>
@@ -106,7 +106,7 @@ else
 
 	<tr>
 		<td align="right">Pais:</td>		
-		<td colspan="3"><select class=""  id="cliente_pais" name="cliente_pais" onchange="gestionarCodigoPais()" <?php echo $soloLectura; ?>></select></td>
+		<td colspan="3"><select class=""  id="cliente_pais" name="cliente_pais" onchange="cargarPaises2()" <?php echo $soloLectura; ?>></select></td>
 
 		
 		<td align="right">Codigo Pais:</td>
@@ -462,7 +462,7 @@ if ($_SESSION["permiso_clientes"]==2)
 	}
 	
 	mostrarPfFijaImporte();
-	gestionarCodigoPais();
+	cargarPaises2();
 
 	document.getElementById("button-up").addEventListener("click", scrollUp);
 

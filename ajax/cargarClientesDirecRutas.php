@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarClientesDireccionRutas")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarClientesDireccionRutas")
 {
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -8,38 +8,25 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarClientesDireccionRutas")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	$idCliente = $_POST["idCliente"];
-	$clayma = $_POST["clayma"];
 
-	$condicion=" where idCliente = ".$idCliente;
+	$campos = isset($_POST["campos"]) ? json_decode($_POST["campos"], true) : array();
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
+	$filtrosOperadores = isset($_POST["filtrosOperadores"]) ? json_decode($_POST["filtrosOperadores"], true) : array();
+	$joins = isset($_POST["joins"]) ? json_decode($_POST["joins"], true) : array();
+	$order = isset($_POST["order"]) ? json_decode($_POST["order"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 
 
-
-	$orden = " order by id ";
-	$condicion .= $orden;
+	$res = cargarClientesDirecRutas($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, $order,$joins);
+	
+	echo json_encode($res);
+	sqlsrv_close($conn);
 
 
 	
-	if ($clayma=="true")
-	{
-		$contactos=cargarClientesDireccionRutasClayma($conexion,$idCliente,$condicion);
-	}
-	else
-	{
-		$contactos=cargarClientesDireccionRutas($conexion,$idCliente,$condicion);
-	}
-	
-	
-	
-	if (count($contactos)<=0)
-	{
-		echo json_encode("");
-		//echo ("Error2: No hay subprocesos para mostrar: ");
-	}
-	else
-	{
-		echo json_encode($contactos);
-	}
 		
 }
 

@@ -54,7 +54,9 @@ function nuevoCliente()
 	
 	
 	document.getElementById("botonCrearCliente").style.visibility = "visible";
-	document.getElementById("botonCrearCliente").style.display = "table-cell";	
+	document.getElementById("botonCrearCliente").style.display = "table-cell";
+	
+	document.getElementById("cliente_saldo").readOnly = false;
 	
 	//document.getElementById("botonNuevoCliente").style.visibility = "hidden";
 	//document.getElementById("botonNuevoCliente").style.display = "none";
@@ -149,7 +151,7 @@ function crearCliente()//aqui controlar campos obligatorios
 		}
 		else
 		{
-			verInformacionCliente("nombre_empresa",document.getElementById("cliente_NombreEmpresa").value)
+			verSiExisteEmpresa(document.getElementById("cliente_NombreEmpresa").value);
 			
 			if(error==true)
 			{
@@ -157,7 +159,7 @@ function crearCliente()//aqui controlar campos obligatorios
 				mensaje += "\nNombre de Empresa ya existe";
 			}
 
-			verInformacionCliente("nombre_franqueo",document.getElementById("cliente_nomFranqueo").value)
+			verSiExisteFranqueo(document.getElementById("cliente_nomFranqueo").value)
 
 			if(error==true)
 			{
@@ -173,17 +175,18 @@ function crearCliente()//aqui controlar campos obligatorios
 			}
 		}
 		
-		
-		
-		
-		
-		
 		/*verInformacionCliente("nif",document.getElementById("cliente_Nif").value) // Esta comprobacion se quita por orden de Marian
 		if(error==true)
 		{
 			seguir = false;	
 			mensaje += "\nEl Nif ya existe";
 		}*/		
+	}
+	else if (document.getElementById("tipoClienteSubCliente").checked && document.getElementById("cliente_correoDiario").checked && document.getElementById("fac_periodoFac").value == 1 )
+	{
+		mensaje += "\nNo se puede poner en 'periodo de facturacion' el valor 'especial' en un subcliente"; //si se quita esto, se crea facturas mensuales con subclientes, y esto estaría mal. Las facturas siempre se crea con clientes, nunca con subclientes
+		error = true;
+		seguir = false;	
 	}
 	else
 	{
@@ -196,7 +199,7 @@ function crearCliente()//aqui controlar campos obligatorios
 		}
 		else
 		{
-			verInformacionCliente("subcliente",document.getElementById("cliente_SubCliente").value)
+			verSiExisteSucliente(document.getElementById("cliente_SubCliente").value)
 		
 			if(error==true)
 			{
@@ -204,7 +207,7 @@ function crearCliente()//aqui controlar campos obligatorios
 				seguir = false;	
 			}
 			
-			verInformacionCliente("nombre_franqueo",document.getElementById("cliente_nomFranqueo").value)
+			verSiExisteFranqueo(document.getElementById("cliente_nomFranqueo").value)
 
 			if(error==true)
 			{
@@ -212,14 +215,11 @@ function crearCliente()//aqui controlar campos obligatorios
 				mensaje += "\nEl nombre de franqueo ya existe";
 			}
 
-			verInformacionCliente("nif_subcliente",document.getElementById("cliente_NifSubCliente").value)//el nif de un subcliente se puede repetir
-		}
-		
-		
-		
-		
+			verSiExisteNifSubcliente(document.getElementById("cliente_NifSubCliente").value)//el nif de un subcliente se puede repetir
+		}		
 	}
-		
+	
+			
 	
 	if (seguir == true && error == true) //el nif del subcliente ya existe
 	{
@@ -238,6 +238,426 @@ function crearCliente()//aqui controlar campos obligatorios
 	}
 	
 	error = false;
+}
+
+
+function verSiExisteEmpresa(empresa)
+{	
+
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+			
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarVerSiExisteEmpresa;
+
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
+
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaVerSiExisteEmpresa(empresa);
+		peticionUnica1.send(query_string);						
+	}	
+}
+
+function consultaVerSiExisteEmpresa(empresa)
+{
+	
+	var consulta = "accion=cargarClientes";
+	
+	var campos = [		
+		'nombre_empresa'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	nombre_empresa: empresa
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+		
+	
+	return consulta;
+	
+}
+
+function mostrarVerSiExisteEmpresa()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				
+				if(datos.length>0)
+				{
+					error = true;
+				}
+				else
+				{
+					error = false;
+				}
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
+
+
+function verSiExisteFranqueo(nombreFranqueo)
+{	
+
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+			
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarVerSiExisteFranqueo;
+
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
+
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaVerSiExisteFranqueo(nombreFranqueo);
+		peticionUnica1.send(query_string);						
+	}
+	
+}
+
+function consultaVerSiExisteFranqueo(nombreFranqueo)
+{
+	
+	var consulta = "accion=cargarClientes";
+	
+	var campos = [		
+		'nombre_franqueo'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	nombre_franqueo: nombreFranqueo
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+		
+	
+	return consulta;
+	
+}
+
+function mostrarVerSiExisteFranqueo()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				
+				if(datos.length>0)
+				{
+					error = true;
+				}
+				else
+				{
+					error = false;
+				}
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
+
+function verSiExisteSucliente(subcliente)
+{	
+	error = false;
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+			
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarVerSiExisteSucliente;
+
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
+
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaVerSiExisteSucliente(subcliente);
+		peticionUnica1.send(query_string);						
+	}
+	
+}
+
+function consultaVerSiExisteSucliente(subcliente)
+{
+	
+	var consulta = "accion=cargarClientes";
+	
+	var campos = [		
+		'subcliente'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	subcliente: subcliente
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+		
+	
+	return consulta;
+	
+}
+
+function mostrarVerSiExisteSucliente()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				
+				if(datos.length>0)
+				{
+					error = true;
+				} 
+				else
+				{
+					error = false;
+				}
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
+
+function verSiExisteNifSubcliente(nif_subcliente)
+{	
+
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+			
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarVerSiExisteNifSubcliente;
+
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
+
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaVerSiExisteNifSubcliente(nif_subcliente);
+		peticionUnica1.send(query_string);						
+	}
+	
+}
+
+function consultaVerSiExisteNifSubcliente(nif_subcliente)
+{
+	
+	var consulta = "accion=cargarClientes";
+	
+	var campos = [		
+		'nif_subcliente'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	nif_subcliente: nif_subcliente
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+		
+	
+	return consulta;
+	
+}
+
+function mostrarVerSiExisteNifSubcliente()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				
+				if(datos.length>0)
+				{
+					error = true;
+				}
+				else
+				{
+					error = false;
+				}
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
+
+function verDatosClientePorCodigo()
+{	
+
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+			
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarVerDatosClientePorCodigo;
+
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
+
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaVerDatosClientePorCodigo();
+		peticionUnica1.send(query_string);						
+	}
+	
+}
+
+function consultaVerDatosClientePorCodigo()
+{
+	
+	var consulta = "accion=cargarClientes";
+	
+	var campos = [		
+		'nombre_empresa',
+		'nif'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	codigo: document.getElementById("cliente_codigoSaldo").value
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+		
+	
+	return consulta;
+	
+}
+
+function mostrarVerDatosClientePorCodigo()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+			var codigoIncorrecto = false;
+
+			if (res.error!="")
+			{
+				alert(res.error);
+				codigoIncorrecto = true;
+			}
+			else
+			{
+				var datos = res.datos;				
+				
+				if (datos != "")
+				{
+					
+					if (datos.length<=0)
+					{
+						codigoIncorrecto = true;
+					}
+					else
+					{							
+						document.getElementById("cliente_NombreEmpresa").value = datos[0]["nombre_empresa"];	
+						document.getElementById("cliente_Nif").value = datos[0]["nif"];							
+					}
+				}
+				else
+				{
+					codigoIncorrecto = true;
+				}
+				
+				if (codigoIncorrecto)
+				{
+					datos="";
+					alert("No existe ese codigo");
+					
+					document.getElementById("cliente_NombreEmpresa").value = "";	
+					document.getElementById("cliente_Nif").value = "";	
+					
+					document.getElementById("cliente_codigoSaldo").value = "";
+					document.getElementById("cliente_codigoSaldo").focus;					
+				}	
+			}
+			peticionUnica1=null;
+		}
+	}						
 }
 
 
@@ -335,12 +755,23 @@ function mostrarVerInformacionCliente()
 
 function crearClienteNuevo()		
 {
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 							
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCrearClienteNuevo;
-		peticionUnica1.open("POST","ajax/crearClienteNuevo.php",false);
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/crearClienteNuevoClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/crearClienteNuevo.php",false);
+		}
+		//peticionUnica1.open("POST","ajax/crearClienteNuevo.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCrearClienteNuevo();
 		peticionUnica1.send(query_string);						
@@ -348,112 +779,82 @@ function crearClienteNuevo()
 }
 
 function consultaCrearClienteNuevo()
-{	
+{
 	var consulta = "accion=crearClienteNuevo";
-	
-	//consulta +="codigo="+; esto es automatico	
-	
+
+	var datos = {	
+		codigo:0 ,
+		nombre_empresa: document.getElementById("cliente_NombreEmpresa").value,
+		nif: document.getElementById("cliente_Nif").value,
+		direccion: document.getElementById("cliente_direccion").value,
+		localidad: document.getElementById("cliente_localidad").value,
+		provincia: document.getElementById("cliente_provincia").value,
+		codigo_postal: document.getElementById("cliente_cp").value,
+		pais: document.getElementById("cliente_pais").value,
+		codigoPais: document.getElementById("cliente_codigoPais").value == "" ? "ES" : document.getElementById("cliente_codigoPais").value,
+		codigoSidi: document.getElementById("cliente_codigoSIDI").value,
+		nombre_franqueo: document.getElementById("cliente_nomFranqueo").value,
+		idComercial: document.getElementById("comercial").value,
+		//diasApagar: document.getElementById("diasApagar").value,
+		diasApagar: 1,
+		idFormaPago: document.getElementById("formaPago").value,
+		email: document.getElementById("email").value,
+		//numCuenta: document.getElementById("numCuenta2").value+document.getElementById("numCuenta").value,
+		numCuentaBanco: document.getElementById("numCuenta").value,
+		fac_cuotaRecogida: document.getElementById("fac_cuotaRecogida").value == "" ? 0 : document.getElementById("fac_cuotaRecogida").value ,
+		fac_idPeriodo: document.getElementById("fac_periodoFac").value,
+		fac_porCientoNoBonificable: document.getElementById("fac_ProdNoBon").value,
+		fac_otrosConceptosFijos: document.getElementById("fac_otrosConceptos").value,
+
+		fac_importeFijoOtrosConcepto: document.getElementById("fac_importeOtrosConceptos").value == "" ? 0 : document.getElementById("fac_importeOtrosConceptos").value,
+		fac_idProvisionFondos: document.getElementById("fac_provFondos").value == "" ? 0 : document.getElementById("fac_provFondos").value,
+		fac_pfFijaImporte: document.getElementById("fac_pfFijaImporte").value == "" ? 0 : document.getElementById("fac_pfFijaImporte").value,
+		fac_cobroUnitarioEnvio: document.getElementById("fac_cobroUnitarioEnvio").value == "" ? 0 : document.getElementById("fac_cobroUnitarioEnvio").value,
+
+		envio_att: document.getElementById("envio_Att").value,
+		envio_nombre: document.getElementById("envio_Nombre").value,
+		envio_domicilio: document.getElementById("envio_Direccion").value,
+		envio_cp: document.getElementById("envio_cp").value,
+		envio_poblacion: document.getElementById("envio_poblacion").value,
+		envio_provincia: document.getElementById("envio_provincia").value,
+		envio_pais: document.getElementById("envio_pais").value,
+
+		correoDiario: document.getElementById("cliente_correoDiario").checked ? 1 : 0,
+
+		activo: document.getElementById("cliente_activo").checked ? 1 : 0,
+		domiciliada: document.getElementById("cliente_domiciliado").checked ? 1 : 0,
+		sinIva: document.getElementById("cliente_sinIva").checked ? 1 : 0,
+		retener: document.getElementById("cliente_retener").checked ? 1 : 0,
+		prefactura: document.getElementById("cliente_preFactura").checked ? 1 : 0,
+		noAplicarPF: document.getElementById("cliente_sinAplicarPF").checked ? 1 : 0,
+		retencion: document.getElementById("cliente_conRetencion").checked ? 1 : 0,
+
+
+		nuestraCuenta: document.getElementById("nuestraCuenta").value,
+		pedidoCliente: document.getElementById("cliente_pedido").value,
+		vencimiento: document.getElementById("vencimiento").value,
+
+		importePF: document.getElementById("cliente_saldo").value == "" ? 0 : document.getElementById("cliente_saldo").value
+	}
+
+
 	if (document.getElementById("tipoClienteCliente").checked==true)//cliente
 	{
-		consulta +="&codigoSaldo=0";//el codigoSalgo será igual al codigo, que se creará a la hora de insertar el codigo
-		consulta +="&subCliente="+document.getElementById("cliente_NombreEmpresa").value;		
-		consulta +="&nifSubCliente="+document.getElementById("cliente_Nif").value;
-		
+		datos.codigo_saldo = 0;//el codigoSalgo será igual al codigo, que se creará a la hora de insertar el codigo
+		datos.subcliente = document.getElementById("cliente_NombreEmpresa").value;
+		datos.nif_subcliente = document.getElementById("cliente_Nif").value;		
 	}
 	else //subcliente
 	{
-		consulta +="&codigoSaldo="+document.getElementById("cliente_codigoSaldo").value;
-		consulta +="&subCliente="+document.getElementById("cliente_SubCliente").value;
-		consulta +="&nifSubCliente="+document.getElementById("cliente_NifSubCliente").value;
+		datos.codigo_saldo = document.getElementById("cliente_codigoSaldo").value;
+		datos.subcliente = document.getElementById("cliente_SubCliente").value;
+		datos.nif_subcliente = document.getElementById("cliente_NifSubCliente").value;
 	}
-	
-	
-	consulta +="&nombreEmpresa="+document.getElementById("cliente_NombreEmpresa").value;
-	consulta +="&nif="+document.getElementById("cliente_Nif").value;
-	
-	
-	consulta +="&direccion="+document.getElementById("cliente_direccion").value;
-	consulta +="&localidad="+document.getElementById("cliente_localidad").value;
-	consulta +="&provincia="+document.getElementById("cliente_provincia").value;
-	consulta +="&cp="+document.getElementById("cliente_cp").value;
 
-	consulta +="&pais="+document.getElementById("cliente_pais").value;
-	consulta +="&codigoPais="+document.getElementById("cliente_codigoPais").value;
-
-
-	consulta +="&nombreFranqueo="+document.getElementById("cliente_nomFranqueo").value;
-	consulta +="&comercial="+document.getElementById("comercial").value;
-	
-	//consulta +="&diasApagar="+document.getElementById("diasApagar").value;
-	consulta +="&diasApagar=1";
-	
-	consulta +="&formaPago="+document.getElementById("formaPago").value;
-	consulta +="&EmailFactura="+document.getElementById("email").value;
-	//consulta +="&numCuenta="+document.getElementById("numCuenta2").value+document.getElementById("numCuenta").value;
-	consulta +="&numCuenta=" + document.getElementById("numCuenta").value;
-	
-	consulta +="&cuotaRecogida="+document.getElementById("fac_cuotaRecogida").value;
-	consulta +="&periodoFacturacion="+document.getElementById("fac_periodoFac").value;
-	consulta +="&prodNoBon="+document.getElementById("fac_ProdNoBon").value;
-	consulta +="&otrosConceptos="+document.getElementById("fac_otrosConceptos").value;
-	
-	consulta +="&importeFijoOtrosConceptos="+document.getElementById("fac_importeOtrosConceptos").value;
-	consulta +="&provisionFondos="+document.getElementById("fac_provFondos").value;
-	consulta +="&pfFijaImporte=" + document.getElementById("fac_pfFijaImporte").value;
-	consulta +="&cobroUnitarioEnvio="+document.getElementById("fac_cobroUnitarioEnvio").value;
-	
-	consulta +="&envAtt="+document.getElementById("envio_Att").value;
-	consulta +="&envNombre="+document.getElementById("envio_Nombre").value;
-	consulta +="&envDireccion="+document.getElementById("envio_Direccion").value;
-	consulta +="&envCp="+document.getElementById("envio_cp").value;
-	consulta +="&envPoblacion="+document.getElementById("envio_poblacion").value;
-	consulta +="&envProvincia="+document.getElementById("envio_provincia").value;
-	consulta +="&envPais="+document.getElementById("envio_pais").value;
-	
-	consulta +="&correoDiario=" + document.getElementById("cliente_correoDiario").checked;
-	
-	consulta +="&activo=" + document.getElementById("cliente_activo").checked;
-	consulta +="&domiciliado=" + document.getElementById("cliente_domiciliado").checked;
-	consulta +="&sinIva=" + document.getElementById("cliente_sinIva").checked;
-	consulta +="&retener=" + document.getElementById("cliente_retener").checked;
-	consulta +="&prefactura=" + document.getElementById("cliente_preFactura").checked;
-	consulta +="&noAplicarPF=" + document.getElementById("cliente_sinAplicarPF").checked;
-	consulta +="&retencion=" + document.getElementById("cliente_conRetencion").checked;
-	
-	
-	consulta +="&nuestraCuenta=" + document.getElementById("nuestraCuenta").value;
-	consulta +="&pedidoCliente=" + document.getElementById("cliente_pedido").value;
-	consulta +="&vencimiento=" + document.getElementById("vencimiento").value;
-	
-	
-	/*var URLactual = window.location;
-	
-	var direccion  = URLactual.pathname.substr(URLactual.pathname.lastIndexOf('/'));
-	
-	
-	//if (direccion=="/clientesClayma.php")
-	if (direccion.includes("/clientesClayma.php"))
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}*/
-	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
 	return consulta;	
+
 }
 
 function mostrarCrearClienteNuevo()
@@ -462,24 +863,14 @@ function mostrarCrearClienteNuevo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{		
-				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				} 
-				
+			{								
 				
 				/*var URLactual = window.location;
 	
@@ -499,11 +890,11 @@ function mostrarCrearClienteNuevo()
 
 				if (parametroClayma2=="1")
 				{
-					window.location.href = "clientes.php?codigo="+datos[0]["codigo"]+"&clayma=1";
+					window.location.href = "clientes.php?codigo="+res.codigo+"&clayma=1";
 				}
 				else
 				{
-					window.location.href = "clientes.php?codigo="+datos[0]["codigo"]+"&clayma=0";
+					window.location.href = "clientes.php?codigo="+res.codigo+"&clayma=0";
 				}
 				
 				
@@ -518,53 +909,98 @@ function cargarUnCliente()
 	//document.getElementById("buscarCampo").value = "codigo";
 	var idCliente = params.get("codigo");
 	
-	var condicion = " where codigo = " + idCliente;	
-		
+
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+			
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarClientesBuscador;
-		peticionUnica1.open("POST","ajax/cargarClientesBuscador.php",false);
+
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
+
+		//peticionUnica1.open("POST","ajax/cargarClientesBuscador.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaCargarClientesBuscador(condicion);
+		var query_string = consultaCargarClientesBuscador(idCliente);
 		peticionUnica1.send(query_string);						
 	}
 	
 }
 
-function consultaCargarClientesBuscador(condicion)
-{	
-	var consulta = "accion=cargarClientesBuscador";	
-	consulta += "&condicion="+encodeURIComponent(condicion);
-	//consulta = encodeURIComponent(consulta);
+function consultaCargarClientesBuscador(idCliente)
+{
 	
-	/*var URLactual = window.location;
+	var consulta = "accion=cargarClientes";
 	
-	var direccion  = URLactual.pathname.substr(URLactual.pathname.lastIndexOf('/'));	
+	var campos = [
+		'codigo_saldo',
+		'codigo',
+		'subcliente',
+		'nif_subcliente',
+		'nombre_empresa',
+		'nif',
+		'codigoSidi',
+		'direccion',
+		'localidad',
+		'provincia',
+		'codigo_postal',
+		'pais',
+		'codigoPais',
+		'nombre_franqueo',
+		'fecha_alta',
+		'idComercial',
+		'importePF',
+		'idFormaPago',
+		'email',
+		'numCuentaBanco',
+		'nuestraCuenta',
+		'envio_att',
+		'envio_nombre',
+		'envio_domicilio',
+		'envio_cp',
+		'envio_poblacion',
+		'envio_provincia',
+		'envio_pais',
+		'fac_cuotaRecogida',
+		'fac_idPeriodo',
+		'fac_porCientoNoBonificable',
+		'fac_otrosConceptosFijos',
+		'fac_importeFijoOtrosConcepto',
+		'fac_idProvisionFondos',
+		'fac_pfFijaImporte',
+		'fac_cobroUnitarioEnvio',
+		'correoDiario',
+		'activo',
+		'domiciliada',
+		'sinIva',
+		'retener',
+		'prefactura',
+		'noAplicarPF',
+		'pedidoCliente',
+		'retencion',
+		'vencimiento'
+		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	codigo: idCliente
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+		
 	
-	if (direccion.includes("/clientesClayma.php"))
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}*/	
+	return consulta;
 	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
-	
-	return consulta;	
 }
 
 function mostrarCargarClientesBuscador()
@@ -573,22 +1009,15 @@ function mostrarCargarClientesBuscador()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
+				var datos = res.datos;
 				
 				if (datos.length>0)
 				{
@@ -755,49 +1184,55 @@ function mostrarCargarClientesBuscador()
 	}						
 }
 
-function cargarPaises2(condicion)				
+function cargarPaises2()				
 {
-	peticionUnica0=crearComunicacion(peticionUnica0);
+	peticionUnica1=crearComunicacion(peticionUnica1);
 				
-	if(peticionUnica0)
+	if(peticionUnica1)
 	{							
-		peticionUnica0.onreadystatechange = mostrarCargarPaises2;
-		peticionUnica0.open("POST","ajax/cargarPaises.php",false);
-		peticionUnica0.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaCargarPaises2(condicion);
-		peticionUnica0.send(query_string);						
+		peticionUnica1.onreadystatechange = mostrarCargarPaises2;
+		peticionUnica1.open("POST","ajax/cargarPaises.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarPaises2();
+		peticionUnica1.send(query_string);						
 	}
 }
 
-function consultaCargarPaises2(condicion)
+function consultaCargarPaises2()
 {	
 	var consulta = "accion=cargarPaises";
-	consulta += "&condicion=" + condicion;
-	return consulta;	
+
+	var campos = [
+		'id',
+		'codigo'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	id: document.getElementById("cliente_pais").value
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+
+	return consulta;
 }
 
 
 function mostrarCargarPaises2()
 {
-	if (peticionUnica0.readyState == 4)
+	if (peticionUnica1.readyState == 4)
 	{
-		if(peticionUnica0.status == 200)
+		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				try 
-				{
-					datos = JSON.parse(peticionUnica0.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
+			{
+				var datos = res.datos;
 				
 				if (datos != "")
 				{					
@@ -814,17 +1249,14 @@ function mostrarCargarPaises2()
 					document.getElementById("cliente_codigoPais").value = "";
 				}
 			}
-			peticionUnica0 = null;
+			peticionUnica1 = null;
 			input = null;
 		}
 	}						
 }
 
 
-function gestionarCodigoPais()
-{
-	cargarPaises2(" where id="+document.getElementById("cliente_pais").value);
-}
+
 
 function cargarPeriodosFacturacion()				
 {
@@ -841,8 +1273,24 @@ function cargarPeriodosFacturacion()
 }
 
 function consultaCargarPeriodosFacturacion()
-{	
+{
+	
 	var consulta = "accion=cargarPeriodosFacturacion";
+
+	var campos = [
+		'id',
+		'periodo'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [
+		{
+			campo: 'periodo', dir: 'DESC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
+
 	return consulta;	
 }
 
@@ -852,23 +1300,15 @@ function mostrarCargarPeriodosFacturacion()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-					document.getElementById("fac_periodoFac").innerHTML = "";
-				}
+			{
+				var datos = res.datos;
 				
 				if (datos != "")
 				{					
@@ -915,9 +1355,26 @@ function cargarFacturasProvisionFondo()
 }
 
 function consultaCargarFacturasProvisionFondo()
-{	
+{
+	
 	var consulta = "accion=cargarFacturasProvisionFondo";
-	return consulta;	
+
+	var campos = [
+		'id',
+		'tipoProvision'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [
+		{
+			campo: 'tipoProvision', dir: 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
+
+	return consulta;
+
 }
 
 
@@ -927,23 +1384,15 @@ function mostrarCargarFacturasProvisionFondo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-					document.getElementById("fac_provFondos").innerHTML = "";
-				}
+			{
+				var datos = res.datos;
 				
 				if (datos != "")
 				{					
@@ -1029,12 +1478,25 @@ function gestionMostrarDatosCD()
 
 function cargarObservacionesClientes()
 {
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 							
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarObservacionesClientes;
-		peticionUnica1.open("POST","ajax/cargarObservacionesClientes.php",false);
+
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/cargarObservacionesClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarObservacionesClientes.php",false);
+		}
+		
+		//peticionUnica1.open("POST","ajax/cargarObservacionesClientes.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarObservacionesClientes();
 		peticionUnica1.send(query_string);						
@@ -1043,35 +1505,39 @@ function cargarObservacionesClientes()
 
 function consultaCargarObservacionesClientes()
 {	
-	var consulta = "accion=cargarObservacionesClientes";	
-	consulta += "&idCliente="+document.getElementById("cliente_codigo").value;
+
+	var consulta = "accion=cargarObservacionesClientes";
 	
-	var URLactual = window.location;
-	/*
-	var direccion  = URLactual.pathname.substr(URLactual.pathname.lastIndexOf('/'));
+	var campos = [
+		'id',
+		'fecha',
+		'nombreCompleto',
+		'asunto',
+		'observacion'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [
+		'tabla2'		
+	];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {
+    	idCliente: document.getElementById("cliente_codigo").value
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
 	
-	if (direccion.includes("/clientesClayma.php"))
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}*/
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
+	var order = [
+		{
+			campo: 'id', dir:  'DESC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
 	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
-	
-	
-	return consulta;	
+	return consulta;
+
 }
 
 function mostrarCargarObservacionesClientes()
@@ -1080,14 +1546,15 @@ function mostrarCargarObservacionesClientes()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+			{
+				var datos = res.datos;
 				
 				var contenido="";
 				var contador = 0;
@@ -1138,12 +1605,25 @@ function mostrarCargarObservacionesClientes()
 
 function cargarClientesContactos()
 {
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarClientesContactos;
-		peticionUnica1.open("POST","ajax/cargarClientesContactos.php",false);
+		
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesContactosClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesContactos.php",false);
+		}
+		
+		//peticionUnica1.open("POST","ajax/cargarClientesContactos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarClientesContactos();
 		peticionUnica1.send(query_string);						
@@ -1153,35 +1633,45 @@ function cargarClientesContactos()
 
 function consultaCargarClientesContactos()
 {	
-	var consulta = "accion=cargarClientesContactos";	
-	consulta += "&idCliente="+document.getElementById("cliente_codigo").value;	
+	var consulta = "accion=cargarClientesContactos";
 	
-	/*var URLactual = window.location;
+	var campos = [
+		'id',
+		'idSexo',
+		'nombre',
+		'apellidos',
+		'departamento',
+		'cargo',
+		'telefono',
+		'movil',
+		'email',
+		'comentario'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [
+		//'tabla2'		
+	];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {
+    	idCliente: document.getElementById("cliente_codigo").value
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
 	
-	var direccion  = URLactual.pathname.substr(URLactual.pathname.lastIndexOf('/'));
-	
-	if (direccion.includes("/clientesClayma.php"))
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}*/
-	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
+	var order = [
+		{
+			campo: 'id', dir:  'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
 	
 	return consulta;
+
+
+	
 }
 
 function mostrarCargarClientesContactos()
@@ -1190,14 +1680,15 @@ function mostrarCargarClientesContactos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
 				var contenido="";
 				var contador = 0;
@@ -1319,12 +1810,23 @@ function mostrarCargarClientesContactos()
 
 function modificarContacto(idRegistroContacto)			
 {
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 							
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarModificarContacto;
-		peticionUnica1.open("POST","ajax/modificarClienteContacto.php",false);
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/modificarClienteContactoClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/modificarClienteContacto.php",false);
+		}		
+		//peticionUnica1.open("POST","ajax/modificarClienteContacto.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaModificarContacto(idRegistroContacto);
 		peticionUnica1.send(query_string);
@@ -1332,35 +1834,29 @@ function modificarContacto(idRegistroContacto)
 }
 
 function consultaModificarContacto(idRegistroContacto)
-{	
-	var consulta = "accion=modificarClienteContacto";	
+{
+	var consulta = "accion=modificarClienteContacto";
 	
-	consulta +="&id=" + idRegistroContacto;
-	consulta +="&sexo=" + document.getElementById(idRegistroContacto+"_contactoSexo").value;	
-	consulta +="&nombre=" + document.getElementById(idRegistroContacto+"_contactoNombre").value;	
-	consulta +="&apellidos=" + document.getElementById(idRegistroContacto+"_contactoApellidos").value;	
-	consulta +="&departamento=" + document.getElementById(idRegistroContacto+"_contactoDepartamento").value;	
-	consulta +="&cargo=" +document.getElementById(idRegistroContacto+"_contactoCargo").value;	
-	consulta +="&telefono=" +document.getElementById(idRegistroContacto+"_contactoTelefono").value ;	
-	consulta +="&movil=" +document.getElementById(idRegistroContacto+"_contactoMovil").value;	
-	consulta +="&email=" +document.getElementById(idRegistroContacto+"_contactoEmail").value;	
-	consulta +="&comentario=" +document.getElementById(idRegistroContacto+"_contactoComentario").value;	
+	var datos = {		
+		idSexo: document.getElementById(idRegistroContacto+"_contactoSexo").value,
+		nombre: document.getElementById(idRegistroContacto+"_contactoNombre").value,
+		apellidos: document.getElementById(idRegistroContacto+"_contactoApellidos").value,
+		departamento: document.getElementById(idRegistroContacto+"_contactoDepartamento").value,
+		cargo: document.getElementById(idRegistroContacto+"_contactoCargo").value,
+		telefono: document.getElementById(idRegistroContacto+"_contactoTelefono").value,
+		movil: document.getElementById(idRegistroContacto+"_contactoMovil").value,
+		email: document.getElementById(idRegistroContacto+"_contactoEmail").value,
+		comentario: document.getElementById(idRegistroContacto+"_contactoComentario").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {    	
+		id: idRegistroContacto
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	return consulta;	
 	
-	
-	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
-	
-	return consulta;
 }
 
 
@@ -1370,13 +1866,15 @@ function mostrarModificarContacto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);				
+				alert("Contacto Modificado");				
 				//cargarListadoPFpendientes();				
 			}				
 		}
@@ -1388,13 +1886,13 @@ function mostrarModificarContacto()
 function eliminarContacto(idRegistroContacto)			
 { 
 
-	if (confirm('¿Eliminar Contacto?')) 
+	if (confirm('¿Eliminar Contacto?'))	
 	{
 		peticionUnica1=crearComunicacion(peticionUnica1);
 							
 		if(peticionUnica1)
 		{							
-			peticionUnica1.onreadystatechange = mostrarEliminarContacto;
+			peticionUnica1.onreadystatechange = mostrarEliminarContacto;			
 			peticionUnica1.open("POST","ajax/eliminarContactoCliente.php",false);
 			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 			var query_string = consultaEliminarContacto(idRegistroContacto);
@@ -1404,22 +1902,15 @@ function eliminarContacto(idRegistroContacto)
 }
 
 function consultaEliminarContacto(idRegistroContacto)
-{	
-	var consulta = "accion=eliminarContactoCliente";	
-	
-	consulta +="&id=" + idRegistroContacto;
-	consulta +="&sexo=" + document.getElementById(idRegistroContacto+"_contactoSexo").value;	
-	consulta +="&nombre=" + document.getElementById(idRegistroContacto+"_contactoNombre").value;	
-	consulta +="&apellidos=" + document.getElementById(idRegistroContacto+"_contactoApellidos").value;	
-	consulta +="&departamento=" + document.getElementById(idRegistroContacto+"_contactoDepartamento").value;	
-	consulta +="&cargo=" +document.getElementById(idRegistroContacto+"_contactoCargo").value;	
-	consulta +="&telefono=" +document.getElementById(idRegistroContacto+"_contactoTelefono").value ;	
-	consulta +="&movil=" +document.getElementById(idRegistroContacto+"_contactoMovil").value;	
-	consulta +="&email=" +document.getElementById(idRegistroContacto+"_contactoEmail").value;	
-	consulta +="&comentario=" +document.getElementById(idRegistroContacto+"_contactoComentario").value;	
+{
+	var consulta = "accion=eliminarContactoCliente";
 
-	consulta +="&idCliente=" +document.getElementById("cliente_codigo").value;
-	
+	var filtros = {
+    	id: idRegistroContacto
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));	
+
 	let params2 = new URLSearchParams(window.location.search);
 	var parametroClayma2 = params2.get("clayma");
 	
@@ -1431,7 +1922,9 @@ function consultaEliminarContacto(idRegistroContacto)
 	{
 		consulta += "&clayma=false";
 	}
-	
+
+
+
 	return consulta;
 }
 
@@ -1442,13 +1935,14 @@ function mostrarEliminarContacto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				//alert(peticionUnica1.responseText);				
+			{		
 				cargarClientesContactos();
 			}				
 		}
@@ -1458,118 +1952,94 @@ function mostrarEliminarContacto()
 
 function modificarCliente()			
 {
-	peticionUnica1=crearComunicacion(peticionUnica1);
-							
-	if(peticionUnica1)
-	{							
-		peticionUnica1.onreadystatechange = mostrarModificarCliente;
-		peticionUnica1.open("POST","ajax/modificarCliente.php",false);
-		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaModificarCliente();
-		peticionUnica1.send(query_string);
+	if (document.getElementById("cliente_codigo").value != document.getElementById("cliente_codigoSaldo").value && document.getElementById("cliente_correoDiario").checked && document.getElementById("fac_periodoFac").value == 1 )
+	{
+		alert("No se puede poner en 'periodo de facturacion' el valor 'especial' en un subcliente"); //si se quita esto, se crea facturas mensuales con subclientes, y esto estaría mal. Las facturas siempre se crea con clientes, nunca con subclientes
+	}
+	else
+	{
+
+		let params2 = new URLSearchParams(window.location.search);
+		var parametroClayma2 = params2.get("clayma");	
+
+		peticionUnica1=crearComunicacion(peticionUnica1);
+								
+		if(peticionUnica1)
+		{							
+			peticionUnica1.onreadystatechange = mostrarModificarCliente;
+			if (parametroClayma2=="1")
+			{
+				peticionUnica1.open("POST","ajax/modificarClienteClayma.php",false);
+			}
+			else
+			{
+				peticionUnica1.open("POST","ajax/modificarCliente.php",false);
+			}
+			
+			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+			var query_string = consultaModificarCliente();
+			peticionUnica1.send(query_string);
+		}
 	}
 }
 
 function consultaModificarCliente()
 {	
-	var consulta = "accion=modificarCliente";	
-	
-	consulta +="&codigoCliente=" + document.getElementById("cliente_codigo").value;	
-	
-	//datos genericos (codigo, nif, nombre de mpresa, nombre de franqueo --> NO SE PUEDE CAMBIAR)
-	consulta +="&direccion=" + document.getElementById("cliente_direccion").value;	
-	consulta +="&localidad=" + document.getElementById("cliente_localidad").value;	
-	consulta +="&provincia=" + document.getElementById("cliente_provincia").value;	
-	consulta +="&cp=" + document.getElementById("cliente_cp").value;	
-	consulta +="&pais=" + document.getElementById("cliente_pais").value;
-	consulta +="&codigoPais=" + document.getElementById("cliente_codigoPais").value;
+	var consulta = "accion=modificarCliente";
 
-	consulta +="&comercial=" +document.getElementById("comercial").value ;	
-	
-	//consulta +="&diasApagar=" + document.getElementById("diasApagar").value;	
-	
-	var elCodigoSidi = document.getElementById("cliente_codigoSIDI").value;
-	if (elCodigoSidi == "")
-	{
-		elCodigoSidi = "NULL";
-	}
-	consulta += "&codigoSIDI=" + elCodigoSidi;
-	
-	
-	consulta +="&diasApagar=1";
-	
-	consulta +="&formaPago=" + document.getElementById("formaPago").value;	
-	consulta +="&email=" + document.getElementById("email").value;
-	
-	
-	consulta +="&numCuenta=" + document.getElementById("numCuenta").value;
-	//consulta +="&numCuenta=" +  document.getElementById("numCuenta2").value + document.getElementById("numCuenta").value;
-	
-	consulta +="&nuestraCuenta=" +  document.getElementById("nuestraCuenta").value;
-	
-	
-	consulta +="&correoDiario=" + document.getElementById("cliente_correoDiario").checked;
-	consulta +="&activo=" + document.getElementById("cliente_activo").checked;
-	consulta +="&domiciliado=" + document.getElementById("cliente_domiciliado").checked;
-	consulta +="&sinIva=" + document.getElementById("cliente_sinIva").checked;
-	consulta +="&retener=" + document.getElementById("cliente_retener").checked;
-	consulta +="&preFactura=" + document.getElementById("cliente_preFactura").checked;
-	consulta +="&noAplicarPF=" + document.getElementById("cliente_sinAplicarPF").checked;
-	consulta +="&retencion=" + document.getElementById("cliente_conRetencion").checked;
+	var datos = {			
+		direccion: document.getElementById("cliente_direccion").value,
+		localidad: document.getElementById("cliente_localidad").value,
+		provincia: document.getElementById("cliente_provincia").value,
+		codigo_postal: document.getElementById("cliente_cp").value,
+		pais: document.getElementById("cliente_pais").value,
+		codigoPais: document.getElementById("cliente_codigoPais").value,
+		idComercial: document.getElementById("comercial").value == '' || document.getElementById("comercial").value == null ? 0 : document.getElementById("comercial").value,
+		codigoSidi: document.getElementById("cliente_codigoSIDI").value,
+		idDiasDePago: 1,
+		idFormaPago:  document.getElementById("formaPago").value,
+		email: document.getElementById("email").value,
+		numCuentaBanco: document.getElementById("numCuenta").value,	
+		nuestraCuenta: document.getElementById("nuestraCuenta").value,
+		correoDiario: document.getElementById("cliente_correoDiario").checked ? 1 : 0,
+		activo: document.getElementById("cliente_activo").checked ? 1 : 0,
+		domiciliada: document.getElementById("cliente_domiciliado").checked ? 1 : 0,
+		sinIva: document.getElementById("cliente_sinIva").checked ? 1 : 0,
+		retener: document.getElementById("cliente_retener").checked ? 1 : 0,
+		prefactura: document.getElementById("cliente_preFactura").checked ? 1 : 0,
+		noAplicarPF: document.getElementById("cliente_sinAplicarPF").checked ? 1 : 0,
+		retencion: document.getElementById("cliente_conRetencion").checked ? 1 : 0,
+		//datos de facturacion
+		fac_cuotaRecogida: document.getElementById("fac_cuotaRecogida").value == "" ? 0 : document.getElementById("fac_cuotaRecogida").value,
+		fac_idPeriodo: document.getElementById("fac_periodoFac").value == "" ? 0 : document.getElementById("fac_periodoFac").value,
+		fac_porCientoNoBonificable: document.getElementById("fac_ProdNoBon").value == "" ? 0 : document.getElementById("fac_ProdNoBon").value,
+		fac_otrosConceptosFijos: document.getElementById("fac_otrosConceptos").value,
+		fac_importeFijoOtrosConcepto: document.getElementById("fac_importeOtrosConceptos").value == "" ? 0 : document.getElementById("fac_importeOtrosConceptos").value,
+		fac_idProvisionFondos: document.getElementById("fac_provFondos").value == "" ? 0 : document.getElementById("fac_provFondos").value,
+		fac_cobroUnitarioEnvio: document.getElementById("fac_cobroUnitarioEnvio").value == "" ? 0 : document.getElementById("fac_cobroUnitarioEnvio").value,
+		fac_pfFijaImporte: document.getElementById("fac_pfFijaImporte").value == "" ? 0 : document.getElementById("fac_pfFijaImporte").value,
 
+		//direccion de envio
+		envio_att: document.getElementById("envio_Att").value,
+		envio_nombre: document.getElementById("envio_Nombre").value,
+		envio_domicilio: document.getElementById("envio_Direccion").value,
+		envio_cp: document.getElementById("envio_cp").value,
+		envio_poblacion: document.getElementById("envio_poblacion").value,
+		envio_provincia: document.getElementById("envio_provincia").value,
+		envio_pais: document.getElementById("envio_pais").value,		
+		
+		pedidoCliente: document.getElementById("cliente_pedido").value,
+		vencimiento: document.getElementById("vencimiento").value	
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
-	
-	//datos de facturacion
-	consulta +="&cuotaRecogida=" + document.getElementById("fac_cuotaRecogida").value;	
-	consulta +="&periodo=" + document.getElementById("fac_periodoFac").value;	
-	consulta +="&prodNoBon=" + document.getElementById("fac_ProdNoBon").value;	
-	consulta +="&otrosConceptos=" + document.getElementById("fac_otrosConceptos").value;	
-	consulta +="&importeOtrosConceptos=" +document.getElementById("fac_importeOtrosConceptos").value ;	
-	consulta +="&provFondos=" + document.getElementById("fac_provFondos").value;	
-	consulta +="&pfFijaImporte=" + document.getElementById("fac_pfFijaImporte").value;
-	consulta +="&cobroUnitarioEnvio=" + document.getElementById("fac_cobroUnitarioEnvio").value;	
-	
-	
-	//direccion de envio	
-	consulta +="&envio_Att=" + document.getElementById("envio_Att").value;	
-	consulta +="&envio_Nombre=" + document.getElementById("envio_Nombre").value;	
-	consulta +="&envio_Direccion=" + document.getElementById("envio_Direccion").value;	
-	consulta +="&envio_cp=" + document.getElementById("envio_cp").value;	
-	consulta +="&envio_poblacion=" +document.getElementById("envio_poblacion").value ;	
-	consulta +="&envio_provincia=" + document.getElementById("envio_provincia").value;	
-	consulta +="&envio_pais=" + document.getElementById("envio_pais").value;	
-	
-	/*var URLactual = window.location;
-	
-	var direccion  = URLactual.pathname.substr(URLactual.pathname.lastIndexOf('/'));	
-	
-	
-	if (direccion.includes("/clientesClayma.php"))
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}*/
-	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
-	
-	consulta +="&pedidoCliente=" + document.getElementById("cliente_pedido").value;
-	consulta += "&vencimiento=" + document.getElementById("vencimiento").value;
-	
-	
-	return consulta;
+
+	var filtros = {
+    	codigo: document.getElementById("cliente_codigo").value
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	return consulta;	
 }
 
 
@@ -1579,14 +2049,15 @@ function mostrarModificarCliente()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);				
-				//cargarListadoPFpendientes();				
+				alert("Cliente Modificado");								
 			}
 				
 		}
@@ -1595,12 +2066,24 @@ function mostrarModificarCliente()
 
 function insertarContactoCliente()
 {
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 							
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarContactoCliente;
-		peticionUnica1.open("POST","ajax/insertarContactoCliente.php",false);
+		
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/insertarContactoClienteClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/insertarContactoCliente.php",false);
+		}		
+		//peticionUnica1.open("POST","ajax/insertarContactoCliente.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarContactoCliente();
 		peticionUnica1.send(query_string);						
@@ -1609,43 +2092,23 @@ function insertarContactoCliente()
 
 function consultaInsertarContactoCliente()
 {	
+
 	var consulta = "accion=insertarContactoCliente";	
-	consulta += "&idCliente="+document.getElementById("cliente_codigo").value;
-	consulta += "&idSexo="+document.getElementById("contSexo").value;
-	consulta += "&nombre="+document.getElementById("contNombre").value;
-	consulta += "&apellidos="+document.getElementById("contApellidos").value;
-	consulta += "&departamento="+document.getElementById("contDepartamento").value;
-	consulta += "&cargo="+document.getElementById("contCargo").value;
-	consulta += "&telefono="+document.getElementById("contTelefono").value;
-	consulta += "&movil="+document.getElementById("contMovil").value;
-	consulta += "&email="+document.getElementById("contEmail").value;
-	consulta += "&comentario="+document.getElementById("contComentario").value;
-	
-	/*var URLactual = window.location;
-	
-	var direccion  = URLactual.pathname.substr(URLactual.pathname.lastIndexOf('/'));
-	
-	if (direccion.includes("/clientesClayma.php"))
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}*/
-	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
-	
+
+	var datos = {
+		idCliente: document.getElementById("cliente_codigo").value,
+		idSexo: document.getElementById("contSexo").value,
+		nombre: document.getElementById("contNombre").value,
+		apellidos: document.getElementById("contApellidos").value,
+		departamento: document.getElementById("contDepartamento").value,
+		cargo: document.getElementById("contCargo").value,
+		telefono: document.getElementById("contTelefono").value,
+		movil: document.getElementById("contMovil").value,
+		email: document.getElementById("contEmail").value,
+		comentario: document.getElementById("contComentario").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
 	return consulta;	
 }
 
@@ -1655,12 +2118,14 @@ function mostrarInsertarContactoCliente()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
+			{			
 				cargarClientesContactos();
 				
 				document.getElementById("contSexo").value= "";
@@ -1681,12 +2146,25 @@ function mostrarInsertarContactoCliente()
 
 function insertarObservacionCliente()
 {
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 							
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarObservacionCliente;
-		peticionUnica1.open("POST","ajax/insertarObservacionCliente.php",false);
+		
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/insertarObservacionClienteClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/insertarObservacionCliente.php",false);
+		}
+
+		//peticionUnica1.open("POST","ajax/insertarObservacionCliente.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarObservacionCliente();
 		peticionUnica1.send(query_string);						
@@ -1694,38 +2172,17 @@ function insertarObservacionCliente()
 }
 
 function consultaInsertarObservacionCliente()
-{	
+{
 	var consulta = "accion=insertarObservacionCliente";	
-	consulta += "&idCliente="+document.getElementById("cliente_codigo").value;
-	consulta += "&asunto="+document.getElementById("obs_asunto").value;
-	consulta += "&texto="+document.getElementById("obs_texto").value;
-	
-	/*var URLactual = window.location;
-	
-	var direccion  = URLactual.pathname.substr(URLactual.pathname.lastIndexOf('/'));
-	
-	if (direccion.includes("/clientesClayma.php"))
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}*/
-	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
-	
-	return consulta;	
+
+	var datos = {
+		idCliente: document.getElementById("cliente_codigo").value,
+		asunto: document.getElementById("obs_asunto").value,
+		observacion: document.getElementById("obs_texto").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	return consulta;		
 }
 
 function mostrarInsertarObservacionCliente()
@@ -1734,12 +2191,14 @@ function mostrarInsertarObservacionCliente()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
+			{		
 				cargarObservacionesClientes();
 				document.getElementById("obs_asunto").value = "";
 				document.getElementById("obs_texto").value = "";
@@ -2235,12 +2694,23 @@ function ocultarObservacionesCliente()//js_admClientes
 
 function cargarDireccionRutas()
 {
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarDireccionRutas;
-		peticionUnica1.open("POST","ajax/cargarClientesDirecRutas.php",false);
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesDirecRutasClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesDirecRutas.php",false);
+		}
+		//peticionUnica1.open("POST","ajax/cargarClientesDirecRutas.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarDireccionRutas();
 		peticionUnica1.send(query_string);						
@@ -2250,24 +2720,39 @@ function cargarDireccionRutas()
 
 function consultaCargarDireccionRutas()
 {	
-	var consulta = "accion=cargarClientesDireccionRutas";	
-	consulta += "&idCliente="+document.getElementById("cliente_codigo").value;	
+	var consulta = "accion=cargarClientesDireccionRutas";
+
+	var campos = [
+		'id',
+		'att',
+		'nombre',
+		'direccion',
+		'cp',
+		'poblacion',
+		'provincia',
+		'pais',
+		'activo'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
 	
+	var filtros = {
+    	idCliente: document.getElementById("cliente_codigo").value
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
 	
-	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
+	var order = [
+		{
+			campo: 'id', dir:  'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
 	
 	return consulta;
+
+	
+	
 }
 
 function mostrarCargarDireccionRutas()
@@ -2276,14 +2761,15 @@ function mostrarCargarDireccionRutas()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
 				var contenido="";
 				var contador = 0;
@@ -2387,12 +2873,25 @@ function mostrarCargarDireccionRutas()
 
 function insertarDireccionRutaCliente()
 {
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 							
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarDireccionRutaCliente;
-		peticionUnica1.open("POST","ajax/insertarDirecRutasCliente.php",false);
+
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/insertarDirecRutasClienteClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/insertarDirecRutasCliente.php",false);
+		}
+
+		//peticionUnica1.open("POST","ajax/insertarDirecRutasCliente.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarDireccionRutaCliente();
 		peticionUnica1.send(query_string);						
@@ -2402,32 +2901,22 @@ function insertarDireccionRutaCliente()
 function consultaInsertarDireccionRutaCliente()
 {	
 	var consulta = "accion=insertarClienteDireccionesRutas";	
-	consulta += "&idCliente="+document.getElementById("cliente_codigo").value;
-	consulta += "&att="+document.getElementById("dirRutAtt").value;
-	consulta += "&nombre="+document.getElementById("dirRutNombre").value;
-	consulta += "&direccion="+document.getElementById("dirRutDireccion").value;
-	consulta += "&cp="+document.getElementById("dirRutCP").value;
-	consulta += "&poblacion="+document.getElementById("dirRutPoblacion").value;
-	consulta += "&provincia="+document.getElementById("dirRutProvincia").value;
-	consulta += "&pais="+document.getElementById("dirRutPais").value;
-	//consulta += "&activo="+document.getElementById("dirRutActivar").checked;
-	
-	
-	
-	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
-	
-	return consulta;	
+
+	var datos = {
+		idCliente: document.getElementById("cliente_codigo").value,
+		att: document.getElementById("dirRutAtt").value,
+		nombre: document.getElementById("dirRutNombre").value,
+		direccion: document.getElementById("dirRutDireccion").value,
+		cp: document.getElementById("dirRutCP").value,
+		poblacion: document.getElementById("dirRutPoblacion").value,
+		provincia: document.getElementById("dirRutProvincia").value,
+		pais: document.getElementById("dirRutPais").value,
+		activo: 0
+		//activo: document.getElementById("dirRutActivar").checked ? 1 : 0		
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	return consulta;
 }
 
 function mostrarInsertarDireccionRutaCliente()
@@ -2436,12 +2925,14 @@ function mostrarInsertarDireccionRutaCliente()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
+			{		
 				cargarClientesContactos();
 				
 				document.getElementById("contSexo").value= "";
@@ -2466,12 +2957,24 @@ function mostrarInsertarDireccionRutaCliente()
 
 function modificarDireccionRuta(idRegistroRutaDireccion)		 	
 {
+	let params2 = new URLSearchParams(window.location.search);
+	var parametroClayma2 = params2.get("clayma");
+
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 							
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarModificarDireccionRuta;
-		peticionUnica1.open("POST","ajax/modificarClienteDireccionRutas.php",false);
+		if (parametroClayma2=="1")
+		{
+			peticionUnica1.open("POST","ajax/modificarClienteDireccionRutasClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/modificarClienteDireccionRutas.php",false);
+		}		
+		//peticionUnica1.open("POST","ajax/modificarClienteDireccionRutas.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaModificarDireccionRuta(idRegistroRutaDireccion);
 		peticionUnica1.send(query_string);
@@ -2479,35 +2982,43 @@ function modificarDireccionRuta(idRegistroRutaDireccion)
 }
 
 function consultaModificarDireccionRuta(idRegistroRutaDireccion)
-{	
-	var consulta = "accion=modificarClienteDireccionRutas";	
+{
+	var consulta = "accion=modificarClienteDireccionRutas";
 	
-	consulta +="&id=" + idRegistroRutaDireccion;
-	consulta +="&att=" + document.getElementById(idRegistroRutaDireccion+"_dirRutaAtt").value;	
-	consulta +="&nombre=" + document.getElementById(idRegistroRutaDireccion+"_dirRutaNombre").value;	
-	consulta +="&direccion=" + document.getElementById(idRegistroRutaDireccion+"_dirRutaDireccion").value;	
-	consulta +="&cp=" + document.getElementById(idRegistroRutaDireccion+"_dirRutaCp").value;	
-	consulta +="&poblacion=" +document.getElementById(idRegistroRutaDireccion+"_dirRutaPoblacion").value;	
-	consulta +="&provincia=" +document.getElementById(idRegistroRutaDireccion+"_dirRutaProvincia").value ;	
-	consulta +="&pais=" +document.getElementById(idRegistroRutaDireccion+"_dirRutaPais").value;	
-	consulta +="&activo=" +document.getElementById(idRegistroRutaDireccion+"_dirRutaActivo").checked;	
-	consulta +="&idCliente=" + document.getElementById("cliente_codigo").value;	 
+	var datos = {		
+		att: document.getElementById(idRegistroRutaDireccion+"_dirRutaAtt").value,
+		nombre: document.getElementById(idRegistroRutaDireccion+"_dirRutaNombre").value,
+		direccion: document.getElementById(idRegistroRutaDireccion+"_dirRutaDireccion").value,
+		cp: document.getElementById(idRegistroRutaDireccion+"_dirRutaCp").value,
+		poblacion: document.getElementById(idRegistroRutaDireccion+"_dirRutaPoblacion").value,
+		provincia: document.getElementById(idRegistroRutaDireccion+"_dirRutaProvincia").value,
+		pais: document.getElementById(idRegistroRutaDireccion+"_dirRutaPais").value,
+		activo: document.getElementById(idRegistroRutaDireccion+"_dirRutaActivo").checked ? 1 : 0,
+		
 
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	idCliente: document.getElementById("cliente_codigo").value,
+		id: idRegistroRutaDireccion
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));		
 	
-	
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
-	
+	var filtrosOperadores = [
+		{
+			campo1: 'id',
+			operador: '!=',
+			valor: idRegistroRutaDireccion
+		}
+	];
+
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+
 	return consulta;
+
+
 }
 
 
@@ -2517,13 +3028,15 @@ function mostrarModificarDireccionRuta()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);	
+				alert("Direccion Ruta Modificado");	
 				cargarDireccionRutas();				
 			}				
 		}
@@ -2537,12 +3050,23 @@ function eliminarDireccionRuta(idRegistroRutaDireccion)
 
 	if (confirm('¿Eliminar Direccion de Ruta?')) 
 	{
+		let params2 = new URLSearchParams(window.location.search);
+		var parametroClayma2 = params2.get("clayma");	
+
 		peticionUnica1=crearComunicacion(peticionUnica1);
 							
 		if(peticionUnica1)
 		{							
 			peticionUnica1.onreadystatechange = mostrarEliminarDireccionRuta;
-			peticionUnica1.open("POST","ajax/eliminarClienteDireccionRuta.php",false);
+			if (parametroClayma2=="1")
+			{
+				peticionUnica1.open("POST","ajax/eliminarClienteDireccionRutaClayma.php",false);
+			}
+			else
+			{
+				peticionUnica1.open("POST","ajax/eliminarClienteDireccionRuta.php",false);
+			}			
+			//peticionUnica1.open("POST","ajax/eliminarClienteDireccionRuta.php",false);
 			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 			var query_string = consultaEliminarDireccionRuta(idRegistroRutaDireccion);
 			peticionUnica1.send(query_string);
@@ -2552,37 +3076,17 @@ function eliminarDireccionRuta(idRegistroRutaDireccion)
 }
 
 function consultaEliminarDireccionRuta(idRegistroRutaDireccion)
-{	
-	var consulta = "accion=eliminarRutaDireccionCliente";	
+{
 	
-	
-	consulta +="&id=" + idRegistroRutaDireccion;
-	consulta +="&att=" + document.getElementById(idRegistroRutaDireccion+"_dirRutaAtt").value;	
-	consulta +="&nombre=" + document.getElementById(idRegistroRutaDireccion+"_dirRutaNombre").value;	
-	consulta +="&direccion=" + document.getElementById(idRegistroRutaDireccion+"_dirRutaDireccion").value;	
-	consulta +="&cp=" + document.getElementById(idRegistroRutaDireccion+"_dirRutaCp").value;	
-	consulta +="&poblacion=" +document.getElementById(idRegistroRutaDireccion+"_dirRutaPoblacion").value;	
-	consulta +="&provincia=" +document.getElementById(idRegistroRutaDireccion+"_dirRutaProvincia").value ;	
-	consulta +="&pais=" +document.getElementById(idRegistroRutaDireccion+"_dirRutaPais").value;	
+	var consulta = "accion=eliminarRutaDireccionCliente";
 
-	consulta +="&idCliente=" +document.getElementById("cliente_codigo").value;	
+	var filtros = {
+    	id: idRegistroRutaDireccion
+	};
 
-	
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));	
 
-
-	let params2 = new URLSearchParams(window.location.search);
-	var parametroClayma2 = params2.get("clayma");
-	
-	if (parametroClayma2=="1")
-	{
-		consulta += "&clayma=true";
-	}
-	else
-	{
-		consulta += "&clayma=false";
-	}
-	
-	return consulta;
+	return consulta;	
 }
 
 
@@ -2592,15 +3096,156 @@ function mostrarEliminarDireccionRuta()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
+			}
+			else
+			{					
+				cargarDireccionRutas();
+			}				
+		}
+	}						
+}
+
+function cargarComerciales()				
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+							
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarComerciales;
+		peticionUnica1.open("POST","ajax/cargarComerciales.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarComerciales();
+		peticionUnica1.send(query_string);						
+	}
+}
+
+function consultaCargarComerciales()
+{
+	var consulta = "accion=cargarComerciales";
+
+	var campos = [
+		'id',
+		'nombre'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [
+		{
+			campo: 'nombre',dir: 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
+
+	return consulta;
+
+}
+
+
+function mostrarCargarComerciales()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
 			}
 			else
 			{
-				//alert(peticionUnica1.responseText);				
-				cargarDireccionRutas();
-			}				
+				var datos = res.datos;	
+				
+				if (datos != "")
+				{					
+					if (datos.length<=0)
+					{							
+					}
+					else
+					{
+						
+						var contenido = "";
+						var contador = 0;
+
+						while  (contador<datos.length)
+						{
+							contenido += ' <option value="'+datos[contador]["id"]+'">'+datos[contador]["nombre"]+'</option>';
+							contador++;
+						}
+							
+						document.getElementById("comercial").innerHTML = contenido;
+						
+					}
+				}
+				else
+				{
+					document.getElementById("comercial").innerHTML = "";
+				}
+			}
+			peticionUnica1 = null;
+		}
+	}						
+}
+
+function crearNuevoFormaDePago() 
+{	
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCrearNuevoFormaDePago;
+		peticionUnica1.open("POST","ajax/crearNuevaFormaDePago.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCrearNuevoFormaDePago();
+		peticionUnica1.send(query_string);
+	}	
+}
+
+function consultaCrearNuevoFormaDePago()
+{	
+
+	var consulta = "accion=crearFormaDePago";
+
+	var datos = {
+		concepto: document.getElementById("nuevaFormaDePago").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	return consulta;	
+}
+
+function mostrarCrearNuevoFormaDePago()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				/*document.getElementById("filaProcesoGuardados").style.visibility = "visible";
+				document.getElementById("filaProcesoGuardados").style.display = "table-row";				
+
+				document.getElementById("filaProcesoNuevo").style.visibility = "hidden";
+				document.getElementById("filaProcesoNuevo").style.display = "none";
+
+				document.getElementById("filaProcesoGuardados").colSpan = "7";*/
+				//alert(peticion26.responseText);
+				cargarFormasDePago();
+			}
+			peticionUnica1=null;
 		}
 	}						
 }
