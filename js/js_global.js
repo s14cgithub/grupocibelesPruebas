@@ -1767,6 +1767,7 @@ function gestionDeCargarClientesListado(destino) //js_prefactura
 }
 
 
+/*
 function insertarMovimientoPF(codigoCliente, fecha,formaPago,importe,presupuesto="", fechaCuadre="",informacionCuadre="", aPagarFacturaCibeles="", numFactura="",clayma=0) // js_provisionFondosPendiente				
 {
 	peticionUnica0=crearComunicacion(peticionUnica0);
@@ -1844,7 +1845,7 @@ function mostrarInsertarMovimientoPF()
 		}
 	}						
 }
-
+*/
 function modificarDatosPFenCliente(codigoCliente, fecha, importe, id=0) //js_provisionFondosPendiente				
 {
 	peticionUnica0=crearComunicacion(peticionUnica0);

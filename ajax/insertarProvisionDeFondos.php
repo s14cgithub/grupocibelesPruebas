@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="insertarPF")
+if(isset($_POST["accion"]) && $_POST["accion"]=="insertarPF")
 {
 	
 	session_start(); 
@@ -35,7 +35,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="insertarPF")
 		
 		if ($presupuesto=="correoDiario")
 		{
-			$contador="null";			
+			$contador=null;			
 			
 			/////////////////////////////////////
 			$campos = ['proximoPresupuestoManual'];
@@ -74,7 +74,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="insertarPF")
 				$presupuesto = "9".date("y")."0001";
 				
 			}
-			echo "Numero: ".$presupuesto."\n";
+			//echo "Numero: ".$presupuesto."\n";
 			/////////////////////////////////////
 		}
 		else 
@@ -91,7 +91,15 @@ if(isset($_POST["accion"])&$_POST["accion"]=="insertarPF")
 			//echo "entra2";
 			//echo json_encode($contadorFondos);
 			//$datos =  verContadorPFporPresupuesto($conexion,$presupuesto);
-			$contador = intval($contadorFondos["datos"][0]["contadorMax"]) + 1;
+			if (count($contadorFondos["datos"])>0)
+			{
+				$contador = intval($contadorFondos["datos"][0]["contadorMax"]) + 1;
+			}
+			else
+			{
+				$contador = 1;
+			}
+			
 		}
 
 		$datos2 = array(
@@ -108,13 +116,50 @@ if(isset($_POST["accion"])&$_POST["accion"]=="insertarPF")
 		$resultado = insertarProvisionFondo($conn,$bbddSql, $datos2);
 		echo json_encode($resultado);
 
-		//arreglar esto, 
-		// en presupuesto no se utiliza por que en presupuesto no aparece la opcion tipo 4, 
 		// ¡¡SI HAY VARIOS REGISTRO CON ESE NUMERO DE PRESUPUESTO, SOLO SE MODIFICA EL PRIMERO QUE ENCUENTRE!!
+		// en la pantalla de presupuestos no se utiliza por que en presupuestos no aparece la opcion tipo 4. POR LO TANTO NO PUEDE HABER MAS DE UN REGISTRO CON EL MISMO NUMERO DE PRESUPUESTO
+		
 		if ($tipo==4) 
-		{
-			$datosPresupuestoArreglo = mostrarProvisionDeFondos($conexion,$presupuesto);
-			modificarPFpendientes($conexion,$datosPresupuestoArreglo[0]["id"],4,null,"Arreglos",$importe);
+		{		
+			$campos3 = [
+				'id',
+				'importe',
+				'fechaCreacion'
+			];
+
+			$joins3 = array();
+			$filtros3 = array(
+				'presupuesto' => $presupuesto				
+			);
+
+			$filtrosOperadores3 = array();
+
+			$order3 = array();
+			$group3 = array();
+
+			$datosPresupuestoArreglo = cargarProvisionDeFondos($conn, $bbddSql, $campos3, $joins3, $filtros3, $filtrosOperadores3, $group3, $order3);
+
+
+
+			$datos4 = array(
+				'cobrada' => 4,
+				'fechaCobro' => NULL,
+				'formaPago' => 'Arreglos',
+				'importe' => $importe
+
+
+			);
+			$filtros4 = array(
+				"id" => $datosPresupuestoArreglo["datos"][0]["id"]
+
+			);
+			$filtrosOperadores4 = array();
+			modificarProvisionFondo($conn, $bbddSql, $datos4, $filtros4, $filtrosOperadores4);
+		
+			//modificarPFpendientes($datosBBDD,$idPF,$cobrada,$fecha,$formaPago,$importe)
+			//////////////////////////////////////////////////////////////
+			//$datosPresupuestoArreglo = mostrarProvisionDeFondos($conexion,$presupuesto);
+			//modificarPFpendientes($conexion,$datosPresupuestoArreglo[0]["id"],4,null,"Arreglos",$importe);
 		}
 
 		//////////////////////////////////////////

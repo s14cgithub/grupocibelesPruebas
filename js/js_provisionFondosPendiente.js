@@ -69,7 +69,7 @@ function cargarListadoPFpendientes() //js_provisionFondosPendiente
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarListadoPFpendientes;
-		peticionUnica1.open("POST","ajax/mostrarProvisionDeFondosPendientes.php",false);
+		peticionUnica1.open("POST","ajax/mostrarProvisionDeFondosTodos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarListadoPFpendientes();
 		peticionUnica1.send(query_string);
@@ -78,9 +78,59 @@ function cargarListadoPFpendientes() //js_provisionFondosPendiente
 
 function consultaCargarListadoPFpendientes()
 {	
-	var consulta = "accion=mostrarProvisionFondoPendiente";
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');
-	return consulta;	
+	var consulta = "accion=mostrarProvisionFondo";
+	
+	var campos = [
+		'contador',
+		'presupuesto',
+		'clayma',
+		'id',
+		'codigo',
+		'nombre_franqueo',
+		'fechaCreacion',
+		'tipoNombre',
+		'importe',
+		'formaPago',
+		'tipo'	,
+		'cobrada'	
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+var filtros = {
+    	cobrada: 1,
+		formaPago: ''
+	};	
+	
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+
+	var filtrosLike = [];
+	if (document.getElementById("buscarCampo").value != "fechaCreacion" && document.getElementById("buscarCampo").value != "fechaCobro" )
+	{
+		filtrosLike.push({
+			campo: document.getElementById("buscarCampo").value,
+			valor: document.getElementById("buscarTexto").value
+		});
+	}
+	
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+
+	var order = [
+		{
+			campo: document.getElementById("ordenBuscar").value,
+			dir: document.getElementById("ordenDesc").checked ? 'DESC' : 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	
+	laCondicion = consulta;
+
+	return consulta;
 }
 
 function mostrarCargarListadoPFpendientes()
@@ -89,14 +139,15 @@ function mostrarCargarListadoPFpendientes()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+			{
+				var datos = res.datos;				
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto  tablaCabeceraColor">';
@@ -144,11 +195,13 @@ function mostrarCargarListadoPFpendientes()
 					
 					if (datos[contador]["clayma"]=="1")
 					{
-						contenido += '<td><input id="'+datos[contador]["id"]+'_clayma" type="checkbox" value="'+datos[contador]["clayma"]+'" onclick="gestionarPFclayma('+datos[contador]["id"]+')" checked></input></td>';
+						//contenido += '<td><input id="'+datos[contador]["id"]+'_clayma" type="checkbox" value="'+datos[contador]["clayma"]+'" onclick="gestionarPFclayma('+datos[contador]["id"]+')" checked></input></td>';
+						contenido += '<td><input id="'+datos[contador]["id"]+'_clayma" type="checkbox" value="'+datos[contador]["clayma"]+'" onclick="return false;" checked></td>';
 					}
 					else
 					{
-						contenido += '<td><input id="'+datos[contador]["id"]+'_clayma" type="checkbox" value="'+datos[contador]["clayma"]+'" onchange="gestionarPFclayma('+datos[contador]["id"]+')" ></input></td>';
+						//contenido += '<td><input id="'+datos[contador]["id"]+'_clayma" type="checkbox" value="'+datos[contador]["clayma"]+'" onchange="gestionarPFclayma('+datos[contador]["id"]+')" ></input></td>';
+						contenido += '<td><input id="'+datos[contador]["id"]+'_clayma" type="checkbox" value="'+datos[contador]["clayma"]+'" onclick="return false;" ></input></td>';
 					}
 					
 					contenido += '<td id="'+datos[contador]["id"]+'_codCliente">'+datos[contador]["codigo"]+'</td>';
@@ -160,7 +213,7 @@ function mostrarCargarListadoPFpendientes()
 					
 					contenido += '<td  style="overflow:hidden; white-space: nowrap;">'+dia + "-" + mes+ "-" + anio+'</td>';
 					
-					contenido += '<td id="'+datos[contador]["id"]+'_tipo">'+datos[contador]["tipoTexto"]+'</td>';
+					contenido += '<td id="'+datos[contador]["id"]+'_tipo">'+datos[contador]["tipoNombre"]+'</td>';
 					//contenido += '<td id="'+datos[contador]["id"]+'_importe">'+datos[contador]["importe"]+'</td>';
 					contenido += '<td><input type="number" id="'+datos[contador]["id"]+'_importe" value="'+datos[contador]["importe"]+'" style="text-align: right;"></input></td>';
 					
@@ -204,37 +257,54 @@ function mostrarCargarListadoPFpendientes()
 	}						
 }
 
-function guardarPFmanual()	//js_provisionFondosPendiente
-{		
-	peticionUnica1=null;
-	peticionUnica1=crearComunicacion(peticionUnica1);
+function gestionarPFclayma(id)
+{
+	
+}
 
-	if(peticionUnica1)
-	{							
-		peticionUnica1.onreadystatechange = mostrarGuardarPFmanual;
-		peticionUnica1.open("POST","ajax/insertarProvisionDeFondos.php",false);
-		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaGuardarPFmanual();
-		peticionUnica1.send(query_string);
-	}	
+function guardarPFmanual()	//js_provisionFondosPendiente
+{	
+	if (document.getElementById("claymaModal").checked && document.getElementById("tipoModal").value != 3 )
+	{
+		alert("Con un cliente de Clayma, solo se puede elegir 'Descontar de Manipulados'");
+	}
+	else
+	{
+		peticionUnica1=null;
+		peticionUnica1=crearComunicacion(peticionUnica1);
+
+		if(peticionUnica1)
+		{							
+			peticionUnica1.onreadystatechange = mostrarGuardarPFmanual;
+			peticionUnica1.open("POST","ajax/insertarProvisionDeFondos.php",false);
+			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+			var query_string = consultaGuardarPFmanual();
+			peticionUnica1.send(query_string);
+		}	
+	}
+	
 }
 
 
 
 function consultaGuardarPFmanual()
 {	
-	var consulta = "accion=insertarPF";	
-	consulta +="&presupuesto=correoDiario";
+
+	var consulta = "accion=insertarPF";
+
+	var datos = {	
+		presupuesto: 'correoDiario',
+		importe: document.getElementById("importeModal").value,
+		tipo: document.getElementById("tipoModal").value,
+		clayma: document.getElementById("claymaModal").checked == true ? 1: 0,
+		concepto: document.getElementById("conceptoModal").value,
+		idCliente: document.getElementById("clientesModal").value,
+	}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
-	consulta +="&idCliente=" + document.getElementById("clientesModal").value;
+	return consulta;
 	
-	
-	consulta +="&importe="+document.getElementById("importeModal").value;
-	consulta +="&tipo="+document.getElementById("tipoModal").value;
-	consulta +="&clayma=" + document.getElementById("claymaModal").checked;
-	consulta +="&concepto=" + document.getElementById("conceptoModal").value;
-	
-	return consulta;	
 }
 
 function mostrarGuardarPFmanual()
@@ -243,18 +313,19 @@ function mostrarGuardarPFmanual()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="" || res.ok==false )
 			{
-				alert(peticionUnica1.responseText);				
-			}
+				alert(res.error);				
+			}			
 			else
-			{
-				alert(peticionUnica1.responseText);
+			{	
 				
 			  	document.getElementById("importeModal").value="";
 				document.getElementById("conceptoModal").value="";
 				
-				actualizarDatosPFmanuales();
+				//actualizarDatosPFmanuales();
 				
 				cargarListadoPFpendientes();
 				
@@ -284,7 +355,22 @@ function cargarTiposCobradas()	//js_provisionFondosPendiente
 
 function consultaCargarTiposCobradas()
 {	
-	var consulta = "accion=cargarTipoCobradas";	
+	var consulta = "accion=cargarTipoCobradas";
+
+	var campos = [
+		'id',
+		'cobrada'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [
+		{
+			campo: 'id', dir: 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));	
+
 	return consulta;	
 }
 
@@ -294,22 +380,15 @@ function mostrarCargarTiposCobradas()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);					
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+			{
+				var datos = res.datos;				
 				
 				if (datos != "")
 				{
@@ -490,26 +569,13 @@ function modificarPFpendiente(id) //js_provisonFondosPendiente
 		document.getElementById(id+"_formaPago").focus();		
 	}
 	else //"sí" esta seleccionado
-	{
-		var codigoCliente = document.getElementById(id+"_codCliente").innerHTML;
-		var fecha = document.getElementById(id+"_fechaCobrada").value;
-		var formaPago = document.getElementById(id+"_formaPago").value;
-		var importe = document.getElementById(id+"_importe").value;
-		var presupuesto = document.getElementById(id+"_presupuesto").innerHTML;
+	{		
 		
-		var clayma = 0;
-		
-		if (document.getElementById(id+"_clayma").checked=="true")
+		if (document.getElementById(id+"_modificar").value==1 ||document.getElementById(id+"_modificar").value==2)	 //tipo: 1:Fija; 2: Descontar Franqueo; 3: Descontar de Manipulado	
 		{
-			clayma=1;
-		}		
-		
-		
-		
-		if (document.getElementById(id+"_modificar").value==1 ||document.getElementById(id+"_modificar").value==2)	 //tipo iva: 1:Fija; 2: Descontar Franqueo; 3: Descontar de Manipulado	
-		{
-			insertarMovimientoPF(codigoCliente, fecha,formaPago,importe,presupuesto, "","", "", "",clayma)	//se crea un registro en movimiento de fondos. Esto estaba fuera del if. justo encima de este if		
-			modificarDatosPFenCliente(codigoCliente, fecha, importe, id);  //se modifica el saldo en el cliente
+			modificarSaldo(id);
+			//insertarMovimientoPF()	//se crea un registro en movimiento de fondos.		
+			//modificarDatosPFenCliente(codigoCliente, fecha, importe, id);  //se modifica el saldo en el cliente
 		}
 		if (document.getElementById(id+"_modificar").value==1)		
 		{		
@@ -521,32 +587,122 @@ function modificarPFpendiente(id) //js_provisonFondosPendiente
 	}
 }
 
+function modificarSaldo(id)		
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+							
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarModificarSaldo;
+		peticionUnica1.open("POST","ajax/modificarSaldo.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaModificarSaldo(id);
+		peticionUnica1.send(query_string);						
+	}
+}
+
+function consultaModificarSaldo(id)
+{	
+	var consulta = "accion=modificarSaldo";	
+	
+	var fecha = document.getElementById(id + "_fechaCobrada").value;
+
+	if (fecha=="" || fecha==null)
+	{
+		fecha = "";
+	}
+	else
+	{	
+		var temporal = fecha;
+
+		var anio = temporal.substr(0, temporal.indexOf('-'));
+		var mes = temporal.substr(temporal.indexOf('-')+1,temporal.length  - temporal.lastIndexOf('-') -1);
+		var dia = temporal.substr(temporal.lastIndexOf('-')+1);
+
+		fecha = dia + "-" + mes + "-" + anio;
+	}
+	var datos = {		
+		codigoCliente: document.getElementById(id+"_codCliente").innerHTML,	
+		fecha: fecha,	
+		formaPago: document.getElementById(id+"_formaPago").value,
+		importe: document.getElementById(id+"_importe").value,
+		clayma: document.getElementById(id+"_clayma").checked ? 1 : 0,
+		informacionCuadre: 'pantalla: provision de fondos pendientes',
+		presupuesto: document.getElementById(id+"_presupuesto").innerHTML
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));		
+	
+	return consulta;
+	
+}
+
+function mostrarModificarSaldo()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{				
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
 
 
 
 
-function guardarImporteEnClienteFac(id, idCliente, importe)
+
+function guardarImporteEnClienteFac(id)
 {	
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarGuardarImporteEnClienteFac;
-		peticionUnica1.open("POST","ajax/guardarImporteEnClienteFac.php",false);
+		if (document.getElementById(id + "_clayma").checked==true)
+		{
+			peticionUnica1.open("POST","ajax/modificarClienteClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/modificarCliente.php",false);
+		}		
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaGuardarImporteEnClienteFac(id, idCliente, importe);
+		var query_string = consultaGuardarImporteEnClienteFac(id);
 		peticionUnica1.send(query_string);
 	}
 }
 
-function consultaGuardarImporteEnClienteFac(id, idCliente, importe)
+function consultaGuardarImporteEnClienteFac(id)
 {	
-	var consulta = "accion=guardarImporteEnClienteFac";	
-	consulta += "&idCliente=" + idCliente;
-	consulta += "&importe=" + importe;	
-	consulta += "&clayma=" + document.getElementById(id+"_clayma").checked;	
+	var consulta = "accion=modificarCliente";	
+
+	var datos = {			
+		fac_pfFijaImporte: document.getElementById(id+"_importe").value == "" ? 0 : document.getElementById(id+"_importe").value,
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
+
+	var filtros = {
+    	codigo: document.getElementById(id+"_codCliente").innerHTML
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
+
 }
 
 function mostrarGuardarImporteEnClienteFac()
@@ -555,9 +711,11 @@ function mostrarGuardarImporteEnClienteFac()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
@@ -575,7 +733,7 @@ function modificarPFpendiente2(id)	//js_provisionFondosPendiente
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarModificarPFpendientes;
-		peticionUnica1.open("POST","ajax/modificarPFpendientes.php",false);
+		peticionUnica1.open("POST","ajax/modificarProvisionFondo.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaModificarPFpendientes(id);
 		peticionUnica1.send(query_string);						
@@ -583,15 +741,12 @@ function modificarPFpendiente2(id)	//js_provisionFondosPendiente
 }
 
 function consultaModificarPFpendientes(id)
-{	
-	var consulta = "accion=modificarPFpendientes";
-	
-	consulta +="&idPF=" + id;
-	consulta +="&cobrada=" + document.getElementById(id+"_cobrada").value;
-	
+{
+	var consulta = "accion=modificarProvisionFondo";
+	var fecha = "";
 	if (document.getElementById(id+"_fechaCobrada").value=="" || document.getElementById(id+"_fechaCobrada").value==null)
 	{
-		consulta+="&fecha=";
+		fecha = "";
 	}
 	else
 	{		
@@ -601,16 +756,27 @@ function consultaModificarPFpendientes(id)
 		var mes = temporal.substr(temporal.indexOf('-')+1,temporal.length  - temporal.lastIndexOf('-') -1);
 		var dia = temporal.substr(temporal.lastIndexOf('-')+1);
 
-		consulta+="&fecha=" + dia + "/" + mes + "/" + anio;
+		fecha =   dia + "/" + mes + "/" + anio;
 	}
 	
-	consulta +="&formaPago=" + document.getElementById(id+"_formaPago").value;
-	consulta +="&importe=" + document.getElementById(id+"_importe").value;
+	var datos = {		
+		cobrada: document.getElementById(id+"_cobrada").value,
+		fechaCobro: fecha == "" ? null  : fecha,
+		formaPago: document.getElementById(id+"_formaPago").value,
+		importe: document.getElementById(id+"_importe").value,
+		//presupuesto: document.getElementById(id+"_presupuesto").innerHTML.split("-")[0],
+		//clayma: document.getElementById(id+"_clayma").checked ? 1 : 0
+
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+    	id: id
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));		
 	
-	consulta +="&numPresupuesto=" + document.getElementById(id+"_presupuesto").innerHTML.split("-")[0];
-	consulta +="&clayma=" + document.getElementById(id+"_clayma").checked;
-	
-	return consulta;	
+	return consulta;
+
 }
 
 
@@ -620,9 +786,11 @@ function mostrarModificarPFpendientes()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{							
@@ -670,6 +838,103 @@ function cargarClientesPF()
 	{
 		cargarClientes('A','clientesModal');
 	}
+}
+
+
+
+function cargarListadoClientes()
+{	
+	
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarListadoClientes;
+		if (document.getElementById("claymaModal").checked==true)
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
+		
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarListadoClientes();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarListadoClientes()
+{	
+	var consulta = "accion=cargarClientes";
+	
+	var campos = [
+		'codigo',
+		'nombre_empresa'		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+    	activo: 1
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
+	var filtrosOperadores = [
+			{
+				campo1: 'codigo_saldo',
+				operador: '=',
+				campo2: 'codigo'
+			}
+		];
+
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	
+	var order = [
+    	{ campo: 'nombre_empresa', dir: 'ASC' }
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	return consulta;	
+}
+
+function mostrarCargarListadoClientes()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;	
+					
+				var contador=0;
+				var contenido="";						
+				
+				while  (contador<datos.length)
+				{
+					contenido += '<option value="'+datos[contador]["codigo"]+'">'+datos[contador]["nombre_empresa"]+'</option>';
+					contador++;
+				}
+					
+				document.getElementById("clientesModal").innerHTML = contenido;
+				idInputListado = '';
+										
+				
+			}						
+			
+			peticionUnica1=null;			
+		}
+	}						
 }
 
 

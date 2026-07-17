@@ -61,7 +61,7 @@ function buscarProvision()
 	
 }
 
-function cargarListadoPF(condicion="") //js_provisionFondos
+function cargarListadoPF() 
 {	
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
@@ -70,17 +70,86 @@ function cargarListadoPF(condicion="") //js_provisionFondos
 		peticionUnica1.onreadystatechange = mostrarCargarListadoPF;
 		peticionUnica1.open("POST","ajax/mostrarProvisionDeFondosTodos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaCargarListadoPF(condicion);
+		var query_string = consultaCargarListadoPF();
 		peticionUnica1.send(query_string);
 	}
 }
 
-function consultaCargarListadoPF(condicion)
+function consultaCargarListadoPF()
 {	
+
 	var consulta = "accion=mostrarProvisionFondo";
-	consulta += "&condicion="+condicion;
 	
-	return consulta;	
+	var campos = [
+		'fechaCreacion',
+		'presupuesto',
+		'codigo',
+		'id',
+		'subcliente',
+		'campana',
+		'importe',
+		'cobradaNombre',
+		'tipoNombre',
+		'fechaCobro',
+		'formaPago',
+		'cobrada'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {};
+
+    var soloCobradas = document.getElementById("buscarCobrada").checked;	
+	var soloArreglos = document.getElementById("buscarArreglo").checked;
+
+	if (soloCobradas==true)
+	{
+		filtros.cobrada = 2;		
+	}
+	
+	if (soloArreglos==true)
+	{
+		filtros.tipo = 4;			
+	}
+	if (document.getElementById("buscarCampo").value == "fechaCreacion" && document.getElementById("buscarTexto").value != "" )
+	{
+		filtros.fechaCreacion = document.getElementById("buscarTexto").value;	
+	} 
+	if (document.getElementById("buscarCampo").value == "fechaCobro" && document.getElementById("buscarTexto").value != "" )
+	{
+		filtros.fechaCobro = document.getElementById("buscarTexto").value;		
+	}
+	
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+
+	var filtrosLike = [];
+	if (document.getElementById("buscarCampo").value != "fechaCreacion" && document.getElementById("buscarCampo").value != "fechaCobro" )
+	{
+		filtrosLike.push({
+			campo: document.getElementById("buscarCampo").value,
+			valor: document.getElementById("buscarTexto").value
+		});
+	}
+	
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+
+	var order = [
+		{
+			campo: document.getElementById("ordenBuscar").value,
+			dir: document.getElementById("buscarDesc").checked ? 'DESC' : 'ASC'
+		}
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	
+	laCondicion = consulta;
+
+	return consulta;
+	
 }
 
 function mostrarCargarListadoPF()
@@ -89,14 +158,15 @@ function mostrarCargarListadoPF()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+			{
+				var datos = res.datos;		
 				
 				var contenido = "";
 				
@@ -214,7 +284,7 @@ function cargarSumatorioPF()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarSumatorioPF;
-		peticionUnica1.open("POST","ajax/mostrarProvisionDeFondosTodosSumatorio.php",false);
+		peticionUnica1.open("POST","ajax/mostrarProvisionDeFondosTodos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarSumatorioPF();
 		peticionUnica1.send(query_string);
@@ -223,10 +293,57 @@ function cargarSumatorioPF()
 
 function consultaCargarSumatorioPF()
 {	
-	var consulta = "accion=mostrarProvisionFondoSumatorio";
-	consulta += "&condicion="+laCondicion.replaceAll('%','%25');
+	var consulta = "accion=mostrarProvisionFondo";
 	
-	return consulta;	
+	var campos = [
+		'importeTotal'
+		
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {};
+
+    var soloCobradas = document.getElementById("buscarCobrada").checked;	
+	var soloArreglos = document.getElementById("buscarArreglo").checked;
+
+	if (soloCobradas==true)
+	{
+		filtros.cobrada = 2;		
+	}
+	
+	if (soloArreglos==true)
+	{
+		filtros.tipo = 4;			
+	}
+	if (document.getElementById("buscarCampo").value == "fechaCreacion" && document.getElementById("buscarTexto").value != "" )
+	{
+		filtros.fechaCreacion = document.getElementById("buscarTexto").value;	
+	} 
+	if (document.getElementById("buscarCampo").value == "fechaCobro" && document.getElementById("buscarTexto").value != "" )
+	{
+		filtros.fechaCobro = document.getElementById("buscarTexto").value;		
+	}
+	
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+
+	var filtrosLike = [];
+	if (document.getElementById("buscarCampo").value != "fechaCreacion" && document.getElementById("buscarCampo").value != "fechaCobro" )
+	{
+		filtrosLike.push({
+			campo: document.getElementById("buscarCampo").value,
+			valor: document.getElementById("buscarTexto").value
+		});
+	}
+	
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+
+	
+	return consulta;
 }
 
 function mostrarCargarSumatorioPF()
@@ -235,17 +352,18 @@ function mostrarCargarSumatorioPF()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+			{
+				var datos = res.datos;
 				
 				
-				document.getElementById("sumatorioImporte").innerHTML = "Total Importe: " + Number(datos[0]["importe"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' € ';
+				document.getElementById("sumatorioImporte").innerHTML = "Total Importe: " + Number(datos[0]["importeTotal"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' € ';
 				
 			}
 			peticionUnica1=null;
@@ -285,9 +403,15 @@ function eliminarPFpendiente2(id)  //js_provisionFondos
 
 function consultaEliminarPFpendiente2(id)
 {	
+
 	var consulta = "accion=eliminarProvisionFondo";
-	consulta +="&id=" + id;	
-	return consulta;	
+
+	var filtros = {
+    	id: id
+	};	
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros)); 
+	
+	return consulta;
 }
 
 function mostrarEliminarPFpendiente2()
@@ -296,12 +420,14 @@ function mostrarEliminarPFpendiente2()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{	
+			{				
 				peticionUnica1=null;
 				cargarListadoPF();	
 			}
@@ -315,10 +441,36 @@ function mostrarEliminarPFpendiente2()
 
 function imprimirInformeProvision()
 {
-	buscarProvision();
-	document.getElementById("condicionImprimir").value = laCondicion;
-	laCondicion=null;
-	document.getElementById("formImprimirInformeProvisionFondo").submit();
+	cargarListadoPF();
+
+	
+	var form = document.getElementById("formImprimirInformeProvisionFondo");
+
+	// Borra campos anteriores
+	form.innerHTML = "";
+
+	// Convierte la consulta en pares nombre=valor
+	var parametros = new URLSearchParams(laCondicion);
+	laCondicion = null;
+
+	for (const [nombre, valor] of parametros) {
+		var input = document.createElement("input");
+		input.type = "hidden";
+		input.name = nombre;
+		input.value = valor;
+		form.appendChild(input);
+	}
+
+	var input = document.createElement("input");
+	input.type = "hidden";
+	input.id = "imprimirAccion";
+	input.name = "imprimirAccion";
+	input.value = "imprimirInforme";
+
+	form.appendChild(input);
+
+	form.submit();
+	
 }
 
 function gestionSoloCobradas()

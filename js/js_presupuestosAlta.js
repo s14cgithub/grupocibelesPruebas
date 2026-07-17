@@ -2146,6 +2146,10 @@ function insertarProvisionDeFondos_presupuesto()//js_presupuestosAlta
 		alert("Introducir un Importe");
 		document.getElementById("importeProvisionFondo").focus();
 	}
+	else if (document.getElementById("clienteOrigen").checked && document.getElementById("tipoProvisionFondo").value != 3 )	
+	{
+		alert("Con un cliente de Clayma, solo se puede elegir 'Descontar de Manipulados'");
+	}
 	else if (confirm("¿Añadir Provision de Fondo?")) 
 	{			 
 		

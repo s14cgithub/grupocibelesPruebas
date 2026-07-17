@@ -40,12 +40,12 @@ else
 	<tr>
 		<td align="center" colspan="6">Buscar por:
 			<select class=""  id="buscarCampo" name="buscarCampo">
-				<option value="idCliente">idCliente</option>
+				<option value="codigo">idCliente</option>
 				<!--<option value="fechaCreacion">Fecha Creacion</option>-->
 				<option value="nombre_franqueo">Franqueo</option>	
 				<option value="importe">Importe</option>
 				<option value="presupuesto" selected>Presupuesto</option>
-				<option value="tipoTexto">Tipo</option>				
+				<option value="tipoNombre">Tipo</option>				
 										
 			</select>
 
@@ -64,8 +64,8 @@ else
 		Desc: <input type="checkbox" id="ordenDesc"></input>
 		
 			<br>
-			<button type="button" class="btn btn-info" onClick="buscarPF()">BUSCAR</button>
-			<button type="button" class="btn btn-info" onClick="imprimirInformeProvision()">IMPRIMIR</button>
+			<button type="button" class="btn btn-info" onClick="cargarListadoPFpendientes()">BUSCAR</button>
+			<!--<button type="button" class="btn btn-info" onClick="imprimirInformeProvision()">IMPRIMIR</button>-->
 			<button type="button" class="btn btn-info" data-toggle="modal" data-target="#provisionFondoManualModal" data-whatever="@mdo">Manual</button>
 
 		</td>		
@@ -122,7 +122,7 @@ else
 
     <div class="form-group" id="pfManual_Clayma">
       <label for="recipient-name" class="col-form-label">clayma:</label>
-      <input type="checkbox" id="claymaModal" class="" onchange="cargarClientesPF()"></input>
+      <input type="checkbox" id="claymaModal" class="" onchange="cargarListadoClientes()"></input>
     </div>	
 
 			
@@ -303,9 +303,9 @@ echo ("</html>");
 
 <script language="javascript">
 	//cargarListadoPFpendientes();
-	buscarPF();
+	cargarListadoPFpendientes();
 	
-	cargarClientes('A','clientesModal');
+	cargarListadoClientes();
 	//cargarListadoPresupuestosActivo('presupuestoModal');
 	cargarTipoProvisionFondo('tipoModal','');
 	document.getElementById("button-up").addEventListener("click", scrollUp);

@@ -3004,6 +3004,10 @@ function cargarProvisionDeFondos($conn_sis, $bbddSql, $campos, $joins, $filtros,
         $condicion[] = 't1.idCliente = ?';
         $params[] = $filtros['idCliente'];
     }
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
 
     $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=', 'LIKE');
 
@@ -3129,6 +3133,350 @@ function cargarProvisionDeFondos($conn_sis, $bbddSql, $campos, $joins, $filtros,
     'datos' => $result,
     'sql' => $consulta,
     'params' => $params
+    );
+}
+
+function cargarProvisionDeFondos_Todo($conn_sis, $bbddSql, $campos, $filtros, $filtrosOperadores, $filtrosLike, $order)
+{
+    // ---------- CAMPOS PERMITIDOS ----------
+    $camposPermitidos = array(
+        'fechaCreacion' => 'tabla.fechaCreacion',
+        'presupuesto' => 'tabla.presupuesto',
+        'codigo' => 'tabla.codigo',
+        'subcliente' => 'tabla.subcliente',
+        'nombre_empresa' => 'tabla.nombre_empresa',
+        'campana' => 'tabla.campana',
+
+        'importe' => 'tabla.importe',
+        'cobradaNombre' => 'tabla.cobradaNombre',
+        'tipoNombre' => 'tabla.tipoNombre',
+        'fechaCobro' => 'tabla.fechaCobro',
+        'formaPago' => 'tabla.formaPago',
+        'cobrada' => 'tabla.cobrada',
+        'id' => 'tabla.id',
+        'importeTotal' => 'sum(importe) as importeTotal' ,
+        'noAplicarPF' => 'tabla.noAplicarPF',
+        'contador' => 'tabla.contador',
+        'clayma' => 'tabla.clayma',
+        'nombre_franqueo' => 'tabla.nombre_franqueo',        
+        'tipo' => 'tabla.tipo'
+
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array(
+            'error' => 'cargarProvisionesDeFondo: campos vacios',
+            'datos' => array()
+        );
+    }
+
+    $camposSQL = array();
+
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => 'cargarProvisionesDeFondo: campos SQL vacios',
+            'datos' => array()
+        );
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+   
+
+    if (isset($filtros['presupuesto'])) {
+        $condicion[] = 'tabla.presupuesto = ?';
+        $params[] = $filtros['presupuesto'];
+    }
+    if (isset($filtros['codigo'])) {
+        $condicion[] = 'tabla.codigo = ?';
+        $params[] = $filtros['codigo'];
+    }
+
+    if (isset($filtros['nombre_empresa'])) {
+        $condicion[] = 'tabla.nombre_empresa = ?';
+        $params[] = $filtros['nombre_empresa'];
+    }    
+
+    if (isset($filtros['campana'])) {
+        $condicion[] = 'tabla.campana = ?';
+        $params[] = $filtros['campana'];
+    }
+
+    if (isset($filtros['fechaCreacion'])) {
+        $condicion[] = 'tabla.fechaCreacion = ?';
+        $params[] = $filtros['fechaCreacion'];
+    }
+
+    if (isset($filtros['importe'])) {
+        $condicion[] = 'tabla.importe = ?';
+        $params[] = $filtros['importe'];
+    }
+
+    if (isset($filtros['fechaCobro'])) {
+        $condicion[] = 'tabla.fechaCobro = ?';
+        $params[] = $filtros['fechaCobro'];
+    }
+
+    if (isset($filtros['formaPago'])) {
+        $condicion[] = 'tabla.formaPago = ?';
+        $params[] = $filtros['formaPago'];
+    }
+
+    if (isset($filtros['cobrada'])) {
+        $condicion[] = 'tabla.cobrada = ?';
+        $params[] = $filtros['cobrada'];
+    }
+
+    if (isset($filtros['tipo'])) {
+        $condicion[] = 'tabla.tipo = ?';
+        $params[] = $filtros['tipo'];
+    }    
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array(
+        '=',
+        '>',
+        '<',
+        '>=',
+        '<=',
+        '!='
+    );
+
+    $camposComparablesPermitidos = array(
+        'fechaCobro' => 'tabla.fechaCobro',
+        'fechaCreacion' => 'tabla.fechaCreacion'     
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            // Campo contra campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
+
+            // Campo contra valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ?';
+
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    // ---------- FILTROS LIKE ----------
+    $camposLikePermitidos = array(
+        'presupuesto' => 'tabla.presupuesto',
+        'codigo' => 'tabla.codigo',
+        'nombre_empresa' => 'tabla.nombre_empresa',
+        'campana' => 'tabla.campana',
+        'fechaCreacion' => 'tabla.fechaCreacion',
+        'importe' => 'tabla.importe',
+        'fechaCobro' => 'tabla.fechaCobro',
+        'formaPago' => 'tabla.formaPago',
+        'tipoNombre' => 'tabla.tipoNombre'
+    );
+
+    if (is_array($filtrosLike) && !empty($filtrosLike)) {
+        foreach ($filtrosLike as $f) {
+            if (
+                isset($f['campo'], $f['valor']) &&
+                isset($camposLikePermitidos[$f['campo']]) &&
+                trim($f['valor']) !== ''
+            ) {
+                $condicion[] =
+                    $camposLikePermitidos[$f['campo']] . ' LIKE ?';
+
+                $params[] = '%' . $f['valor'] . '%';
+            }
+        }
+    }
+
+    $sqlWhere = '';
+
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 'tabla.id',
+        'presupuesto' => 'tabla.presupuesto',
+        'codigo' => 'tabla.codigo',
+        'codigo_saldo' => 'tabla.codigo_saldo',
+        'nombre_franqueo' => 'tabla.nombre_franqueo',
+        'nombre_empresa' => 'tabla.nombre_empresa',
+        'subcliente' => 'tabla.subcliente',
+        'campana' => 'tabla.campana',
+        'cobradaNombre' => 'tabla.cobradaNombre',
+        'tipoNombre' => 'tabla.tipoNombre',
+        'importe' => 'tabla.importe',
+        'fechaCobro' => 'tabla.fechaCobro',
+        'formaPago' => 'tabla.formaPago'
+    );
+
+    $sqlOrder = '';
+
+    if (is_array($order) && !empty($order)) {
+        $ordenes = array();
+
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                isset($camposOrdenPermitidos[$o['campo']]) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] =
+                    $camposOrdenPermitidos[$o['campo']] . ' ' .
+                    strtoupper($o['dir']);
+            }
+        }
+
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- CONSULTA ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM
+        (
+            SELECT
+                t1.*,
+                t3.nombre_franqueo,
+                t2.campana,
+                t3.codigo,
+                t4.cobrada AS cobradaNombre,
+                t5.tipo AS tipoNombre,
+                t3.subcliente,
+                t3.nombre_empresa,
+                t3.codigo_saldo,
+                t3.noAplicarPF
+            FROM [".$bbddSql."].[dbo].[provisionesDeFondo] AS t1
+
+            INNER JOIN [".$bbddSql."].[dbo].[presupuestos] AS t2
+                ON t1.presupuesto = t2.presupuesto
+
+            INNER JOIN [".$bbddSql."].[dbo].[clientes] AS t3
+                ON t2.cliente = t3.nombre_empresa
+
+            INNER JOIN [".$bbddSql."].[dbo].[provisionesDeFondo_tipoCobrada] AS t4
+                ON t1.cobrada = t4.id
+
+            INNER JOIN [".$bbddSql."].[dbo].[provisionesDeFondo_tipos] AS t5
+                ON t5.id = t1.tipo
+
+            WHERE t2.clayma = 0
+
+            UNION
+
+            SELECT
+                t1.*,
+                t3.nombre_franqueo,
+                t2.campana,
+                t3.codigo,
+                t4.cobrada AS cobradaNombre,
+                t5.tipo AS tipoNombre,
+                t3.subcliente,
+                t3.nombre_empresa,
+                t3.codigo_saldo,
+                t3.noAplicarPF
+            FROM [".$bbddSql."].[dbo].[provisionesDeFondo] AS t1
+
+            INNER JOIN [".$bbddSql."].[dbo].[presupuestos] AS t2
+                ON t1.presupuesto = t2.presupuesto
+
+            INNER JOIN [".$bbddSql."].[dbo].[clientesClayma] AS t3
+                ON t2.cliente = t3.nombre_empresa
+
+            INNER JOIN [".$bbddSql."].[dbo].[provisionesDeFondo_tipoCobrada] AS t4
+                ON t1.cobrada = t4.id
+
+            INNER JOIN [".$bbddSql."].[dbo].[provisionesDeFondo_tipos] AS t5
+                ON t5.id = t1.tipo
+
+            WHERE t2.clayma = 1
+
+            UNION
+
+            SELECT
+                t1.*,
+                t3.nombre_franqueo,
+                t1.concepto AS campana,
+                t3.codigo,
+                t4.cobrada AS cobradaNombre,
+                t5.tipo AS tipoNombre,
+                t3.subcliente,
+                t3.nombre_empresa,
+                t3.codigo_saldo,
+                t3.noAplicarPF
+            FROM [".$bbddSql."].[dbo].[provisionesDeFondo] AS t1
+
+            INNER JOIN [".$bbddSql."].[dbo].[clientes] AS t3
+                ON t1.idCliente = t3.codigo
+
+            INNER JOIN [".$bbddSql."].[dbo].[provisionesDeFondo_tipoCobrada] AS t4
+                ON t1.cobrada = t4.id
+
+            INNER JOIN [".$bbddSql."].[dbo].[provisionesDeFondo_tipos] AS t5
+                ON t5.id = t1.tipo
+
+            WHERE t1.presupuesto LIKE '9%'
+        ) AS tabla
+
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'datos' => array(),
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    $result = array();
+
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'datos' => $result,
+        'sql' => $consulta,
+        'params' => $params
     );
 }
 
@@ -8812,6 +9160,166 @@ function cargarListadoTarifasProductos($conn_sis, $bbddSql, $campos, $joins, $fi
     );
 }
 
+function cargarProvisionesDeFondo_tipoCobrada($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'cobrada' => 't1.cobrada'       
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array(
+            'error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    //JOINS
+
+    $joinsPermitidos = [
+       // 'tabla2' => "inner join [".$bbddSql."].[dbo].[L_papelTamanio] as t2 on t1.idTamanioInicio = t2.id",
+        //'tabla3' => "inner join [".$bbddSql."].[dbo].[L_papelTamanio] as t3 on t1.idTamanioFinal = t3.id"
+        
+    ];
+
+    $sqlJoins = '';
+
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+    
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();    
+
+    
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+    
+
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+    //'presupuestoNoMensual' => 'SUBSTRING(t1.presupuesto, LEN(t1.presupuesto) - 2, 3)'
+    //'codigo' => 't1.codigo'    
+    );
+         
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            // campo vs campo
+            if (
+                isset($f['campo1'], $f['campo2'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                isset($camposComparablesPermitidos[$f['campo2']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ' .
+                    $camposComparablesPermitidos[$f['campo2']];
+            }
+
+            // campo vs valor
+            else if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 't1.id'       
+    );
+
+    $sqlOrder = '';
+
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[provisionesDeFondo_tipoCobrada] AS t1
+        $sqlJoins        
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    //echo $consulta;   
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {        
+        return array(
+            'error' => "<pre>" . print_r(sqlsrv_errors(), true) . "</pre>",            
+            'sql' => $consulta,
+            'params' => $params
+            );
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+    
+    return array(
+    'error' => '',
+    'datos' => $result,
+    'sql' => $consulta,
+     'params' => $params
+    );
+}
+
 //INSERT
 function insertarPresupuesto($conn_sis, $bbddSql, $datos)
 {
@@ -11458,7 +11966,10 @@ function modificarProvisionFondo($conn_sis, $bbddSql, $datos, $filtros, $filtros
     $camposPermitidos = array(       
        
         'cobrada' => 't1.cobrada',
-        'borradaComercial' => 't1.borradaComercial'
+        'borradaComercial' => 't1.borradaComercial',
+        'fechaCobro' => 't1.fechaCobro',
+        'formaPago' => 't1.formaPago',
+        'importe' => 't1.importe'     
         
     );
 
@@ -12525,6 +13036,7 @@ function modificarClientes($conn_sis, $bbddSql, $datos, $filtros, $filtrosOperad
        'envio_pais' => 't1.envio_pais',
        'pedidoCliente' => 't1.pedidoCliente',
        'vencimiento' => 't1.vencimiento'
+     
     );
 
     if ((!is_array($datos) || empty($datos)) && (!is_array($datosIncremento) || empty($datosIncremento)))
@@ -14749,6 +15261,83 @@ function eliminarClientesContactosClayma($conn_sis, $bbddSql, $filtros, $filtros
     $consulta = "
         DELETE t1
         FROM [".$bbddSql."].[dbo].[clientesContactosClayma] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    $filas = sqlsrv_rows_affected($resultado);
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'filas_afectadas' => $filas,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function eliminarProvisionFondos($conn_sis, $bbddSql, $filtros, $filtrosOperadores)
+{
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=');
+
+    $camposComparablesPermitidos = array(
+        //'id' => 't1.id'       
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                    $f['operador'] . ' ?';
+
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    //SEGURIDAD: NO permitir DELETE sin WHERE
+    if (empty($condicion)) {
+        return array(
+            'error' => 'eliminar ProvisionFondos: DELETE sin WHERE bloqueado por seguridad',
+            'ok' => false
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        DELETE t1
+        FROM [".$bbddSql."].[dbo].[provisionesDeFondo] t1
         $sqlWhere
     ";
 

@@ -25,14 +25,14 @@ else
 	<tr>
 		<td align="center" colspan="6">Buscar por:
 			<select class=""  id="buscarCampo" name="buscarCampo">
-				<option value="presupuesto">Presupuesto</option>
-				<option value="codigo">Codigo SubCliente</option>
-				<option value="subcliente">SubCliente</option>
 				<option value="campana">Campaña</option>
-				<option value="fechaCreacion">Fecha Creacion</option>				
-				<option value="importe">Importe</option>
+				<option value="codigo">Codigo Cliente</option>	
 				<option value="fechaCobro">Fecha Cobro</option>
+				<!--<option value="fechaCreacion">Fecha Creacion</option>-->
 				<option value="formaPago">Forma de Pago</option>
+				<option value="importe">Importe</option>
+				<option value="nombre_empresa">Nombre Cliente</option>
+				<option value="presupuesto">Presupuesto</option>
 						
 			</select>
 
@@ -40,20 +40,21 @@ else
 		<input class="" type="text" id="buscarTexto" name="buscarTexto"></input>
 		Orden: 
 		<select class="" id="ordenBuscar">
-				<option value="presupuesto">Presupuesto</option>
-				<option value="codigo">Codigo SubCliente</option>
-				<option value="subcliente">SubCliente</option>
-				<option value="campana">Campaña</option>
-				<option value="fechaCreacion">Fecha Creacion</option>				
-				<option value="importe">Importe</option>
-				<option value="fechaCobro">Fecha Cobro</option>
-				<option value="formaPago">Forma de Pago</option>
+			<option value="campana">Campaña</option>
+			<option value="codigo">Codigo Cliente</option>
+			<option value="fechaCobro">Fecha Cobro</option>
+			<option value="fechaCreacion">Fecha Creacion</option>
+			<option value="formaPago">Forma de Pago</option>
+			<option value="importe">Importe</option>
+			<option value="nombre_empresa">Nombre Empresa</option>
+			<option value="presupuesto">Presupuesto</option>
+				
 		</select>
 	Desc: <input type="checkbox" id="buscarDesc"></input>
 	Solo Cobradas: <input type="checkbox" id="buscarCobrada" onChange="gestionSoloCobradas()"></input>
 	No Aplicables: <input type="checkbox" id="buscarArreglo" onChange="gestionSoloArreglos()"></input>
 		<br>
-		<button type="button" class="btn btn-info" onClick="buscarProvision()">BUSCAR</button>
+		<button type="button" class="btn btn-info" onClick="cargarListadoPF()">BUSCAR</button>
 		<button type="button" class="btn btn-info" onClick="imprimirInformeProvision()">IMPRIMIR</button>
 	
 	</td>
@@ -73,7 +74,6 @@ else
 
 <form id="formImprimirInformeProvisionFondo" name="formImprimirInformeProvisionFondo" method="post"  target="_blank" action="imprimirInformeProvisionFondo.php">
 	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirInforme"></input>
-	<input type="hidden" id="condicionImprimir" name="condicionImprimir" value=""></input>
 </form>
 
 
