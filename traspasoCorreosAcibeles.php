@@ -77,7 +77,7 @@ if ($_SESSION["usuario"]<>"")
 </table>
 
 
-
+<!--
 <table align="center">
 	<hr>
 	<tr>
@@ -93,6 +93,8 @@ if ($_SESSION["usuario"]<>"")
 	</tr>
 	
 </table>
+-->
+<a href="" download="" id="descargarCodigoSidiErrores" style="visibility: hidden">button</a>
 
 
 
@@ -139,7 +141,6 @@ ui.placeholder.addClass(ui.item.attr("class"));
 	
 
 document.getElementById("button-up").addEventListener("click", scrollUp);
-	
 	
 	
 

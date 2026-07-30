@@ -1,5 +1,7 @@
 <?php
 
+ob_start();
+
 //require("../../../../comprobarSesion.php");
 
 if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
@@ -14,9 +16,10 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	$fechaFin = $_POST["exportarFechaFin"];	
 	$orden = $_POST["exportarOrdenarPor"];	
 	$desc = $_POST["exportarDesc"];
-	
-	
-	$condicion = "";
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 	
 	
 	$nombreCliente2="";
@@ -40,52 +43,29 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	}
 	
 	//echo ($nombreCliente2);
-	
+
+	$filtros = array();
+	$filtrosOperadores = array();
+
 	if ($nombreCliente!="Todos")
 	{
-		$condicion = " where t2.nombre_empresa='".$nombreCliente2."'";
+		$filtros['nombre_empresa'] = $nombreCliente2;
 	}
 	if ($fechaInicio!="")
 	{
-		if ($condicion=="")
-		{
-			$condicion = " where t1.fecha >= '".$fechaInicio."'";
-		}
-		else
-		{
-			$condicion = $condicion." and t1.fecha >= '".$fechaInicio."'";
-		}
+		$filtrosOperadores[] = array('campo1' => 'fecha', 'valor' => $fechaInicio, 'operador' => '>=');
 	}
-	
+
 	if ($fechaFin!="")
 	{
-		if ($condicion=="")
-		{
-			$condicion = " where t1.fecha <= '".$fechaFin."'";
-		}
-		else
-		{
-			$condicion = $condicion." and t1.fecha <= '".$fechaFin."'";
-		}
+		$filtrosOperadores[] = array('campo1' => 'fecha', 'valor' => $fechaFin, 'operador' => '<=');
 	}
-	
-	
-	
-	
-	$condicion = $condicion." order by t1.".$orden;
-	
-	if ($desc=="true")
-	{
-		$condicion = $condicion." desc";
-	}
-	
-	
-	
 
-	
-	
-	
-	$resultado=  mostrarFacturasCorreosTodos($conexion,$condicion);
+	$order = array(array('campo' => $orden, 'dir' => ($desc=="true" ? 'DESC' : 'ASC')));
+
+	$resultadoConsulta = mostrarFacturacionCorreos($conn, $bbddSql, ['numeroOficial','codigo_saldo','nombre_empresa','fecha','importe'], ['tabla2'], $filtros, $filtrosOperadores, $order);
+
+	$resultado = $resultadoConsulta['datos'];
 	
 	
 	
@@ -119,8 +99,8 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 
 /** Error reporting */
 error_reporting(E_ALL);
-ini_set('display_errors', TRUE);
-ini_set('display_startup_errors', TRUE);
+ini_set('display_errors', FALSE);
+ini_set('display_startup_errors', FALSE);
 date_default_timezone_set('Europe/London');
 
 if (PHP_SAPI == 'cli')
@@ -184,7 +164,9 @@ $objPHPExcel->getActiveSheet()->setTitle('Simple');
 $objPHPExcel->setActiveSheetIndex(0);
 
 $nombreArchivo = 'Correos-'.date('d/m/Y').'.xlsx';
-	
+
+ob_end_clean();
+
 // Redirect output to a client’s web browser (Excel2007)
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');

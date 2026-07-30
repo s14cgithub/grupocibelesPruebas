@@ -35,7 +35,7 @@ if ($_SESSION["usuario"]<>"")
 
 				<select name="orden" id="orden">
 						<option value="aPagar">aPagar</option>	
-						<option value="nombre_franqueo">Cliente</option>
+						<option value="nombre_empresa">Cliente</option>
 						<option value="numeroOficial">Factura</option>						
 						<option value="fecha" selected>Fecha</option>
 						<option value="importe">Importe</option>
@@ -120,7 +120,7 @@ echo ("</html>");
 
 <script language="javascript">
 	//cargarAnios("anioSeleccionado");
-	cargarClientes('B','buscarCliente');
+	cargarClientesFacturasCorreos();
 	//document.getElementById("buscarCliente").innerHTML = '<option value="0">Todos</option>;	';
 	var fechaActual = new Date();
 	

@@ -500,6 +500,10 @@ function cargarClientes($conn_sis, $bbddSql, $campos, $filtros, $filtrosOperador
         $condicion[] = 't1.activo = ?';
         $params[] = $filtros['activo'];
     }
+    if (isset($filtros['codigoSidi'])) {
+        $condicion[] = 't1.codigoSidi = ?';
+        $params[] = $filtros['codigoSidi'];
+    }
     if (isset($filtros['codigo_saldo'])) {
         $condicion[] = 't1.codigo_saldo = ?';
         $params[] = $filtros['codigo_saldo'];
@@ -6724,10 +6728,25 @@ function mostrarFacturacionCibelesYCorreos($conn_sis, $bbddSql, $campos, $joins,
 function mostrarFacturacionCorreos($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
 {
     $camposPermitidos = array(
+        'id' => 't1.id',
         'codigo_saldo' => 't2.codigo_saldo',
+        'codigoCliente' => 't1.codigoCliente',
+        'nombre_empresa' => 't2.nombre_empresa',
+        'campana' => 't1.campana',
         'importe' => 't1.importe',
         'fecha' => 't1.fecha',
-        'numeroOficial' => 't1.numeroOficial'       
+        'numeroOficial' => 't1.numeroOficial',
+        'neto' => 't1.neto',
+        'iva' => 't1.iva',
+        'anticipo' => 't1.anticipo',
+        'aPagar' => 't1.aPagar',
+        'formaPago' => 't1.formaPago',
+        'fechaPago' => 't1.fechaPago',
+        'netoSumatorio' => 'SUM(t1.neto) as netoSumatorio',
+        'ivaSumatorio' => 'SUM(t1.iva) as ivaSumatorio',
+        'anticipoSumatorio' => 'SUM(t1.anticipo) as anticipoSumatorio',
+        'importeSumatorio' => 'SUM(t1.importe) as importeSumatorio',
+        'aPagarSumatorio' => 'SUM(t1.aPagar) as aPagarSumatorio'
     );
 
     //t2: clientes   
@@ -6780,6 +6799,22 @@ function mostrarFacturacionCorreos($conn_sis, $bbddSql, $campos, $joins, $filtro
     if (isset($filtros['sinFormaPago'] ) && $filtros['sinFormaPago'] == 1) {
         $condicion[] = "(t1.formaPago IS NULL OR t1.formaPago = '')";
     }
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+    if (isset($filtros['codigo_saldo'])) {
+        $condicion[] = 't2.codigo_saldo = ?';
+        $params[] = $filtros['codigo_saldo'];
+    }
+    if (isset($filtros['nombre_empresa'])) {
+        $condicion[] = 't2.nombre_empresa = ?';
+        $params[] = $filtros['nombre_empresa'];
+    }
+    if (isset($filtros['numeroOficial'])) {
+        $condicion[] = 't1.numeroOficial = ?';
+        $params[] = $filtros['numeroOficial'];
+    }
     
 
     $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=');
@@ -6826,7 +6861,12 @@ function mostrarFacturacionCorreos($conn_sis, $bbddSql, $campos, $joins, $filtro
 
     // ---------- ORDER BY ----------
     $camposOrdenPermitidos = array(
-        'codigo_saldo' => 't2.codigo_saldo'        
+        'codigo_saldo' => 't2.codigo_saldo',
+        'aPagar' => 't1.aPagar',
+        'nombre_empresa' => 't2.nombre_empresa',
+        'numeroOficial' => 't1.numeroOficial',
+        'importe' => 't1.importe',
+        'fecha' => 't1.fecha'
     );
 
     $sqlOrder = '';
@@ -6878,6 +6918,107 @@ function mostrarFacturacionCorreos($conn_sis, $bbddSql, $campos, $joins, $filtro
     'datos' => $result,
     'sql' => $consulta,
      'params' => $params
+    );
+}
+
+function insertarFacturacionCorreos($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'numeroOficial' => 'numeroOficial',
+        'fecha' => 'fecha',
+        'codigoCliente' => 'codigoCliente',
+        'campana' => 'campana',
+        'neto' => 'neto',
+        'iva' => 'iva',
+        'importe' => 'importe',
+        'anticipo' => 'anticipo',
+        'aPagar' => 'aPagar'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array('error' => 'insertarFacturacionCorreos: datos vacios', 'ok' => false);
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => 'insertarFacturacionCorreos: camposSQL vacios', 'ok' => false);
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[facturasCorreos]
+        (".implode(', ', $camposSQL).")
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'ok' => false, 'sql' => $consulta, 'params' => $params);
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'ok' => true, 'sql' => $consulta, 'params' => $params);
+}
+
+function eliminarFacturacionCorreos($conn_sis, $bbddSql, $filtros)
+{
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+    //SEGURIDAD: NO permitir DELETE sin WHERE
+    if (empty($condicion)) {
+        return array(
+            'error' => 'eliminarFacturacionCorreos: DELETE sin WHERE bloqueado por seguridad',
+            'ok' => false
+        );
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+
+    // ---------- SQL ----------
+    $consulta = "
+        DELETE t1
+        FROM [".$bbddSql."].[dbo].[facturasCorreos] t1
+        $sqlWhere
+    ";
+
+    // ---------- EJECUCIÓN ----------
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'ok' => false,
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'ok' => true,
+        'sql' => $consulta,
+        'params' => $params
     );
 }
 

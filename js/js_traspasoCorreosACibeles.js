@@ -112,18 +112,19 @@ function mostrarSubirDatosMensualesDesdeExcel()
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);
-				
+				var datos = peticionUnica1.responseText.split('Nombre:');
+
+				alert(datos[0].trim());
+
 				document.getElementById("elArchivoExcelMensual").value = null;
 
-				/*var datos = peticionUnica1.responseText.split('Nombre:');
-				
-				
-				document.getElementById("descargarArchivoIndra").setAttribute('href', datos[1].trim());
-				document.getElementById("descargarArchivoIndra").setAttribute('download',datos[1].trim().substring(datos[1].trim().lastIndexOf('/')+1));
-				
-				document.getElementById("descargarArchivoIndra").click();*/
-				
+				if (datos.length>1)
+				{
+					document.getElementById("descargarCodigoSidiErrores").setAttribute('href', datos[1].trim());
+					document.getElementById("descargarCodigoSidiErrores").setAttribute('download',datos[1].trim().substring(datos[1].trim().lastIndexOf('/')+1));
+
+					document.getElementById("descargarCodigoSidiErrores").click();
+				}
 				
 				
 				

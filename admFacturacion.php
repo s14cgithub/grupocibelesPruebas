@@ -82,13 +82,14 @@ if ($_SESSION["facturasManipulacion"]==1 || $_SESSION["facturasManipulacion"]==2
 <button type="button" class="btn btn-info" id="botonFechaFacMesAnteriorClayma" onClick="botonFechaFinFacturacion1Clayma(0)">Facturar fecha mes Anterior - Clayma</button>
 <button type="button" class="btn btn-info" id="botonFechaFacMesActualClayma" onClick="botonFechaFinFacturacion1Clayma(1)">Factura fecha mes Actual-Clayma</button>';	
 	
+/*
 	echo '<br><br>
 <h3>ABONOS</h3>
 <button type="button" class="btn btn-info" onClick="location.href = \'abonos.php\'">ABONOS</button>
 <button type="button" class="btn btn-info" onClick="location.href = \'facRectificativas.php\'">FAC. RECT. DIFERENCIAS</button>
 <button type="button" class="btn btn-info" onClick="location.href = \'facRectificativasSustitutivas.php\'">FAC. RECT. SUSTITUCION</button>
 <!--<button type="button" class="btn btn-info" onClick="location.href = \'abonosSinCobrar.php\'">ABONOS SIN COBRAR</button>-->';
-	
+*/	
 }
 
 if ($_SESSION["permiso_soloNoFacturable"]==1 || $_SESSION["permiso_soloNoFacturable"]==2)
@@ -109,7 +110,7 @@ if ($_SESSION["facturasCorreos"]==1 || $_SESSION["facturasCorreos"]==2)
 	<button type="button" class="btn btn-info" onClick="location.href = \'traspasoCorreosAcibeles.php\'">CORREOS A CIBELES</button>
 	<button type="button" class="btn btn-info" onClick="location.href = \'admFacturasCorreos.php\'">FAC. CORREOS</button>
 	<!--<button type="button" class="btn btn-info" onClick="location.href = \'admFacturasCorreosPendientes.php\'">FAC. CORREOS SIN COBRAR</button>-->
-	<button type="button" class="btn btn-info" onClick="borrarPreFacturasCorreos()">BORRAR ALBARANES</button>';
+	<!--<button type="button" class="btn btn-info" onClick="borrarPreFacturasCorreos()">BORRAR ALBARANES</button>-->';
 
 	
 }
