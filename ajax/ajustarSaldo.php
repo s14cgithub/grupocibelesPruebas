@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="gestionAjustarSaldo")
+if(isset($_POST["accion"]) && $_POST["accion"]=="gestionAjustarSaldo")
 {
 	
 	session_start(); 

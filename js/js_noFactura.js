@@ -1,111 +1,67 @@
 var peticionUnica1 = null;
 
-var laCondicion="";
 var mostrarModificarProcesado=false;
 var mostrarVisualizarProcesado=false;
 
-function buscarFactura()
+function cargarAniosPresupuestos()
 {
-	var condicion=" where numNoFactura != '' ";
-	var campoAbuscar = document.getElementById("buscarCampo").value;
-	var textoAbuscar = document.getElementById("buscarTexto").value;
-	var orden = document.getElementById("ordenBuscar").value;
-	var desc = document.getElementById("ordenDesc").checked;
-	
-	var fechaInicio = document.getElementById("buscarFechaInicio").value;
-	var fechaFin = document.getElementById("buscarFechaFin").value;
-	
-	
-	
-	
-	//var clayma = document.getElementById("clienteOrigen").checked;
-	
-	
-	if ((campoAbuscar=="numero" && textoAbuscar!="")  ||(campoAbuscar=="factura" && textoAbuscar!=""))
-	{
-		condicion += " and "+campoAbuscar+" = " + textoAbuscar;	
-	}
-	else
-	{
-		condicion += " and "+campoAbuscar+" like '%" + textoAbuscar + "%' COLLATE SQL_LATIN1_GENERAL_CP1_CI_AI";	
-	}
-		
-	
-	
-	
-	if (fechaInicio!="" && fechaInicio!=null && fechaInicio != "null")
-	{
-		var laFecha = fechaInicio.replace("/","-");
-		var datos = laFecha.split('-');
-		var anio = datos[0];
-		var mes = datos[1];
-		var dia = datos[2];	
-	
-		var laFecha1 = dia+"-"+mes+"-"+anio;
-		
-		condicion += " and fecha>= '"+laFecha1+"'";
-	}
-	
-	if (fechaFin!="" && fechaFin!=null && fechaFin != "null")
-	{
-		var aux = new Date(fechaFin);
-		aux.setDate(aux.getDate() + 1);    
-		fechaFin = aux.getFullYear() + "-" + (aux.getMonth()+1) + "-" +  aux.getDate();
-		
-		laFecha = fechaFin.replace("/","-");
-		datos = laFecha.split('-');
-		anio = datos[0];
-		mes = datos[1];
-		dia = datos[2];	
-	
-		laFecha1 = dia+"-"+mes+"-"+anio;
-		
-		condicion += " and fecha < '"+laFecha1+"'";
-	}
-	
-	//if (document.getElementById("ordenProcesado").checked==true)
-	if (document.getElementById("ordenProcesadosSolo").checked==true)
-	{
-		condicion +=" and [noFacProcesado]=1";
-	}
-	else if (document.getElementById("ordenProcesadosSin").checked==true)
-	{
-		condicion +=" and ([noFacProcesado]=0 or [noFacProcesado] is null)";
-	}
-	
-	if (document.getElementById("excluirInstituto").checked==true)
-	{
-		condicion += " and cliente not like '%instituto%'";
-	}
-	
-	if (document.getElementById("conImporte").checked==true)
-	{
-		condicion += "  and importePresupuesto > 0";
-	}
+	peticionUnica1=crearComunicacion(peticionUnica1);
 
-	if (document.getElementById("crisMagia").checked==true)
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarAniosPresupuestos;
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarAniosPresupuestos();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarAniosPresupuestos()
+{	
+	var consulta = "accion=cargarPresupuestos";
+
+	var campos = ['anios'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [
+		{ campo: 'anios', dir: 'DESC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;	
+}
+
+function mostrarCargarAniosPresupuestos()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
 		{
-			condicion += " and UPPER(noSeFacturaObservaciones) not like  '%MAGIA%'";
-		}
+			var res = JSON.parse(peticionUnica1.responseText);
 
-	
-	
-	
-	
-	condicion += " order by " + orden;
-	
-	if (desc==true)
-	{
-		condicion += " desc";
-	}
-	
-	laCondicion = condicion;
-	
-	
-	
-	
-	cargarListadoPresupuestoNoFacturable();
-	
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{				
+				var datos = res.datos;
+
+				var contenido = "";
+				var contador = 0;	
+
+				while  (contador<datos.length)
+				{	
+					contenido += '<option value="'+datos[contador]["anios"]+'">'+datos[contador]["anios"]+'</option>';
+					contador++;	
+				}
+
+				document.getElementById("anio").innerHTML = contenido;
+			}
+			peticionUnica1=null;			
+		}
+	}						
 }
 
 function cargarListadoPresupuestoNoFacturable()//js_presupuestosListado
@@ -115,22 +71,101 @@ function cargarListadoPresupuestoNoFacturable()//js_presupuestosListado
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarListadoPresupuestoNoFacturable;
-		peticionUnica1.open("POST","ajax/mostrarPresupuestos2.php",false);
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarListadoPresupuestoNoFacturable();
 		peticionUnica1.send(query_string);
 	}
 }
 
+function construirFiltrosNoFacturable()
+{
+	var filtrosOperadores = [
+		{ campo1: 'numNoFactura', operador: 'IS NOT NULL' }
+	];
+
+	var anio = document.getElementById("anio").value;
+	if (anio!="" && anio!=null)
+	{
+		var anio2digitos = anio.toString().substr(-2);
+		filtrosOperadores.push({ campo1: 'presupuesto', valor: anio2digitos + '%', operador: 'LIKE' });
+	}
+
+	var fechaInicio = document.getElementById("buscarFechaInicio").value;
+	var fechaFin = document.getElementById("buscarFechaFin").value;
+
+	if (fechaInicio!="" && fechaInicio!=null && fechaInicio != "null")
+	{
+		filtrosOperadores.push({ campo1: 'fecha', valor: fechaInicio, operador: '>=' });
+	}
+
+	if (fechaFin!="" && fechaFin!=null && fechaFin != "null")
+	{
+		var aux = new Date(fechaFin);
+		aux.setDate(aux.getDate() + 1);
+		var fechaFinExclusiva = aux.getFullYear() + "-" + (aux.getMonth()+1) + "-" + aux.getDate();
+		filtrosOperadores.push({ campo1: 'fecha', valor: fechaFinExclusiva, operador: '<' });
+	}
+
+	if (document.getElementById("excluirInstituto").checked==true)
+	{
+		filtrosOperadores.push({ campo1: 'cliente', valor: '%instituto%', operador: 'NOT LIKE' });
+	}
+
+	if (document.getElementById("conImporte").checked==true)
+	{
+		filtrosOperadores.push({ campo1: 'importePresupuesto', valor: 0, operador: '>' });
+	}
+
+	if (document.getElementById("crisMagia").checked==true)
+	{
+		filtrosOperadores.push({ campo1: 'noSeFacturaObservaciones', valor: '%MAGIA%', operador: 'NOT LIKE' });
+	}
+
+	var filtros = {};
+
+	if (document.getElementById("ordenProcesadosSolo").checked==true)
+	{
+		filtros.noFacProcesado = 1;
+	}
+	else if (document.getElementById("ordenProcesadosSin").checked==true)
+	{
+		filtros.sinProcesar = 1;
+	}
+
+	var campoAbuscar = document.getElementById("buscarCampo").value;
+	var textoAbuscar = document.getElementById("buscarTexto").value;
+
+	var filtrosLike = [];
+	if (textoAbuscar != "")
+	{
+		filtrosLike.push({ campo: campoAbuscar, valor: textoAbuscar });
+	}
+
+	return { filtros: filtros, filtrosOperadores: filtrosOperadores, filtrosLike: filtrosLike };
+}
+
 function consultaCargarListadoPresupuestoNoFacturable()
 {	
-	var consulta = "accion=mostrarPresupuesto";	
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');
-	//consulta += "&condicion="+laCondicion;
-	
-	//laCondicion=null;
-	
-	
+	var consulta = "accion=cargarPresupuestos";
+
+	var campos = ['numNoFactura','presupuesto','cliente','campana','importePresupuesto','numNoFacturaFecha','noFacProcesado'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(['tabla9']));
+
+	var datosFiltros = construirFiltrosNoFacturable();
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(datosFiltros.filtrosOperadores));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(datosFiltros.filtros));
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(datosFiltros.filtrosLike));
+
+	var orden = document.getElementById("ordenBuscar").value;
+	var desc = document.getElementById("ordenDesc").checked;
+	var order = [
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 
@@ -140,14 +175,15 @@ function mostrarCargarListadoPresupuestoNoFacturable()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
@@ -292,7 +328,7 @@ function cambiarProcesado(presupuesto)
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCambiarProcesado;
-		peticionUnica1.open("POST","ajax/modificarNoFacturableProcesado.php",false);
+		peticionUnica1.open("POST","ajax/modificarPresupuesto.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCambiarProcesado(presupuesto);
 		peticionUnica1.send(query_string);
@@ -300,11 +336,15 @@ function cambiarProcesado(presupuesto)
 }
 function consultaCambiarProcesado(presupuesto)
 {	
-	var consulta = "accion=cambiarProcesado";	
-	
-	consulta += "&presupuesto="+presupuesto;
-	consulta += "&procesado="+document.getElementById(presupuesto+'_Procesado').checked;
-	
+	var consulta = "accion=modificarRegistro";
+
+	var datos = {
+		noFacProcesado: document.getElementById(presupuesto+'_Procesado').checked ? 1 : 0
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = { presupuesto: presupuesto };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -315,13 +355,15 @@ function mostrarCambiarProcesado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				buscarFactura();
+				cargarListadoPresupuestoNoFacturable();
 			}
 			peticionUnica1=null;			
 		}
@@ -348,7 +390,7 @@ function eliminarNumNoFacturable2()
 		if(peticionUnica1)
 		{							
 			peticionUnica1.onreadystatechange = mostrarEliminarNumNoFacturable2;
-			peticionUnica1.open("POST","ajax/eliminarNoFacturable.php",false);
+			peticionUnica1.open("POST","ajax/modificarPresupuesto.php",false);
 			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 			var query_string = consultaEliminarNumNoFacturable2();
 			peticionUnica1.send(query_string);
@@ -359,10 +401,16 @@ function eliminarNumNoFacturable2()
 
 function consultaEliminarNumNoFacturable2()
 {	
-	var consulta = "accion=eliminarNumNoFacturable";	
-	
-	consulta += "&numero="+document.getElementById("numFacturaModal").innerHTML;
-	consulta += "&motivo="+document.getElementById("motivoEliminacionModal").value;
+	var consulta = "accion=modificarRegistro";
+
+	var datos = {
+		numNoFactura: null,
+		noSeFacturaObservaciones: document.getElementById("motivoEliminacionModal").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = { numNoFactura: document.getElementById("numFacturaModal").innerHTML };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	document.getElementById("numFacturaModal").innerHTM="";
 	document.getElementById("motivoEliminacionModal").value="";
@@ -376,14 +424,16 @@ function mostrarEliminarNumNoFacturable2()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{	
 				$("#eliminarFacturaModal").modal('hide');
-				buscarFactura();
+				cargarListadoPresupuestoNoFacturable();
 			}
 			peticionUnica1=null;			
 		}
@@ -393,14 +443,13 @@ function mostrarEliminarNumNoFacturable2()
 function verObservacion(numero) //js_facturas
 {
 	document.getElementById("numFacturaModal").innerHTML = numero;
-	//document.getElementById("claymaModal").innerHTML = document.getElementById(numero+"_clayma").checked;
 	
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerObservacion;
-		peticionUnica1.open("POST","ajax/verDatosUnPresuNoFac.php",false);
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerObservacion(numero);
 		peticionUnica1.send(query_string);
@@ -409,9 +458,14 @@ function verObservacion(numero) //js_facturas
 
 function consultaVerObservacion(numero)
 {	
-	var consulta = "accion=verDatosPresuNoFac";	
-	consulta += "&numero="+numero;
-	
+	var consulta = "accion=cargarPresupuestos";
+
+	var campos = ['noSeFacturaObservaciones'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { numNoFactura: numero };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -421,28 +475,20 @@ function mostrarVerObservacion()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
-				
+				var datos = res.datos;
+
 				if (datos.length>0)
 				{					
 					document.getElementById("observacionInternaModal").value = datos[0]["noSeFacturaObservaciones"];
 				}
-				//document.getElementById("").value = peticionUnica.responseText;
 				$("#observacionFacturaModal").modal('show');
 			}
 			peticionUnica1=null;
@@ -454,15 +500,12 @@ function mostrarVerObservacion()
 
 function modificarObservacion() //js_facturas
 {
-	//document.getElementById("numFacturaModal").innerHTML = numero;
-	
-	
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarModificarObservacion;
-		peticionUnica1.open("POST","ajax/modificarObservacionesNoFac.php",false);
+		peticionUnica1.open("POST","ajax/modificarPresupuesto.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaModificarObservacion();
 		peticionUnica1.send(query_string);
@@ -471,9 +514,15 @@ function modificarObservacion() //js_facturas
 
 function consultaModificarObservacion()
 {	
-	var consulta = "accion=modificarObservacion";	
-	consulta += "&numero="+document.getElementById("numFacturaModal").innerHTML;
-	consulta += "&observacion=" + document.getElementById("observacionInternaModal").value;
+	var consulta = "accion=modificarRegistro";
+
+	var datos = {
+		noSeFacturaObservaciones: document.getElementById("observacionInternaModal").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = { numNoFactura: document.getElementById("numFacturaModal").innerHTML };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -484,9 +533,11 @@ function mostrarModificarObservacion()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
@@ -500,7 +551,17 @@ function mostrarModificarObservacion()
 
 function gestionExportarExcel()
 {
-	document.getElementById("exportarCondiciones").value = laCondicion;
+	var datosFiltros = construirFiltrosNoFacturable();
+
+	document.getElementById("exportarFiltros").value = JSON.stringify(datosFiltros.filtros);
+	document.getElementById("exportarFiltrosOperadores").value = JSON.stringify(datosFiltros.filtrosOperadores);
+	document.getElementById("exportarFiltrosLike").value = JSON.stringify(datosFiltros.filtrosLike);
+
+	var orden = document.getElementById("ordenBuscar").value;
+	var desc = document.getElementById("ordenDesc").checked;
+	document.getElementById("exportarOrden").value = orden;
+	document.getElementById("exportarDesc").value = desc;
+
 	document.getElementById("formExportarExcel").submit();
 }
 

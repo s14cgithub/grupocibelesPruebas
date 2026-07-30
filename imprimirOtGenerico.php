@@ -113,14 +113,14 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 	
 	
 	$pdf->SetFont('Arial','B',8);
-	$pdf->Text($margen,$altura+15,utf8_decode($datosPresupuesto["datos"][0]["nombreComercial"])." - ".$datosPresupuesto["datos"][0]["telefonoComercial"]);
+	$pdf->Text($margen,$altura+15,reemplazarSimbolos($datosPresupuesto["datos"][0]["nombreComercial"])." - ".$datosPresupuesto["datos"][0]["telefonoComercial"]);
 	
 	
 	
 	$altura=$altura;//40
 	$pdf->SetFont('Arial','B',8);
 	$pdf->SetXY(110,$altura);
-	$pdf->MultiCell(80,5,utf8_decode($datosPresupuesto["datos"][0]["cliente"]."\n".$datosPresupuesto["datos"][0]["persona"]),0,'L',false);
+	$pdf->MultiCell(80,5,reemplazarSimbolos($datosPresupuesto["datos"][0]["cliente"]."\n".reemplazarSimbolos($datosPresupuesto["datos"][0]["persona"])),0,'L',false);
 	
 	
 	
@@ -149,7 +149,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 	//$pdf->Cell(0,0,utf8_decode($datosPresupuesto["datos"][0]["campana"]),0,1,'C',false); 
 
 
-	$campana2 = mb_convert_encoding($datosPresupuesto["datos"][0]["campana"], 'ISO-8859-1', 'UTF-8');
+	$campana2 = reemplazarSimbolos($datosPresupuesto["datos"][0]["campana"]);
 	$pdf->MultiCell(0,5,($campana2),0,'C',false);
 	$anchoDescripcion = $pdf->GetStringWidth($campana2);
 	$numeroDeFilas = ceil ($anchoDescripcion / (180));
@@ -194,7 +194,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 	
 	//$alturaVieja=$altura;
 			
-	$anchoDescripcion = $pdf->GetStringWidth(mb_convert_encoding($datosPresupuesto["datos"][0]["notaCibeles"], 'ISO-8859-1', 'UTF-8'));
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosPresupuesto["datos"][0]["notaCibeles"]));
 	$numeroDeFilas = $anchoDescripcion / ((200)-1);
 	if ($numeroDeFilas<1)
 	{
@@ -206,7 +206,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 	
 	
 	//$notaCibeles2 = reemplazarSimbolos(($datosPresupuesto["datos"][0]["notaCibeles"]));
-	$pdf->MultiCell(200,4,$datosPresupuesto["datos"][0]["notaCibeles"],0,'L',false);
+	$pdf->MultiCell(200,4,reemplazarSimbolos($datosPresupuesto["datos"][0]["notaCibeles"]),0,'L',false);
 	
 	
 	//$pdf->Cell(0,0,reemplazarSimbolos($datosPresupuesto["datos"][0]["notaCibeles"]),0,1,'L',false);
@@ -270,7 +270,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$mostrarPrecio);		
 			}
 			$pdf->SetXY($margen,$altura);
-			$pdf->Cell(125,5,utf8_decode($row["tipoProceso"]),0,0,'L',false);
+			$pdf->Cell(125,5,reemplazarSimbolos($row["tipoProceso"]),0,0,'L',false);
 			$altura = $altura+5;
 		}
 		
@@ -283,7 +283,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$mostrarPrecio);	
 		}
 		$pdf->SetXY($margen+5,$altura);
-		$pdf->MultiCell(125-5,5,puntoVineta." ".utf8_decode($row["proceso"]),0,'L',false);
+		$pdf->MultiCell(125-5,5,puntoVineta." ".reemplazarSimbolos($row["proceso"]),0,'L',false);
 		
 		
 		
@@ -389,7 +389,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 			
 			$alturaVieja=$altura;
 			
-			$anchoDescripcion = $pdf->GetStringWidth(mb_convert_encoding($row["descripcion"], 'ISO-8859-1', 'UTF-8'));
+			$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($row["descripcion"]));
 			$numeroDeFilas = $anchoDescripcion / ((125-10)-1);
 			if ($numeroDeFilas<1)
 			{
@@ -422,7 +422,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 			
 			
 			$pdf->MultiCell(125-10,4,$notas2,0,'L',false);*/
-			$pdf->MultiCell(125-10,4,mb_convert_encoding($row["descripcion"], 'ISO-8859-1', 'UTF-8'),0,'L',false);
+			$pdf->MultiCell(125-10,4,reemplazarSimbolos($row["descripcion"]),0,'L',false);
 			
 			
 			$altura = $altura + (6*$numeroDeFilas);
@@ -430,7 +430,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 		}
 		
 		$pdf->SetTextColor(255,0,0);
-		if (mb_convert_encoding($row["notaCibeles"], 'ISO-8859-1', 'UTF-8')!="")
+		if (reemplazarSimbolos($row["notaCibeles"])!="")
 		{
 			if ($altura>$limiteAlturaDatos)
 			{
@@ -439,7 +439,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 			
 			$alturaVieja=$altura;
 			
-			$anchoDescripcion = $pdf->GetStringWidth(mb_convert_encoding($row["notaCibeles"], 'ISO-8859-1', 'UTF-8'));
+			$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($row["notaCibeles"]));
 			$numeroDeFilas = $anchoDescripcion / ((125-10)-1);
 			if ($numeroDeFilas<1)
 			{
@@ -478,7 +478,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 			$pdf->MultiCell(125-10,4,($notas2),0,'L',false);*/
 			
 			
-			$pdf->MultiCell(125-10,4,$row["notaCibeles"],0,'L',false);
+			$pdf->MultiCell(125-10,4,reemplazarSimbolos($row["notaCibeles"]),0,'L',false);
 			
 			
 			//$pdf->MultiCell(125-10,4,utf8_decode($row["notaCibeles"]),0,'L',false);
@@ -500,7 +500,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 			
 			$alturaVieja=$altura;
 			
-			$anchoDescripcion = $pdf->GetStringWidth(mb_convert_encoding($row["notaAdmonProd"], 'ISO-8859-1', 'UTF-8'));
+			$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($row["notaAdmonProd"]));
 			$numeroDeFilas = $anchoDescripcion / ((125-10)-1);
 			if ($numeroDeFilas<1)
 			{
@@ -517,7 +517,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirOT")
 			
 			$pdf->SetXY($margen+10,$altura);
 			
-			$pdf->MultiCell(125-10,4,mb_convert_encoding($row["notaAdmonProd"], 'ISO-8859-1', 'UTF-8'),0,'L',false);
+			$pdf->MultiCell(125-10,4,reemplazarSimbolos($row["notaAdmonProd"]),0,'L',false);
 			
 			$altura = $altura + (6*$numeroDeFilas);
 			

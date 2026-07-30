@@ -103,6 +103,18 @@ function buscarFactura()
 	
 }
 
+function mirarLaCargar()
+{
+	if (document.getElementById("agenteComercial").checked==true)
+	{
+		cargarListadoAgenteComercial();
+	}
+	else
+	{
+		cargarListadoFacturas();
+	}
+}
+
 function cargarListadoFacturas() //js_prefactura
 {	
 	peticionUnica1=crearComunicacion(peticionUnica1);
@@ -110,22 +122,105 @@ function cargarListadoFacturas() //js_prefactura
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarListadoFacturas;
-		peticionUnica1.open("POST","ajax/mostrarFacturasVisualizar.php",false);
+		peticionUnica1.open("POST", document.getElementById("clienteOrigen").checked ? "ajax/cargarFacturacionClayma.php" : "ajax/cargarFacturacion.php", false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarListadoFacturas();
 		peticionUnica1.send(query_string);
 	}
 }
 
+function construirFiltrosListadoFacturas()
+{
+	var anio = document.getElementById("anio").value;
+	var fechaInicio = document.getElementById("buscarFechaInicio").value;
+	var fechaFin = document.getElementById("buscarFechaFin").value;
+
+	var filtrosOperadores = [
+		{ campo1: 'fecha', valor: anio + '-01-01', operador: '>=' },
+		{ campo1: 'fecha', valor: anio + '-12-31', operador: '<=' }
+	];
+
+	if (fechaInicio != "" && fechaInicio != null)
+	{
+		filtrosOperadores.push({ campo1: 'fecha', valor: fechaInicio, operador: '>=' });
+	}
+
+	if (fechaFin != "" && fechaFin != null)
+	{
+		filtrosOperadores.push({ campo1: 'fecha', valor: fechaFin, operador: '<=' });
+	}
+
+	var campoAbuscar = document.getElementById("buscarCampo").value;
+	var textoAbuscar = document.getElementById("buscarTexto").value;
+
+	if (textoAbuscar != "")
+	{
+		if (campoAbuscar == "numero")
+		{
+			filtrosOperadores.push({ campo1: 'numero', valor: textoAbuscar, operador: '=' });
+		}
+		else
+		{
+			filtrosOperadores.push({ campo1: campoAbuscar, valor: '%' + textoAbuscar + '%', operador: 'LIKE' });
+		}
+	}
+
+	var serieFactura = document.getElementById("serieFactura").value;
+	var filtros = {};
+	if (serieFactura != "Todos")
+	{
+		filtros.serieFactura = serieFactura;
+	}
+	if (document.getElementById("facSoloPagadas").checked == true)
+	{
+		filtros.soloPagadas = 1;
+	}
+
+	return { filtrosOperadores: filtrosOperadores, filtros: filtros };
+}
+
 function consultaCargarListadoFacturas()
 {	
-	var consulta = "accion=cargarListadoFacturas";
-	
-	
-	consulta += "&clayma=" + document.getElementById("clienteOrigen").checked;
-	
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');
-	consulta += "&anio=" + document.getElementById("anio").value;
+	var consulta = "accion=cargarFacturacion";
+
+	var campos = [
+		'numeroFacturaCompleto',
+		'numero',
+		'cliente',
+		'presupuesto',
+		'descripcion',
+		'precioTotal',
+		'aPagar',
+		'fecha',
+		'fechaPago',
+		'formaPagoReal',
+		'serieFactura',
+		'origenFactura',
+		'verifactu_idSolicitud',
+		'verifactu_message',
+		'facRecDiferencia',
+		'facRecSustitucion',
+		'numFacRec',
+		'facNeg',
+		'numFacNeg'
+	];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	if (document.getElementById("agenteComercial").checked==true)
+	{
+		consulta += "&joins=" + encodeURIComponent(JSON.stringify(['tabla2','tabla3']));
+	}
+
+	var datosFiltros = construirFiltrosListadoFacturas();
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(datosFiltros.filtrosOperadores));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(datosFiltros.filtros));
+
+	var orden = document.getElementById("ordenBuscar").value;
+	var desc = document.getElementById("ordenDesc").checked;
+	var order = [
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 
 	origenVerificacion = document.getElementById("clienteOrigen").checked;
 	
@@ -138,14 +233,15 @@ function mostrarCargarListadoFacturas()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText.trim());
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText.trim());				
+				var datos = res.datos;
 				
 				var contenido = "";
 				
@@ -219,7 +315,7 @@ function mostrarCargarListadoFacturas()
 					
 					//contenido += '<td align="center" id="'+datos[contador]["numero"]+'_numero">'+numeroFacturaAnio+'</td>'; 
 						
-					if (datos[contador]["origen"]==1)
+					if (document.getElementById("clienteOrigen").checked)
 					{
 						contenido += '<td align="center" style="visibility: hidden;display: none;"><input type="checkbox" id="'+datos[contador]["numero"]+'_clayma" onclick="return false;" checked  ></input></td>';
 					}
@@ -276,17 +372,22 @@ function mostrarCargarListadoFacturas()
 					let fechaRegistro = new Date(datos[contador]["fecha"]["date"]);
 					let fechaLimite   = new Date(fechaCambioVerifactu); //poner la ultima fecha de la factura sin utilizar verifactu
 
-					if (fechaRegistro>fechaLimite && (datos[contador]["verifactu_idSolicitud"]==null || datos[contador]["verifactu_idSolicitud"]==''))
+					if ((datos[contador]["serieFactura"]||"").trim() != 'NEG'  && (datos[contador]["serieFactura"]||"").trim() != 'AB')
 					{
-						fondo = 'style="animation: fondoAlerta 0.5s infinite;" title="No Procesado con Verifactu"';
+						if (fechaRegistro>fechaLimite && (datos[contador]["verifactu_idSolicitud"]==null || datos[contador]["verifactu_idSolicitud"]==''))
+						{
+							fondo = 'style="animation: fondoAlerta 0.5s infinite;" title="No Procesado con Verifactu"';
+						}
+						else if (datos[contador]["verifactu_message"] != null)
+						{
+							var messageError = datos[contador]["verifactu_message"];
+							messageError = messageError.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+							fondo = 'style="background-color: black;" title="'+messageError+'"';
+						}
+
 					}
-					else if (datos[contador]["verifactu_message"] != null)
-					{
-						var messageError = datos[contador]["verifactu_message"];
-						messageError = messageError.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-						fondo = 'style="background-color: black;" title="'+messageError+'"';
-					}
-					if (datos[contador]["origen"]==1)
+					
+					if (document.getElementById("clienteOrigen").checked)
 					{
 						//contenido += '<td align="center"><input type="image" value="" src="imagenes/ojo.png" style="width:15px;"  onclick="irAImprimirFacturaClayma(\''+datos[contador]["numero"]+'\', '+document.getElementById("anio").value+')"></td>';
 						/*
@@ -296,7 +397,7 @@ function mostrarCargarListadoFacturas()
 						}
 						else*/
 						{
-							contenido += '<td align="center"'+fondo+'><input type="image" value="" src="imagenes/ojo.png" style="width:15px;"  onclick="irAImprimirFacturaClayma(\''+datos[contador]["numero"]+'\', '+document.getElementById("anio").value+')"></td>';
+							contenido += '<td align="center"'+fondo+'><input type="image" value="" src="imagenes/ojo.png" style="width:15px;"  onclick="irAImprimirFacturaClayma(\''+datos[contador]["numeroFacturaCompleto"]+'\')"></td>';
 						}
 					}
 					else
@@ -309,7 +410,7 @@ function mostrarCargarListadoFacturas()
 						else*/
 						{
 							
-							contenido += '<td align="center"'+fondo+'><input type="image" value="" src="imagenes/ojo.png" style="width:15px;"  onclick="irAImprimirFactura(\''+datos[contador]["numero"]+'\', '+document.getElementById("anio").value+')"></td>';
+							contenido += '<td align="center"'+fondo+'><input type="image" value="" src="imagenes/ojo.png" style="width:15px;"  onclick="irAImprimirFactura(\''+datos[contador]["numeroFacturaCompleto"]+'\')"></td>';
 						}
 						
 						
@@ -324,7 +425,7 @@ function mostrarCargarListadoFacturas()
 					let soloFecha = datos[contador]["fecha"]["date"].split(" ")[0];
 					//let fechaJS = new Date(soloFecha); 
 
-					if (datos[contador]["facRecDiferencia"] != true && datos[contador]["facRecSustitucion"] != true && soloFecha>fechaCambioVerifactu)
+					if (datos[contador]["facRecDiferencia"] != true && datos[contador]["facRecSustitucion"] != true && soloFecha>fechaCambioVerifactu && (datos[contador]["serieFactura"]||"").trim() != 'NEG'  && (datos[contador]["serieFactura"]||"").trim() != 'AB')
 					{
 						contenido += '<td align="center"><input type="image" id="'+datos[contador]["numeroFacturaCompleto"]+'_crearFacDif" value="" src="imagenes/crear.png" style="width:15px;"   onclick="crearFacRecDiferencia(\''+datos[contador]["numeroFacturaCompleto"]+'\')"></td>';
 						contenido += '<td align="center"><input type="image" id="'+datos[contador]["numeroFacturaCompleto"]+'_crearFacSust" value="" src="imagenes/crear.png" style="width:15px;"  onclick="crearFacRecSustitucion(\''+datos[contador]["numeroFacturaCompleto"]+'\')"></td>';
@@ -338,22 +439,21 @@ function mostrarCargarListadoFacturas()
 					{
 						if (datos[contador]["facRecDiferencia"]==true)//FACTURA RECITIFICATIVA POR DIFERENCIA
 						{					
-							contenido += '<td align="center" onclick="irAImprimirFacRec('+datos[contador]["numero"]+',\''+datos[contador]["facRec"]+'\')">'+datos[contador]["facRec"]+'</td>';					
+							contenido += '<td align="center" onclick="'+(document.getElementById("clienteOrigen").checked ? "irAImprimirFacturaClayma" : "irAImprimirFactura")+'(\''+datos[contador]["numFacRec"]+'\')">'+datos[contador]["numFacRec"]+'</td>';					
 							contenido += '<td align="center"></td>';
 						}
 						else if (datos[contador]["facRecSustitucion"]==true)//FACTURA RECITIFICATIVA POR SUSTITUCION
 						{												
 							contenido += '<td align="center"></td>';							
-							contenido += '<td align="center" onclick="irAImprimirFacRec('+datos[contador]["numero"]+',\''+datos[contador]["facRec"]+'\')">'+datos[contador]["facRec"]+'</td>';					
+							contenido += '<td align="center" onclick="'+(document.getElementById("clienteOrigen").checked ? "irAImprimirFacturaClayma" : "irAImprimirFactura")+'(\''+datos[contador]["numFacRec"]+'\')">'+datos[contador]["numFacRec"]+'</td>';					
 						}						
 					}
 					
 					
 					//ABONO
-					if (datos[contador]["abono"]==true)
+					if (datos[contador]["facNeg"]==true)
 					{
-						var anioAbono = datos[contador]["anioAbono"]-2000;
-						contenido += '<td align="center" style="cursor:pointer;" onclick="irAImprimirAbono('+datos[contador]["numero"]+','+datos[contador]["numAbono"]+','+datos[contador]["anioAbono"]+')">'+datos[contador]["numAbono"]+'/'+anioAbono+'</td>';
+						contenido += '<td align="center" onclick="'+(document.getElementById("clienteOrigen").checked ? "irAImprimirFacturaClayma" : "irAImprimirFactura")+'(\''+datos[contador]["numFacNeg"]+'\')">'+datos[contador]["numFacNeg"]+'</td>';
 					}/*
 					else if (mostrarCrearAbono)
 					{
@@ -439,7 +539,7 @@ function listadoFacturas_Sumatorio() //js_facturaSinCobrar
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarListadoFacturas_Sumatorio;
-		peticionUnica1.open("POST","ajax/mostrarFacturasVisualizarSumatorio.php",false);
+		peticionUnica1.open("POST", document.getElementById("clienteOrigen").checked ? "ajax/cargarFacturacionClayma.php" : "ajax/cargarFacturacion.php", false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaListadoFacturas_Sumatorio();
 		peticionUnica1.send(query_string);
@@ -448,10 +548,19 @@ function listadoFacturas_Sumatorio() //js_facturaSinCobrar
 
 function consultaListadoFacturas_Sumatorio()
 {	
-	var consulta = "accion=listadoFacturas_Sumatorio";	
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');
-	consulta += "&clayma=" + document.getElementById("clienteOrigen").checked;
-	consulta += "&anioSeleccionado=" + document.getElementById("anio").value; 
+	var consulta = "accion=cargarFacturacion";
+
+	var campos = ['aPagarSumatorio', 'precioNetoSumatorio'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	if (document.getElementById("agenteComercial").checked==true)
+	{
+		consulta += "&joins=" + encodeURIComponent(JSON.stringify(['tabla2','tabla3']));
+	}
+
+	var datosFiltros = construirFiltrosListadoFacturas();
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(datosFiltros.filtrosOperadores));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(datosFiltros.filtros));
 	
 	return consulta;	
 }
@@ -462,17 +571,17 @@ function mostrarListadoFacturas_Sumatorio()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
-				
-				document.getElementById("sumatorioApagar").innerHTML = "Total a Pagar: " + Number(datos[0]["aPagar"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' € | Precio Neto: '+ Number(datos[0]["precioNeto"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €';				
+				document.getElementById("sumatorioApagar").innerHTML = "Total a Pagar: " + Number(datos[0]["aPagarSumatorio"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' € | Precio Neto: '+ Number(datos[0]["precioNetoSumatorio"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €';				
 								
 			}
 			peticionUnica1 = null;
@@ -485,26 +594,26 @@ function mostrarListadoFacturas_Sumatorio()
 
 function gestionExportarExcelFacturaCibeles() //js_facturas
 {
-	/*document.getElementById("exportarCliente").value = document.getElementById("buscarCliente").options[document.getElementById("buscarCliente").selectedIndex].text;
-	document.getElementById("exportarFechaInicio").value = document.getElementById("buscarFechaInicio").value;
-	document.getElementById("exportarFechaFin").value = document.getElementById("buscarFechaFin").value;
-	document.getElementById("exportarOrdenarPor").value = document.getElementById("orden").value;
-	document.getElementById("exportarDesc").value = document.getElementById("ordenDesc").checked;*/
-	
-	
+	var datosFiltros = construirFiltrosListadoFacturas();
+	var orden = document.getElementById("ordenBuscar").value;
+	var desc = document.getElementById("ordenDesc").checked;
+
 	if (document.getElementById("agenteComercial").checked==true)
 	{
 		document.getElementById("exportarACClayma").value = document.getElementById("clienteOrigen").checked;
-		document.getElementById("exportarACCondiciones").value = laCondicion;
-		document.getElementById("exportarACAnioSeleccionado").value = document.getElementById("anio").value
-		//alert(laCondicion);
+		document.getElementById("exportarACFiltros").value = JSON.stringify(datosFiltros.filtros);
+		document.getElementById("exportarACFiltrosOperadores").value = JSON.stringify(datosFiltros.filtrosOperadores);
+		document.getElementById("exportarACOrden").value = orden;
+		document.getElementById("exportarACDesc").value = desc;
 		document.getElementById("formExportarAgenteComercialExcel").submit();			
 	}
 	else
 	{
 		document.getElementById("exportarClayma").value = document.getElementById("clienteOrigen").checked;
-		document.getElementById("exportarCondiciones").value = laCondicion;
-		document.getElementById("exportarAnioSeleccionado").value = document.getElementById("anio").value
+		document.getElementById("exportarFiltros").value = JSON.stringify(datosFiltros.filtros);
+		document.getElementById("exportarFiltrosOperadores").value = JSON.stringify(datosFiltros.filtrosOperadores);
+		document.getElementById("exportarOrden").value = orden;
+		document.getElementById("exportarDesc").value = desc;
 		document.getElementById("formExportarExcel").submit();
 	}
 	
@@ -581,36 +690,8 @@ function mostrarCrearAbonoFactura()
 	}						
 }
 
-function irAImprimirAbono(numFactura, numAbono, anioAbono) //js_facturas
-{	
-	if (document.getElementById(numFactura+"_clayma").checked)
-	{
-		document.getElementById("imprimirNumFacturaAbonoClayma").value =numAbono;
-		document.getElementById("imprimirAnioSeleccionadoClayma").value = anioAbono;
-		document.getElementById("formImprimirAbonoClayma").submit();
-	}
-	else
-	{
-		document.getElementById("imprimirNumFacturaAbono").value =numAbono;
-		document.getElementById("imprimirAnioSeleccionado").value = anioAbono;
-		document.getElementById("formImprimirAbono").submit();
-	}
-}
-
-function irAImprimirFacRec(numFactura, numeroFacRecCompleto ) 
-{	
-	if (document.getElementById(numFactura+"_clayma").checked)
-	{
-		document.getElementById("imprimirNumFacturaRecClayma").value = numeroFacRecCompleto;
-		
-		document.getElementById("formImprimirFacRecClayma").submit();
-	}
-	else
-	{
-		document.getElementById("imprimirNumFacturaRec").value = numeroFacRecCompleto;		
-		document.getElementById("formImprimirFacRec").submit();
-	}
-}
+// irAImprimirAbono/irAImprimirFacRec: eliminadas (el listado ahora usa irAImprimirFactura/irAImprimirFacturaClayma directamente).
+// Pendiente: mostrarCrearAbonoFactura() todavia llama a irAImprimirAbono(numFactura, numAbono, anioAbono) - queda roto hasta migrar crearAbonoFactura.php.
 
 function modificarObservacionFactura() //js_facturas
 {
@@ -834,36 +915,30 @@ function imprimirFacturaRango()
 
 function gestionAgenteComercial()
 {
+
 	var contenido;
 	if (document.getElementById("agenteComercial").checked==true)
 	{
-		contenido = '<option value=" t1.cliente">Cliente</option>';
-		contenido += '<option value="t1.nombre" selected>Comercial</option>';
-		contenido += '<option value="t1.numero">Factura</option>';
-		contenido += '<option value="t1.fechaPago">Fecha de Pago</option>';
-		contenido += '<option value="t1.formaPagoReal">Forma de Pago</option>';
-		contenido += '<option value="t1.aPagar">Importe</option>';
-		contenido += '<option value="t1.liquitado">Liquidado</option>';
+		contenido = '<option value="cliente">Cliente</option>';
+		contenido += '<option value="nombreComercial" selected>Comercial</option>';
+		contenido += '<option value="numero">Factura</option>';
+		contenido += '<option value="fechaPago">Fecha de Pago</option>';
+		contenido += '<option value="formaPagoReal">Forma de Pago</option>';
+		contenido += '<option value="aPagar">Importe</option>';
+		contenido += '<option value="liquidado">Liquidado</option>';
 		
 		document.getElementById("buscarCampo").innerHTML=contenido;
 		
 		
 		contenido=null;
-		/*contenido = '<option value=" t1.cliente">Cliente</option>';
-		contenido += '<option value="t3.nombre">Comercial</option>';*/
-		contenido += '<option value="t1.nombre, t1.cliente,t1.tipo desc, t1.fecha" selected>Com y Cli</option>';
-		/*contenido += '<option value="t1.numero">Factura</option>';
-		contenido += '<option value="t1.fechaPago">Fecha de Pago</option>';
-		contenido += '<option value="t1.formaPagoReal">Forma de Pago</option>';
-		contenido += '<option value="t1.aPagar">Importe</option>';
-		contenido += '<option value="t1.liquitado">Liquidado</option>';	*/
+		contenido += '<option value="ordenAgentesComerciales_ComercialCliente" selected>Com y Cli</option>';
 		
 		document.getElementById("ordenBuscar").innerHTML=contenido;
 		
 		
 		
 								
-		buscarFactura();
+		cargarListadoAgenteComercial();
 		
 		document.getElementById("btnImprimir").style.visibility = "hidden";
 		
@@ -871,30 +946,28 @@ function gestionAgenteComercial()
 	}
 	else
 	{
-		contenido += '<option value="t1.descripcion">Campaña</option>';
-		contenido += '<option value="t1.cliente">Cliente</option>';
-		contenido += '<option value="t1.numero"  selected>Factura</option>';		
-		contenido += '<option value="t1.presupuesto">Presupuesto</option>';
-		contenido += '<option value="t1.precioTotal">Total</option>';
-		contenido += '<option value="t1.aPagar">Total a Pagar</option>';
+		contenido = '<option value="numero"  selected>Factura</option>';
+		contenido += '<option value="descripcion">Campaña</option>';
+		contenido += '<option value="cliente">Cliente</option>';
+		contenido += '<option value="presupuesto">Presupuesto</option>';
+		contenido += '<option value="precioTotal">Total</option>';
+		contenido += '<option value="aPagar">Total a Pagar</option>';
 		
 		document.getElementById("buscarCampo").innerHTML=contenido;
 		
 		
-		contenido=null;
-		contenido = '<option value="t1.descripcion">Campaña</option>';		
+		contenido = '<option value="descripcion">Campaña</option>';		
 		contenido += '<option value="cliente">Cliente</option>';
 		contenido += '<option value="numero" selected>Factura</option>';
 		contenido += '<option value="fecha">Fecha Factura</option>';
-		contenido += '<option value="t1.fechaPago">Fecha Pago</option>';
-		contenido += '<option value="presupuesto">Presupuesto</option>';		
+		contenido += '<option value="fechaPago">Fecha Pago</option>';
 		contenido += '<option value="presupuesto">Presupuesto</option>';
 		contenido += '<option value="precioTotal">Total</option>';
 		contenido += '<option value="aPagar">Total a Pagar</option>';
 		
 		document.getElementById("ordenBuscar").innerHTML=contenido;
 		
-		buscarFactura();
+		cargarListadoFacturas();
 		
 		
 		
@@ -913,7 +986,7 @@ function cargarListadoAgenteComercial()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarListadoAgenteComercial;
-		peticionUnica1.open("POST","ajax/mostrarAgenteVisualizar.php",false);
+		peticionUnica1.open("POST", document.getElementById("clienteOrigen").checked ? "ajax/cargarFacturacionClayma.php" : "ajax/cargarFacturacion.php", false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarListadoAgenteComercial();
 		peticionUnica1.send(query_string);
@@ -922,14 +995,36 @@ function cargarListadoAgenteComercial()
 
 function consultaCargarListadoAgenteComercial()
 {	
-	var consulta = "accion=cargarListadoAgenteComercial";
-	
-	
-	consulta += "&clayma=" + document.getElementById("clienteOrigen").checked;
-	
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');
-	consulta += "&anio=" + document.getElementById("anio").value;
-	
+	var consulta = "accion=cargarFacturacion";
+
+	var campos = [
+		'numeroFacturaCompleto',
+		'numero',
+		'nombreComercial',
+		'cliente',
+		'fecha',
+		'precioNeto',
+		'formaPagoReal',
+		'fechaPago',
+		'liquidado'
+	];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(['tabla2','tabla3']));
+
+	var datosFiltros = construirFiltrosListadoFacturas();
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(datosFiltros.filtrosOperadores));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(datosFiltros.filtros));
+
+	var orden = document.getElementById("ordenBuscar").value;
+	var desc = document.getElementById("ordenDesc").checked;
+	var order = [
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	origenVerificacion = document.getElementById("clienteOrigen").checked;
+
 	return consulta;	
 }
 
@@ -939,14 +1034,15 @@ function mostrarCargarListadoAgenteComercial()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText.trim());
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				
@@ -956,8 +1052,7 @@ function mostrarCargarListadoAgenteComercial()
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';					
 				contenido += '<th>Comercial</th>';
 				contenido += '<th>Cliente</th>';
-				contenido += '<th>Numero</th>';
-				contenido += '<th>Tipo</th>';
+				contenido += '<th>Factura</th>';
 				contenido += '<th>Fecha</th>';
 				contenido += '<th>Importe</th>';
 				contenido += '<th>Pagado</th>';
@@ -978,16 +1073,9 @@ function mostrarCargarListadoAgenteComercial()
 						contraste = ' class="tablaContenidoColor" ';
 					}					
 					
-					//contenido += '<tr ' + contraste + '>';
-					
-					
 					contenido += '<tr>';
 					
-					
-					
-					
-						
-					if (datos[contador]["origen"]==1)
+					if (document.getElementById("clienteOrigen").checked)
 					{
 						contenido += '<td align="center" style="visibility: hidden;display: none;"><input type="checkbox" id="'+datos[contador]["numero"]+'_clayma" onclick="return false;" checked  ></input></td>';
 					}
@@ -996,15 +1084,9 @@ function mostrarCargarListadoAgenteComercial()
 						contenido += '<td align="center" style="visibility: hidden;display: none;"><input type="checkbox"  id="'+datos[contador]["numero"]+'_clayma" onclick="return false;"   ></input></td>';
 					}	
 					
-					contenido += '<td id="'+datos[contador]["numero"]+'_nombre">'+datos[contador]["nombre"]+'</td>';
+					contenido += '<td id="'+datos[contador]["numero"]+'_nombre">'+datos[contador]["nombreComercial"]+'</td>';
 					contenido += '<td id="'+datos[contador]["numero"]+'_cliente">'+datos[contador]["cliente"]+'</td>';
-					contenido += '<td id="'+datos[contador]["numero"]+'_numero">'+datos[contador]["numero"]+'</td>';
-					
-					contenido += '<td id="'+datos[contador]["numero"]+'_tipo">'+datos[contador]["tipo"]+'</td>';
-					
-					
-					
-					
+					contenido += '<td id="'+datos[contador]["numero"]+'_numero">'+datos[contador]["numeroFacturaCompleto"]+'</td>';
 					
 					var dia = datos[contador]["fecha"]["date"].substr(8,2);
 					var mes = datos[contador]["fecha"]["date"].substr(5,2);
@@ -1037,16 +1119,13 @@ function mostrarCargarListadoAgenteComercial()
 						contenido += '<td id="'+datos[contador]["numero"]+'_fechaPago" class=""></td>';
 					}					
 					
-					//var anioAbono = datos[contador]["anioAbono"]-2000;
-					
-					
 					if (datos[contador]["liquidado"]==1)
 					{
-						contenido += '<td><input type="checkbox" id="'+datos[contador]["numero"]+'_'+datos[contador]["tipo"]+'_liquidado"  value="" onclick="cambiarValorLiquidado(this.id)" style="" checked> </input></td>';	
+						contenido += '<td><input type="checkbox" id="'+datos[contador]["numeroFacturaCompleto"]+'_liquidado"  value="" onclick="cambiarValorLiquidadoFacturacion(this.id)" style="" checked> </input></td>';	
 					}
 					else
 					{
-						contenido += '<td><input type="checkbox" id="'+datos[contador]["numero"]+'_'+datos[contador]["tipo"]+'_liquidado"  value="" onclick="cambiarValorLiquidado(this.id)" style="" > </input></td>';	
+						contenido += '<td><input type="checkbox" id="'+datos[contador]["numeroFacturaCompleto"]+'_liquidado"  value="" onclick="cambiarValorLiquidadoFacturacion(this.id)" style="" > </input></td>';	
 					}
 					
 					
@@ -1060,6 +1139,51 @@ function mostrarCargarListadoAgenteComercial()
 			peticionUnica1=null;
 			listadoFacturas_Sumatorio();
 			
+		}
+	}						
+}
+
+function cambiarValorLiquidadoFacturacion(id)
+{
+	var numeroFacturaCompleto = id.substring(0, id.length - "_liquidado".length);
+
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCambiarValorLiquidadoFacturacion;
+		peticionUnica1.open("POST","ajax/cambiarValorLiquidadoFacturacion.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCambiarValorLiquidadoFacturacion(id, numeroFacturaCompleto);
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCambiarValorLiquidadoFacturacion(id, numeroFacturaCompleto)
+{	
+	var consulta = "accion=cambiarValorLiquidadoFacturacion";
+
+	consulta += "&numeroFacturaCompleto=" + encodeURIComponent(numeroFacturaCompleto);
+	consulta += "&clayma=" + document.getElementById("clienteOrigen").checked;
+	consulta += "&liquidado=" + document.getElementById(id).checked;
+
+	return consulta;	
+}
+
+function mostrarCambiarValorLiquidadoFacturacion()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+
+			peticionUnica1=null;
 		}
 	}						
 }

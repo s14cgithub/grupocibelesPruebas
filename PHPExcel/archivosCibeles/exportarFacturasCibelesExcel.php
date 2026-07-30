@@ -1,5 +1,10 @@
 <?php
 
+ob_start();
+error_reporting(E_ALL);
+ini_set('display_errors', FALSE);
+ini_set('display_startup_errors', FALSE);
+
 //require("../../../../comprobarSesion.php");
 
 if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
@@ -15,89 +20,33 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	$orden = $_POST["exportarOrdenarPor"];	
 	$desc = $_POST["exportarDesc"];*/
 	$clayma = $_POST["exportarClayma"];
-	$condicion = $_POST["exportarCondiciones"];
-	$anioSeleccionado = $_POST["exportarAnioSeleccionado"];
-	
-	
-	
-	/*$condicion = "";
-	
-	
-	$nombreCliente2="";
-	
-	$datosNombre = explode(' - ',$nombreCliente);
-	
-	$contador=0;
-	
-	while ($contador<count($datosNombre)-1)
-	{
-		if ($nombreCliente2=="")
-		{
-			$nombreCliente2 = $datosNombre[$contador];
-		}
-		else
-		{
-			$nombreCliente2 = $nombreCliente2." - ".$datosNombre[$contador];
-		}
-		
-		$contador++;
-	}
-	
-	//echo ($nombreCliente2);
-	
-	if ($nombreCliente!="Todos")
-	{
-		$condicion = " where t1.cliente='".$nombreCliente2."'";
-	}
-	if ($fechaInicio!="")
-	{
-		if ($condicion=="")
-		{
-			$condicion = " where t1.fecha >= '".$fechaInicio."'";
-		}
-		else
-		{
-			$condicion = $condicion." and t1.fecha >= '".$fechaInicio."'";
-		}
-	}
-	
-	if ($fechaFin!="")
-	{
-		if ($condicion=="")
-		{
-			$condicion = " where t1.fecha <= '".$fechaFin."'";
-		}
-		else
-		{
-			$condicion = $condicion." and t1.fecha <= '".$fechaFin."'";
-		}
-	}
-	
-	
-	
-	
-	$condicion = $condicion." order by t1.".$orden;
-	
-	if ($desc=="true")
-	{
-		$condicion = $condicion." desc";
-	}*/
-	
-	
+	$filtros = isset($_POST["exportarFiltros"]) ? json_decode($_POST["exportarFiltros"], true) : array();
+	$filtrosOperadores = isset($_POST["exportarFiltrosOperadores"]) ? json_decode($_POST["exportarFiltrosOperadores"], true) : array();
+	$orden = isset($_POST["exportarOrden"]) ? $_POST["exportarOrden"] : '';
+	$desc = isset($_POST["exportarDesc"]) ? $_POST["exportarDesc"] : 'false';
 
-	
-	//echo $clayma;
+	$order = array(array('campo' => $orden, 'dir' => ($desc=="true" ? 'DESC' : 'ASC')));
+
+	$camposFactura = ['numeroFacturaCompleto','idCodigoCliente','cliente','fecha','precioNeto','iva','precioTotal','presupuesto'];
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
 	if ($clayma=="true")
 	{
-		$resultado=  mostrarFacturasClayma($conexion,$condicion,$anioSeleccionado);
+		$res = mostrarFacturacionClayma($conn, $bbddSql, $camposFactura, [], $filtros, $filtrosOperadores, $order);
 		$nombreArchivo = 'Clayma_'.date('d-m-Y').'.xlsx';
 	}
 	else
 	{
-		$resultado=  mostrarFacturas($conexion,$condicion,$anioSeleccionado);
-
+		$res = mostrarFacturacion($conn, $bbddSql, $camposFactura, [], $filtros, $filtrosOperadores, $order);
 		$nombreArchivo = 'Cibeles_'.date('d-m-Y').'.xlsx';
 	}
+
+	sqlsrv_close($conn);
+
+	$resultado = $res['datos'];
 	
 
 	
@@ -135,9 +84,6 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
  */
 
 /** Error reporting */
-error_reporting(E_ALL);
-ini_set('display_errors', TRUE);
-ini_set('display_startup_errors', TRUE);
 date_default_timezone_set('Europe/London');
 
 if (PHP_SAPI == 'cli')
@@ -177,11 +123,13 @@ $objPHPExcel->setActiveSheetIndex(0)
 $contador=2;
 while($contador-2 < count($resultado))
 {
+	$fechaFactura = ($resultado[$contador-2]["fecha"]!=null) ? $resultado[$contador-2]["fecha"]->format('d/m/Y') : '';
+
 	$objPHPExcel->setActiveSheetIndex(0)
-            ->setCellValue('A'.$contador, $resultado[$contador-2]["numero"])
-			->setCellValue('B'.$contador, $resultado[$contador-2]["codigo_saldo"])
+            ->setCellValue('A'.$contador, $resultado[$contador-2]["numeroFacturaCompleto"])
+			->setCellValue('B'.$contador, $resultado[$contador-2]["idCodigoCliente"])
             ->setCellValue('C'.$contador, $resultado[$contador-2]["cliente"])			
-			->setCellValue('D'.$contador, $resultado[$contador-2]["fecha"])
+			->setCellValue('D'.$contador, $fechaFactura)
 			->setCellValue('E'.$contador, $resultado[$contador-2]["precioNeto"])
 			->setCellValue('F'.$contador, $resultado[$contador-2]["iva"])
 			->setCellValue('G'.$contador, $resultado[$contador-2]["precioTotal"])
@@ -207,6 +155,7 @@ $objPHPExcel->setActiveSheetIndex(0);
 	
 	
 // Redirect output to a client’s web browser (Excel2007)
+ob_end_clean();
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');
 header('Cache-Control: max-age=0');

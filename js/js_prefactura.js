@@ -17,7 +17,7 @@ function verProvisionPrefactura() //js_prefactura
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerProvisionPrefactura;
-		peticionUnica1.open("POST","ajax/verProvisionPreFactura.php",false);
+		peticionUnica1.open("POST","ajax/cargarProvisionDeFondos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerProvisionPrefactura();
 		peticionUnica1.send(query_string);
@@ -26,61 +26,43 @@ function verProvisionPrefactura() //js_prefactura
 
 function consultaVerProvisionPrefactura()
 {	
-	var consulta = "accion=verProvision";	
-	consulta += "&presupuesto="+document.getElementById("numPresupuesto").innerHTML;	
-	
+	var consulta = "accion=cargarProvisionDeFondos";
+
+	var campos = ['importeTotal'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+		presupuesto: document.getElementById("numPresupuesto").innerHTML,
+		cobrada: 2,
+		tipo: 3,
+		facCompletaAplicada: 1
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
-function mostrarVerProvisionPrefactura()
+function mostrarVerProvisionPrefactura() 
 {
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{
-				var contenido = "";
-				var datos = new Array;
-				var importeTotal = 0;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
-				
-				if (datos != "")
-				{	
-					if (datos.length<=0)
-					{
-						//alert("No hay ningun registro");
-						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
-					}
-					else
-					{							
-						var contador = 0;
-						while  (contador<datos.length)
-						{
-							//contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["importe"]+'</option>';	
-							importeTotal = importeTotal + parseFloat(datos[contador]["importe"]);
-							contador++;
-						}							
-						//document.getElementById("provision").innerHTML = contenido;						
-					}
-				}
-				//document.getElementById("provision").innerHTML = contenido;
+			{			
+				var datos = res.datos;
+				var importeTotal = parseFloat(datos[0]["importeTotal"]);
+
 				document.getElementById("provisionTotal").value = importeTotal.toFixed(2);
 			}
-			peticionUnica1=null;
+			peticionUnica1 = null;
+
 		}
-	}						
+	}
 }
 
 function verDatosUnPresupuesto() //js_prefactura
@@ -89,36 +71,101 @@ function verDatosUnPresupuesto() //js_prefactura
 
 	if(peticionUnica1)
 	{							
-		peticionUnica1.onreadystatechange = mostrarVerDatosUnPresupuesto;
-		peticionUnica1.open("POST","ajax/verDatosUnPresupuesto.php",false);
+		peticionUnica1.onreadystatechange = mostrarVerClaymaUnPresupuesto;
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaVerDatosUnPresupuesto();
+		var query_string = consultaVerClaymaUnPresupuesto();
 		peticionUnica1.send(query_string);
 	}
 }
 
-function consultaVerDatosUnPresupuesto()
+function consultaVerClaymaUnPresupuesto()
 {	
-	var consulta = "accion=verDatosUnPresupuesto";
-	consulta += "&numPresupuesto=" + document.getElementById("numPresupuesto").innerHTML;	
+	var consulta = "accion=cargarPresupuestos";
+
+	var campos = ['clayma'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+		presupuesto: document.getElementById("numPresupuesto").innerHTML
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	return consulta;	
+}
+
+function mostrarVerClaymaUnPresupuesto()
+{
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var clayma = (res.datos.length>0 && (res.datos[0]["clayma"]=="1" || res.datos[0]["clayma"]==1));
+
+				peticionUnica1=null;
+
+				
+				verDatosUnPresupuesto2(clayma);
+			}
+		}
+	}
+}
+
+function verDatosUnPresupuesto2(clayma)
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarVerDatosUnPresupuesto;
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaVerDatosUnPresupuesto(clayma);
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaVerDatosUnPresupuesto(clayma)
+{	
+	var consulta = "accion=cargarPresupuestos";
+
+	var campos = ['clayma','fecha','pedcli','cantidad','campana','detallada'];
+	campos.push(clayma ? 'codigo_saldoClayma' : 'codigo_saldo');
+	campos.push(clayma ? 'idFormaPagoClienteClayma' : 'idFormaPagoCliente');
+	campos.push(clayma ? 'nuestraCuentaClayma' : 'nuestraCuenta');
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [clayma ? 'tabla8' : 'tabla7'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {
+		presupuesto: document.getElementById("numPresupuesto").innerHTML
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
 function mostrarVerDatosUnPresupuesto()
 {
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
-				
+				var datos = res.datos;
+
 				if (datos[0]["clayma"]=="1")
 				{
 					document.getElementById("clienteOrigen").checked = true;
@@ -127,11 +174,11 @@ function mostrarVerDatosUnPresupuesto()
 				{
 					document.getElementById("clienteOrigen").checked = false;
 				}
-				
-				document.getElementById("clientes").value = datos[0]["codigo_saldo"];
+				cargarListadoClientesPrefactura();
 				
 				valorNumero = datos[0]["codigo_saldo"];
 				
+				document.getElementById("clientes").value = datos[0]["codigo_saldo"];
 				document.getElementById("fechaFactura").value = datos[0]["fecha"]["date"].substring(0,10);
 				document.getElementById("pedidoCliente").value = datos[0]["pedcli"];
 				document.getElementById("cantidad").value = datos[0]["cantidad"];
@@ -163,8 +210,12 @@ function mostrarVerDatosUnPresupuesto()
 				}
 				else*/
 				{
-					document.getElementById("botonModificarPresupuesto").style.display = "table-row";
-					document.getElementById("botonModificarPresupuesto").style.visibility = "visible";
+					var botonModificarPresupuesto = document.getElementById("botonModificarPresupuesto");
+					if (botonModificarPresupuesto)
+					{
+						botonModificarPresupuesto.style.display = "inline-block";
+						botonModificarPresupuesto.style.visibility = "visible";
+					}
 					
 					//document.getElementById("botonEmitirPreFactura").style.display = "none";					
 					//document.getElementById("botonEmitirPreFactura").style.visibility = "hidden";
@@ -209,12 +260,14 @@ function mostrarCopiarPresupuestoAFacturaDetalleTemporal()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
+			{			
 				cargarDetallesPrefactura();
 			}
 			peticionUnica1=null;
@@ -233,16 +286,7 @@ function cambiarClienteEnPrefactura()//presupuestoCambioModal //js_prefactura
 	
 	if (confirm('¿Cambiar Cliente?')) 
 	{
-		peticionUnica1=crearComunicacion(peticionUnica1);
-
-		if(peticionUnica1)
-		{							
-			peticionUnica1.onreadystatechange = mostrarCambiarClienteEnPrefactura;
-			peticionUnica1.open("POST","ajax/cambiarClienteEnPFClayma.php",false);
-			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-			var query_string = consultaCambiarClienteEnPrefactura();
-			peticionUnica1.send(query_string);
-		}
+		buscarDatosClienteParaCambio();
 		
 		clienteInicial = document.getElementById("clientes").value;
 	}
@@ -255,55 +299,197 @@ function cambiarClienteEnPrefactura()//presupuestoCambioModal //js_prefactura
 	
 }
 
-function consultaCambiarClienteEnPrefactura()
+function buscarDatosClienteParaCambio()
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarBuscarDatosClienteParaCambio;
+		if (document.getElementById("clienteOrigen").checked)
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaBuscarDatosClienteParaCambio();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaBuscarDatosClienteParaCambio()
 {	
-	var consulta = "accion=cambiarClienteEnPFClayma";	
-	
-	consulta += "&numPresupuesto=" + document.getElementById("numPresupuesto").innerHTML;	
-	consulta += "&idCliente=" + document.getElementById("clientes").value;		
-	consulta += "&clayma=" + document.getElementById("clienteOrigen").checked;
-	
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['nombre_empresa','direccion','localidad','codigo_postal','codigo'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { codigo: document.getElementById("clientes").value };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
-function mostrarCambiarClienteEnPrefactura()
+function mostrarBuscarDatosClienteParaCambio()
 {
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="" || res.datos.length<=0)
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error!="" ? res.error : "No se ha encontrado el cliente");
 			}
 			else
-			{				
+			{
+				var cliente = res.datos[0];
+				peticionUnica1 = null;
+				modificarPresupuestoClienteCambio(cliente);
 			}
-			comprobarIvaCliente(document.getElementById("clientes").value);
 		}
-		peticionUnica1 = null;
 	}						
 }
 
-function comprobarIvaCliente(id) //js_prefactura
+function modificarPresupuestoClienteCambio(cliente)
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = function() { mostrarModificarPresupuestoClienteCambio(cliente); };
+		peticionUnica1.open("POST","ajax/modificarPresupuesto.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaModificarPresupuestoClienteCambio(cliente);
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaModificarPresupuestoClienteCambio(cliente)
+{	
+	var consulta = "accion=modificarRegistro";
+
+	var clayma = document.getElementById("clienteOrigen").checked ? 1 : 0;
+
+	var datos = {
+		cliente: cliente["nombre_empresa"],
+		codigoCliente: cliente["codigo"],
+		direccion: cliente["direccion"],
+		poblacion: cliente["localidad"],
+		cp: cliente["codigo_postal"],
+		clayma: clayma
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = { presupuesto: document.getElementById("numPresupuesto").innerHTML };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	return consulta;	
+}
+
+function mostrarModificarPresupuestoClienteCambio(cliente)
+{
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				peticionUnica1 = null;
+				modificarProvisionFondoClienteCambio();
+			}
+		}
+	}						
+}
+
+function modificarProvisionFondoClienteCambio()
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarModificarProvisionFondoClienteCambio;
+		peticionUnica1.open("POST","ajax/modificarProvisionFondo.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaModificarProvisionFondoClienteCambio();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaModificarProvisionFondoClienteCambio()
+{	
+	var consulta = "accion=modificarProvisionFondo";
+	consulta += "&pantallaOrigen=prefactura";
+
+	var clayma = document.getElementById("clienteOrigen").checked ? 1 : 0;
+
+	var datos = {
+		idCliente: document.getElementById("clientes").value,
+		clayma: clayma
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = { presupuesto: document.getElementById("numPresupuesto").innerHTML };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	return consulta;	
+}
+
+function mostrarModificarProvisionFondoClienteCambio()
+{
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				comprobarIvaCliente();
+			}
+			peticionUnica1 = null;
+		}
+	}						
+}
+
+function comprobarIvaCliente() //js_prefactura
 {
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarComprobarIvaCliente;
-		peticionUnica1.open("POST","ajax/verIvaCliente.php",false);
+		if (document.getElementById("clienteOrigen").checked)
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaComprobarIvaCliente(id);
+		var query_string = consultaComprobarIvaCliente();
 		peticionUnica1.send(query_string);
 	}
 }
-function consultaComprobarIvaCliente(id)
+function consultaComprobarIvaCliente()
 {	
-	var consulta = "accion=verSiTieneFirma";	
-	consulta+="&idCliente="+id;
-	consulta+="&clayma="+document.getElementById("clienteOrigen").checked;
-	
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['sinIva','retencion'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { codigo: document.getElementById("clientes").value };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -313,23 +499,17 @@ function mostrarComprobarIvaCliente()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{	
-				var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
-				
-				if (datos != "")
+				var datos = res.datos;
+
+				if (datos.length>0)
 				{
 					if (datos[0]["sinIva"]==1)
 					{
@@ -372,37 +552,87 @@ function noSeFactura2()//js_prefactura
 
 	if(peticionUnica1)
 	{							
-		peticionUnica1.onreadystatechange = mostrarNoSeFactura2;
-		peticionUnica1.open("POST","ajax/modificarNumNoFactura.php",false);
+		peticionUnica1.onreadystatechange = mostrarCargarNumNoFacturaMax;
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaNoSeFactura2();
+		var query_string = consultaCargarNumNoFacturaMax();
 		peticionUnica1.send(query_string);
 	}
 }
-function consultaNoSeFactura2()
+function consultaCargarNumNoFacturaMax()
 {	
-	var consulta = "accion=noSeFactura";	
-	consulta += "&numPresupuesto=" + document.getElementById("numPresupuesto").innerHTML;
-	consulta += "&observacion=" + document.getElementById("observacionNoFacturableModal").value;
-	
+	var consulta = "accion=cargarPresupuestos";
+
+	var campos = ['numNoFacturaMax'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
 	return consulta;	
 }
 
-function mostrarNoSeFactura2()
+function mostrarCargarNumNoFacturaMax()
 {
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert("El numero de la NO factura es: "+peticionUnica1.responseText);		
+				var numNoFactura = res.datos[0]["numNoFacturaMax"] + 1;
+				peticionUnica1 = null;
+				modificarNumNoFactura2(numNoFactura);
+			}
+		}
+	}						
+}
+
+function modificarNumNoFactura2(numNoFactura)
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = function() { mostrarModificarNumNoFactura2(numNoFactura); };
+		peticionUnica1.open("POST","ajax/modificarPresupuesto.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaModificarNumNoFactura2(numNoFactura);
+		peticionUnica1.send(query_string);
+	}
+}
+function consultaModificarNumNoFactura2(numNoFactura)
+{	
+	var consulta = "accion=modificarRegistro";
+
+	var datos = {
+		numNoFactura: numNoFactura,
+		noSeFacturaObservaciones: document.getElementById("observacionNoFacturableModal").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = { presupuesto: document.getElementById("numPresupuesto").innerHTML };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	return consulta;	
+}
+
+function mostrarModificarNumNoFactura2(numNoFactura)
+{
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				alert("El numero de la NO factura es: "+numNoFactura);		
 				gestionarVolverPrefacturaBorrarTemporal(1);
-			}	
+			}
 			peticionUnica1 = null;
 		}
 	}						
@@ -440,7 +670,7 @@ function modificarFacturaTemporal()//presupuestoCambioModal //js_prefactura
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarModificarFacturaTemporal;
-		peticionUnica1.open("POST","ajax/modificarFacturaTemporal.php",false);
+		peticionUnica1.open("POST","ajax/modificarFacturasTemporal.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaModificarFacturaTemporal();
 		peticionUnica1.send(query_string);
@@ -449,151 +679,100 @@ function modificarFacturaTemporal()//presupuestoCambioModal //js_prefactura
 
 function consultaModificarFacturaTemporal()
 {	
-	var consulta = "accion=modificarFacturaTemporal";	
-	
-	consulta += "&numPresupuesto=" + document.getElementById("numPresupuesto").innerHTML;		
-	consulta += "&clayma=" + document.getElementById("clienteOrigen").checked;
-	consulta += "&idCliente=" + document.getElementById("clientes").value;	
-	consulta += "&pedido=" + document.getElementById("pedidoCliente").value;
-	consulta += "&cantidad=" + document.getElementById("cantidad").value;
-	consulta += "&idFormaPago=" + document.getElementById("formaPago").value;
-	consulta += "&campana=" + document.getElementById("campana").value;
-	consulta += "&detallada=" + document.getElementById("detallada").checked;
-	consulta += "&neto=" + document.getElementById("Neto").value;
-	consulta += "&iva=" + document.getElementById("iva").value;
-	consulta += "&irpf=" + document.getElementById("irpf").value;
-	consulta += "&total=" + document.getElementById("total").value;
-	consulta += "&provision=" + document.getElementById("provisionTotal").value;
-	consulta += "&aPagar=" + document.getElementById("aPagar").value;
-	
+	var consulta = "accion=modificarFacturasTemporal";
+
+	var datos = {
+		idCliente: document.getElementById("clientes").value,
+		clayma: document.getElementById("clienteOrigen").checked ? 1 : 0,
+		pedido: document.getElementById("pedidoCliente").value,
+		cantidad: document.getElementById("cantidad").value,
+		formaPago: document.getElementById("formaPago").value,
+		descripcion: document.getElementById("campana").value,
+		detallada: document.getElementById("detallada").checked ? 1 : 0,
+		precioNeto: document.getElementById("Neto").value,
+		iva: document.getElementById("iva").value,
+		irpf: document.getElementById("irpf").value,
+		precioTotal: document.getElementById("total").value,
+		provision: document.getElementById("provisionTotal").value,
+		aPagar: document.getElementById("aPagar").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = { presupuesto: document.getElementById("numPresupuesto").innerHTML };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
 function mostrarModificarFacturaTemporal()
 {
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
-			else
-			{				
-			}			
+			peticionUnica1 = null;
 		}
-		peticionUnica1 = null;
 	}						
 }
 
 function previsualizarFactura() //js_prefactura
 {
-	if (document.getElementById("clienteOrigen").checked)
-	{		
-		document.getElementById("previsualizarClayma_presupuesto").value = document.getElementById("numPresupuesto").innerHTML;		
-		
-		var combo = document.getElementById("clientes");
-		var selected = combo.options[combo.selectedIndex].text;			
-		
-		document.getElementById("previsualizarClayma_cliente").value = selected;
-		document.getElementById("previsualizarClayma_idCliente").value = document.getElementById("clientes").value;		
-		
-		document.getElementById("previsualizarClayma_fecha").value = document.getElementById("fechaFactura").value;
-		document.getElementById("previsualizarClayma_pedido").value = (document.getElementById("pedidoCliente").value);
-		
-		
-		
-		
-		var valor = 0;
-		if (document.getElementById("cantidad").value=="" || document.getElementById("cantidad").value==null)
-		{
-			valor = 0;
-		}
-		else
-		{
-			valor = document.getElementById("cantidad").value;
-		}
-		
-		document.getElementById("previsualizarClayma_cantidad").value = valor;
-		document.getElementById("previsualizarClayma_formaPago").value = document.getElementById("formaPago").options[document.getElementById("formaPago").selectedIndex].text;
-		
-		document.getElementById("previsualizarClayma_nuestraCuenta").value = document.getElementById("numCuenta").value;
-		
-		document.getElementById("previsualizarClayma_campana").value = (document.getElementById("campana").value);
-		
+	document.getElementById("previsualizar_presupuesto").value = document.getElementById("numPresupuesto").innerHTML;		
+	
+	document.getElementById("previsualizar_idCliente").value = document.getElementById("clientes").value;		
+	
+	document.getElementById("previsualizar_fecha").value = document.getElementById("fechaFactura").value;
+	document.getElementById("previsualizar_pedido").value = (document.getElementById("pedidoCliente").value);
+	
+	var valor = 0;
+	if (document.getElementById("cantidad").value=="" || document.getElementById("cantidad").value==null)
+	{
 		valor = 0;
-		if (document.getElementById("detallada").checked)
-		{
-			valor = 1;
-		}
-		
-		document.getElementById("previsualizarClayma_detallada").value = valor;
-		document.getElementById("previsualizarClayma_neto").value = document.getElementById("Neto").value;
-		document.getElementById("previsualizarClayma_iva").value = document.getElementById("iva").value;
-		document.getElementById("previsualizarClayma_irpf").value = document.getElementById("irpf").value;
-		document.getElementById("previsualizarClayma_total").value = document.getElementById("total").value;
-		document.getElementById("previsualizarClayma_provision").value = document.getElementById("provisionTotal").value;
-		document.getElementById("previsualizarClayma_aPagar").value = document.getElementById("aPagar").value;
-					
-		document.getElementById("formPrevisualizarFacturaClayma").submit();
-		
 	}
 	else
 	{
-		document.getElementById("previsualizar_presupuesto").value = document.getElementById("numPresupuesto").innerHTML;		
-		
-		var combo = document.getElementById("clientes");
-		var selected = combo.options[combo.selectedIndex].text;			
-		
-		document.getElementById("previsualizar_cliente").value = selected;
-		document.getElementById("previsualizar_idCliente").value = document.getElementById("clientes").value;		
-		
-		document.getElementById("previsualizar_fecha").value = document.getElementById("fechaFactura").value;
-		document.getElementById("previsualizar_pedido").value = (document.getElementById("pedidoCliente").value);
-		
-		var valor = 0;
-		if (document.getElementById("cantidad").value=="" || document.getElementById("cantidad").value==null)
-		{
-			valor = 0;
-		}
-		else
-		{
-			valor = document.getElementById("cantidad").value;
-		}
-		
-		document.getElementById("previsualizar_cantidad").value = valor;
-		document.getElementById("previsualizar_formaPago").value = document.getElementById("formaPago").options[document.getElementById("formaPago").selectedIndex].text;
-		
-		document.getElementById("previsualizar_nuestraCuenta").value = document.getElementById("numCuenta").value;
-		
-		document.getElementById("previsualizar_campana").value = (document.getElementById("campana").value);
-		
-		valor = 0;
-		if (document.getElementById("detallada").checked)
-		{
-			valor = 1;
-		}
-		
-		document.getElementById("previsualizar_detallada").value = valor;
-		document.getElementById("previsualizar_neto").value = document.getElementById("Neto").value;
-		document.getElementById("previsualizar_iva").value = document.getElementById("iva").value;
-		document.getElementById("previsualizar_irpf").value = document.getElementById("irpf").value;
-		document.getElementById("previsualizar_total").value = document.getElementById("total").value;
-		document.getElementById("previsualizar_provision").value = document.getElementById("provisionTotal").value;
-		document.getElementById("previsualizar_aPagar").value = document.getElementById("aPagar").value;
-					
-		document.getElementById("formPrevisualizarFactura").submit();		
+		valor = document.getElementById("cantidad").value;
 	}
+	
+	document.getElementById("previsualizar_cantidad").value = valor;
+	document.getElementById("previsualizar_formaPago").value = document.getElementById("formaPago").options[document.getElementById("formaPago").selectedIndex].text;
+	
+	document.getElementById("previsualizar_nuestraCuenta").value = document.getElementById("numCuenta").value;
+	
+	document.getElementById("previsualizar_campana").value = (document.getElementById("campana").value);
+	
+	valor = 0;
+	if (document.getElementById("detallada").checked)
+	{
+		valor = 1;
+	}
+	
+	document.getElementById("previsualizar_detallada").value = valor;
+	document.getElementById("previsualizar_neto").value = document.getElementById("Neto").value;
+	document.getElementById("previsualizar_iva").value = document.getElementById("iva").value;
+	document.getElementById("previsualizar_irpf").value = document.getElementById("irpf").value;
+	document.getElementById("previsualizar_total").value = document.getElementById("total").value;
+	document.getElementById("previsualizar_provision").value = document.getElementById("provisionTotal").value;
+	document.getElementById("previsualizar_aPagar").value = document.getElementById("aPagar").value;
+	document.getElementById("previsualizar_clayma").value = document.getElementById("clienteOrigen").checked ? 1 : 0;
+				
+	document.getElementById("formPrevisualizarFactura").submit();
 }
 
-function grabarFactura(prefactura=0) //
+function grabarFactura() //
 {	
-	prefactura = 0; //esta linea se pone al no utilizar la factura-prefactura
 	if (document.getElementById("clientes").value<=0)
 	{
 		alert("Elegir un Cliente");
 		document.getElementById("clientes").focus();
+	}
+	else if (!seguirSiNoEsPrimeraFacturaDelMesSinConfirmar(document.getElementById("clienteOrigen").checked ? 1 : 0))
+	{
+		//el usuario ha cancelado tras el aviso de primera factura del mes
 	}
 	else
 	{
@@ -604,68 +783,42 @@ function grabarFactura(prefactura=0) //
 			peticionUnica1.onreadystatechange = mostrarGrabarFactura;
 			peticionUnica1.open("POST","ajax/anadirFactura.php",false);
 			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-			var query_string = consultaGrabarFactura(prefactura);
+			var query_string = consultaGrabarFactura();
 			peticionUnica1.send(query_string);
 		}
 	}
 }
 
-function consultaGrabarFactura(prefactura)
+function consultaGrabarFactura()
 {	
 	var consulta = "accion=anadirFactura";
-	
-	consulta += "&presupuesto="+document.getElementById("numPresupuesto").innerHTML;
-	consulta += "&inicial="+document.getElementById("inicialComercial").innerHTML;
-	//consulta += "&cliente="+document.getElementById("cliente").innerHTML;
-	
+
 	var combo = document.getElementById("clientes");
 	var selected = combo.options[combo.selectedIndex].text;
-	
-	
-	selected = selected.replaceAll('%','%25');
-	selected = selected.replaceAll('&','%26');
-	
-	
-	consulta += "&cliente="+selected; 
-	consulta += "&clayma="+document.getElementById("clienteOrigen").checked;
-	
-	consulta += "&fecha=" + document.getElementById("fechaFactura").value;
-	
-	consulta += "&pedidoCliente=" + document.getElementById("pedidoCliente").value;	
-	
-	if (document.getElementById("cantidad").value=="" || document.getElementById("cantidad").value==null)
-	{
-		consulta += "&cantidad=0";
-	}
-	else
-	{
-		consulta += "&cantidad=" + document.getElementById("cantidad").value;
-	}	
 
-	consulta += "&formaPago=" + document.getElementById("formaPago").options[document.getElementById("formaPago").selectedIndex].text;	
-	
-	consulta += "&numCuenta=" + document.getElementById("numCuenta").value;	
-	
-	consulta += "&campana=" + document.getElementById("campana").value;	
-	
-	if (document.getElementById("detallada").checked)
-	{
-		consulta += "&detallada=1";	
-	}
-	else
-	{
-		consulta += "&detallada=0";	
-	}
-	
-	consulta += "&neto=" + document.getElementById("Neto").value;	
-	consulta += "&iva=" + document.getElementById("iva").value;	
-	consulta += "&irpf=" + document.getElementById("irpf").value;	
-	consulta += "&total=" + document.getElementById("total").value;	
-	consulta += "&provision=" + document.getElementById("provisionTotal").value;	
-	consulta += "&aPagar=" + document.getElementById("aPagar").value;
-	
-	consulta += "&prefactura="+ prefactura;
-	
+	var datos = {
+		presupuesto: document.getElementById("numPresupuesto").innerHTML,
+		inicialComercial: document.getElementById("inicialComercial").innerHTML,
+		cliente: selected,
+		idCodigoCliente: document.getElementById("clientes").value,
+		clayma: document.getElementById("clienteOrigen").checked ? 1 : 0,
+		pedido: document.getElementById("pedidoCliente").value,
+		cantidad: (document.getElementById("cantidad").value=="" || document.getElementById("cantidad").value==null) ? 0 : document.getElementById("cantidad").value,
+		formaPago: document.getElementById("formaPago").options[document.getElementById("formaPago").selectedIndex].text,
+		numCuentaBanco: document.getElementById("numCuenta").value,
+		descripcion: document.getElementById("campana").value,
+		detallada: document.getElementById("detallada").checked ? 1 : 0,
+		precioNeto: document.getElementById("Neto").value,
+		iva: document.getElementById("iva").value,
+		irpf: document.getElementById("irpf").value,
+		precioTotal: document.getElementById("total").value,
+		provision: document.getElementById("provisionTotal").value,
+		aPagar: document.getElementById("aPagar").value,
+		prefactura: 0,
+		serieFactura: 'FAC'
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
 	return consulta;	
 }
 
@@ -675,18 +828,21 @@ function mostrarGrabarFactura()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
 				verNumFacturaPorPresupuesto(document.getElementById("numPresupuesto").innerHTML);
 				
-				document.getElementById("modalNumFactura").innerHTML = numFactura;
+				document.getElementById("modalNumFactura").innerHTML = facCompleto;
 				
 				grabarFacturaDetalle();
-				eliminarDetallesFacturaTemporal(document.getElementById("numPresupuesto").innerHTML);
+				
+				eliminarTodoFacturaDetalleTemporal();
 				
 				if (document.getElementById("provisionTotal").value!=0)
 				{				
@@ -701,15 +857,15 @@ function mostrarGrabarFactura()
 				{
 					if (document.getElementById("clienteOrigen").checked)
 					{
-						irAImprimirFacturaClayma(numFactura, anioSeleccionado);
+						irAImprimirFacturaClayma(facCompleto);
 					}
 					else
 					{
-						irAImprimirFactura(numFactura, anioSeleccionado);
+						irAImprimirFactura(facCompleto);
 					}
 				}
 				
-				
+				facCompleto = "";
 				numFactura="";
 				anioSeleccionado="";
 				location.href='admEmisionFacturasPendientes.php';				
@@ -722,11 +878,12 @@ function mostrarGrabarFactura()
 function verNumFacturaPorPresupuesto(numPresupuesto) //js_prefactura
 {	
 	peticionUnica1=crearComunicacion(peticionUnica1);
+	var clayma = document.getElementById("clienteOrigen").checked;
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerNumFacturaPorPresupuesto;
-		peticionUnica1.open("POST","ajax/mostrarNumFacturaPorPresupuesto.php",false);
+		peticionUnica1.open("POST", clayma ? "ajax/cargarFacturacionClayma.php" : "ajax/cargarFacturacion.php", false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerNumFacturaPorPresupuesto(numPresupuesto);
 		peticionUnica1.send(query_string);
@@ -735,9 +892,15 @@ function verNumFacturaPorPresupuesto(numPresupuesto) //js_prefactura
 
 function consultaVerNumFacturaPorPresupuesto(numPresupuesto)
 {	
-	var consulta = "accion=verNumFactura";	
-	consulta += "&numPresupuesto="+numPresupuesto;		
-	consulta +="&clayma="+document.getElementById("clienteOrigen").checked;
+	var consulta = "accion=cargarFacturacion";
+
+	var campos = ['numeroFacturaCompleto'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {
+		presupuesto: numPresupuesto
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -748,33 +911,22 @@ function mostrarVerNumFacturaPorPresupuesto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);				
+				alert(res.error);				
 			}
 			else
 			{	
-				var datos = new Array;
-				
-				try 
+				if (res.datos.length>0)
 				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
-				
-				if (datos != "")
-				{
-					numFactura = datos[0]["numero"];
-					anioSeleccionado=datos[0]["anioFactura"];
-					facCompleto = datos[0]["numeroFacturaCompleto"];
+					res.datos[0]["numero"];
+					facCompleto = res.datos[0]["numeroFacturaCompleto"];
 				}
 				else
 				{
-					numFactura="";
-					anioSeleccionado="";
+					
 					facCompleto="";
 				}
 			}
@@ -786,11 +938,12 @@ function mostrarVerNumFacturaPorPresupuesto()
 function grabarFacturaDetalle() //js_prefactura
 {	
 	peticionUnica1=crearComunicacion(peticionUnica1);
+	var clayma = document.getElementById("clienteOrigen").checked;
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarGrabarFacturaDetalle;
-		peticionUnica1.open("POST","ajax/anadirFacturaDetalle.php",false);
+		peticionUnica1.open("POST", clayma ? "ajax/insertarFacturacionDetalleClaymaDesdeTemporal.php" : "ajax/insertarFacturacionDetalleDesdeTemporal.php", false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaGrabarFacturaDetalle();
 		peticionUnica1.send(query_string);
@@ -799,13 +952,11 @@ function grabarFacturaDetalle() //js_prefactura
 
 function consultaGrabarFacturaDetalle()
 {	
-	var consulta = "accion=anadirFacturaDetalle";
-	
-	consulta += "&numFactura="+document.getElementById("modalNumFactura").innerHTML;
+	var consulta = "accion=insertarFacturacionDetalles";
+
 	consulta += "&numPresupuesto="+document.getElementById("numPresupuesto").innerHTML;
-	//consulta += "&total="+document.getElementById("numPresupuesto").value;
-	consulta += "&clayma="+document.getElementById("clienteOrigen").checked;
-	consulta += "&anioSeleccionado=" + anioSeleccionado;
+	consulta += "&numeroFacturaCompleto="+encodeURIComponent(facCompleto);
+	consulta += "&campana="+encodeURIComponent(document.getElementById("campana").value);
 	
 	return consulta;	
 }
@@ -816,18 +967,15 @@ function mostrarGrabarFacturaDetalle()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			var huboError = res.some(function(fila) { return !fila.ok; });
+
+			if (huboError)
 			{
-				alert(peticionUnica1.responseText);
+				alert("Error al grabar el detalle de la factura");
 			}
-			else if (peticionUnica1.responseText.includes("ErrorMensaje"))
-			{
-				unError = "Error En Verifactu";
-				alert(unError);
-			}
-			else
-			{
-			}
+
 			peticionUnica1=null;
 		}
 	}						
@@ -843,7 +991,7 @@ function modificarProvisionNumFacturaPorPresupuesto()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarModificarProvisionNumFacturaPorPresupuesto;
-		peticionUnica1.open("POST","ajax/modificarProvisionNumFacturaPorPresupuesto.php",false);
+		peticionUnica1.open("POST","ajax/modificarProvisionFondo.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaModificarProvisionNumFacturaPorPresupuesto();
 		peticionUnica1.send(query_string);
@@ -852,12 +1000,21 @@ function modificarProvisionNumFacturaPorPresupuesto()
 
 function consultaModificarProvisionNumFacturaPorPresupuesto()
 {	
-	var consulta = "accion=modificarProvisionNumFacturaPorPresupuesto";
-	
-	consulta += "&numPresupuesto="+document.getElementById("numPresupuesto").innerHTML;	
-	consulta +="&numFactura=" +numFactura;
-	consulta +="&anioSeleccionado=" + anioSeleccionado;
-	consulta +="&facCompleto=" + facCompleto;
+	var consulta = "accion=modificarProvisionFondo";
+	consulta += "&pantallaOrigen=prefactura";
+
+	var datos = {
+		facCompletaAplicada: facCompleto
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {
+		presupuesto: document.getElementById("numPresupuesto").innerHTML,
+		cobrada: 2,
+		tipo: 3,
+		sinFacturaAplicada: 1
+	};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -868,13 +1025,13 @@ function mostrarModificarProvisionNumFacturaPorPresupuesto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
-			else
-			{				
-			}
+
 			peticionUnica1 = null;
 		}
 	}						
@@ -901,7 +1058,7 @@ function anadirDetallePrefactura() //js_prefactura
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarAnadirDetallePrefactura;
-		peticionUnica1.open("POST","ajax/anadirDetallePrefactura.php",false);
+		peticionUnica1.open("POST","ajax/insertarFacturasDetallesTemporal.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaAnadirDetallePrefactura();
 		peticionUnica1.send(query_string);
@@ -910,63 +1067,57 @@ function anadirDetallePrefactura() //js_prefactura
 
 function consultaAnadirDetallePrefactura()
 {	
-	var consulta = "accion=anadirDetalle";
-	
-	consulta += "&numPresupuesto="+document.getElementById("numPresupuesto").innerHTML;
-	
-	consulta += "&proceso=" + document.getElementById("conceptoNuevoTemp").value;	
-	
-	/*consulta += "&descripcion=" + document.getElementById("descripcionDetalleNuevoTemp").value;	
-	consulta += "&nota=" + document.getElementById("notaDetalleNuevoTemp").value;	*/
-	
-	
-	consulta +="&descripcion=" + reemplazarSimbolos(document.getElementById("descripcionDetalleNuevoTemp").value);
-	consulta +="&nota=" + reemplazarSimbolos(document.getElementById("notaDetalleNuevoTemp").value);
-	
-	
-	
-	
+	var consulta = "accion=insertarFacturasDetallesTemporal";
+
 	var unidad = document.getElementById("unidadesDetalleNuevoTemp").value;	
 	unidad = unidad.replace(',','.');
 	if (unidad == "")
 	{
 		unidad =0;
 	}
-	consulta += "&unidad=" + unidad;
-	
+
 	var precio = document.getElementById("precioDetalleNuevoTemp").value;	
 	precio = precio.replace(',','.');
 	if (precio == "")
 	{
 		precio =0;
 	}
-	
-	consulta += "&precio=" + precio;
 
-	consulta += "&exentoIVA=" + document.getElementById("exentoIVA").checked;
-	
+	var datos = {
+		presupuesto: document.getElementById("numPresupuesto").innerHTML,
+		concepto: document.getElementById("conceptoNuevoTemp").value,
+		descripcion: document.getElementById("descripcionDetalleNuevoTemp").value,
+		notaCibeles: document.getElementById("notaDetalleNuevoTemp").value,
+		unidades: unidad,
+		precio: precio,
+		total: Math.round(parseFloat(precio)*parseFloat(unidad)*100)/100,
+		ordenTipo: 1000,
+		orden: 1000,
+		tipoIva: document.getElementById("tipoIvaNuevoTemp").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
 	return consulta;	
 }
 
 function mostrarAnadirDetallePrefactura()
 {
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				peticionUnica1=null;
 				cargarDetallesPrefactura();
 				
 				document.getElementById("conceptoNuevoTemp").value="";
 				document.getElementById("descripcionDetalleNuevoTemp").value="";
 				document.getElementById("notaDetalleNuevoTemp").value="";
-				document.getElementById("excentoIVA").checked="false";
+				document.getElementById("tipoIvaNuevoTemp").value=21;
 				
 			}
 			peticionUnica1=null;
@@ -1065,12 +1216,146 @@ function gestionarCambioClientePrefactura(destino) //js_prefactura
 	if (confirm('¿Cambiar Cliente?')) 
 	{
 	
-		gestionDeCargarClientesListado(destino);
+		cargarListadoClientesPrefactura();
 
 		document.getElementById(destino).value=0;
 	}
 }
 
+function cargarListadoClientesPrefactura() //js_prefactura
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = mostrarCargarListadoClientesPrefactura;
+		if (document.getElementById("clienteOrigen").checked)
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
+
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarListadoClientesPrefactura();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarListadoClientesPrefactura()
+{	
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo_saldo','nombre_empresa'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { activo: 1 };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var filtrosOperadores = [{ campo1: 'codigo', campo2: 'codigo_saldo', operador: '=' }];
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var order = [{ campo: 'nombre_empresa', dir: 'ASC' }];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;	
+}
+
+function mostrarCargarListadoClientesPrefactura()
+{
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				var contenido = "";
+
+				var contador = 0;
+				while (contador<datos.length)
+				{
+					contenido += '  <option value="'+datos[contador]["codigo_saldo"]+'">'+datos[contador]["nombre_empresa"]+'</option>';
+					contador++;
+				}
+
+				document.getElementById("clientes").innerHTML = contenido;
+
+				document.getElementById("clientes").value = valorNumero;
+				valorNumero = 0;
+			}
+			peticionUnica1=null;
+		}
+	}
+}
+
+function cargarListadoClientesImporteFranqueoModal() //js_prefactura
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = mostrarCargarListadoClientesImporteFranqueoModal;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarListadoClientesImporteFranqueoModal();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarListadoClientesImporteFranqueoModal()
+{	
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo_saldo','nombre_empresa'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { activo: 1 };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var filtrosOperadores = [{ campo1: 'codigo', campo2: 'codigo_saldo', operador: '=' }];
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var order = [{ campo: 'nombre_empresa', dir: 'ASC' }];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;	
+}
+
+function mostrarCargarListadoClientesImporteFranqueoModal()
+{
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				var contenido = "";
+
+				var contador = 0;
+				while (contador<datos.length)
+				{
+					contenido += '  <option value="'+datos[contador]["codigo_saldo"]+'">'+datos[contador]["nombre_empresa"]+'</option>';
+					contador++;
+				}
+
+				document.getElementById("cliente_importeFranqueoModal").innerHTML = contenido;
+			}
+			peticionUnica1=null;
+		}
+	}
+}
 
 
 
@@ -1081,7 +1366,7 @@ function verDatosUnPresupuestoTemporal(numPresupuesto) //js_prefactura
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerDatosUnPresupuestoTemporal;
-		peticionUnica1.open("POST","ajax/verDatosUnPresupuestoTemporal.php",false);
+		peticionUnica1.open("POST","ajax/mostrarFacturasTemporal.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerDatosUnPresupuestoTemporal(numPresupuesto);
 		peticionUnica1.send(query_string);
@@ -1090,26 +1375,31 @@ function verDatosUnPresupuestoTemporal(numPresupuesto) //js_prefactura
 
 function consultaVerDatosUnPresupuestoTemporal(numPresupuesto)
 {	
-	var consulta = "accion=verDatosUnPresupuesto";
-	consulta += "&numPresupuesto=" + numPresupuesto;
+	var consulta = "accion=mostrarFacturasTemporal";
+
+	var campos = ['pedido','cantidad','formaPago','descripcion','detallada'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { presupuesto: numPresupuesto, idUsuario: true };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
 function mostrarVerDatosUnPresupuestoTemporal()
 {
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+	if (peticionUnica1.readyState == 4) {
+		if (peticionUnica1.status == 200) {
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
-				
+				var datos = res.datos;
+
 				document.getElementById("pedidoCliente").value = datos[0]["pedido"];
 				document.getElementById("cantidad").value = datos[0]["cantidad"];
 				document.getElementById("formaPago").value = datos[0]["formaPago"];				
@@ -1129,4 +1419,6 @@ function mostrarVerDatosUnPresupuestoTemporal()
 		}
 	}						
 }
+
+
 

@@ -18,6 +18,10 @@ if ($_SESSION["usuario"]<>"")
 <table align="center">
 
 	<tr>
+		<td align="right">Año:</td>
+		<td><select class="" id="anio" name="anio" onChange="cargarListadoPresupuestoNoFacturable()"></select></td>
+	</tr>
+	<tr>
 		<td align="right" colspan="">Buscar por:
 			<select class=""  id="buscarCampo" name="buscarCampo">
 				<option value="numNoFactura">Numero</option>	
@@ -45,7 +49,7 @@ if ($_SESSION["usuario"]<>"")
 			Desc: <input type="checkbox" id="ordenDesc" checked></input>
 		
 
-			<button type="button" class="btn btn-info" onClick="buscarFactura()">Buscar</button>
+			<button type="button" class="btn btn-info" onClick="cargarListadoPresupuestoNoFacturable()">Buscar</button>
 			<button type="button" class="btn btn-info" onClick="gestionExportarExcel()">Excel</button>
 			<!--<input type="submit" class="btn btn-info" onClick="gestionExportarExcelFacturaCibeles()" value="Excel" ></input>
 			<button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirRangoNumerosFacturasModal" data-whatever="@mdo">Imprimir</button>-->
@@ -237,7 +241,11 @@ else
 
 
 <form id="formExportarExcel"  method="post"  target="_blank" action="PHPExcel/archivosCibeles/exportarNoFacturablesExcel.php">		
-	<input type="hidden" id="exportarCondiciones" name="exportarCondiciones" value=""></input>	
+	<input type="hidden" id="exportarFiltros" name="exportarFiltros" value=""></input>
+	<input type="hidden" id="exportarFiltrosOperadores" name="exportarFiltrosOperadores" value=""></input>
+	<input type="hidden" id="exportarFiltrosLike" name="exportarFiltrosLike" value=""></input>
+	<input type="hidden" id="exportarOrden" name="exportarOrden" value=""></input>
+	<input type="hidden" id="exportarDesc" name="exportarDesc" value=""></input>
 	<input type="hidden" id="exportarAccion" name="exportarAccion" value="exportarExcel"></input>			
 </form>
 
@@ -295,7 +303,8 @@ echo ("</html>");
 ?>
 	
 	
-	buscarFactura();
+	cargarAniosPresupuestos();
+	cargarListadoPresupuestoNoFacturable();
 	document.getElementById("button-up").addEventListener("click", scrollUp);
 	
 

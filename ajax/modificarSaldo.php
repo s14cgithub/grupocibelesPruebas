@@ -36,7 +36,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="modificarSaldo")
 		$saldo = array();
 		if ($datos["clayma"]==1)
 		{
-			$saldo = cargarClientesClayma($conn, $bbddSql, $campos2, $filtros2, $filtrosOperadores2, $order2, $joins2, $filtrosLike2);
+			$saldo = cargarClientesClayma($conn, $bbddSql, $campos2, $filtros2, $filtrosOperadores2, $order2, $filtrosLike2, $joins2);
 		}
 		else
 		{

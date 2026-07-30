@@ -8,15 +8,30 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 		
 		
 	
 	require($ruta."FPDF/fpdf.php");
 	require($ruta."Archivos Comunes/pagegroup.php");
 	require($ruta."Archivos Comunes/rotate.php");
-	require($ruta."Archivos Comunes/cabeceraPieFacturaGroupPag.php");
+
+	$clayma = isset($_POST['clayma']) && $_POST['clayma']==1;
+
+	if ($clayma)
+	{
+		require($ruta."Archivos Comunes/cabeceraPieFacturaClaymaGroupPag.php");
+	}
+	else
+	{
+		require($ruta."Archivos Comunes/cabeceraPieFacturaGroupPag.php");
+	}
 	
-		
+	
+	/*
 	$anioSeleccionado = isset($_POST["anioSeleccionado0"]) ? $_POST["anioSeleccionado0"] : 0;
 	if ($anioSeleccionado==0 || $anioSeleccionado=="0")
 	{
@@ -26,17 +41,23 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	$numFactura = isset($_POST["imprimirNumFactura"]) ? $_POST["imprimirNumFactura"] : 0;
 	$minNumFac = isset($_POST["imprimirPrimeraFactura"]) ? $_POST["imprimirPrimeraFactura"] : $numFactura;
 	$MaxNumFac = isset($_POST["imprimirUltimaFactura"]) ? $_POST["imprimirUltimaFactura"] : $numFactura;
-	
+	*/
+
+
+	$numFacturaCompleto = isset($_POST["numFacturaCompleto"]) ? $_POST["numFacturaCompleto"] : '';
+
+	//$numFacturaCompleto = 'FAC 24/26';
 	//$minNumFac = 1;
 	//$MaxNumFac = 16;
 	
 	
-	$contadorMax=$minNumFac;
+	//$contadorMax=$minNumFac;
 	$pdf = new cabeceraFactura('P','mm','A4');
-	while ($contadorMax<=$MaxNumFac)
+	
+	//while ($contadorMax<=$MaxNumFac)
 		
 	{
-		$numFactura = $contadorMax;
+		//$numFactura = $contadorMax;
 		$pdf->StartPageGroup();
 	
 	
@@ -48,8 +69,80 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	echo ("<br>año: ".$anioSeleccionado);
 	echo ("<br>/////////-----------------------///////////");
 */
-	$datosFactura = verFactura($conexion,$numFactura,$anioSeleccionado);
-		
+	$camposFactura = ['numeroFacturaCompleto','numero','idCodigoCliente','cliente','fecha','aPagar','precioNeto','iva','precioTotal','presupuesto','descripcion','inicialComercial','irpf','precioTotalSinIrpf','provision','cantidad','pedido','formaPago','detallada','cuentaDelBanco','combinadoSumatorio','laprefactura','serieFactura','origenFactura','motivo','nombre_empresa','direccion','codigo_postal','localidad','provincia','nif','nombrePais','envio_nombre','envio_domicilio','envio_cp','envio_poblacion','envio_provincia','envio_pais','envio_att','retener','observaciones','precioNetoExentoIva','verifactu_qrcode','verifactu_message','verifactu_idSolicitud'];
+	$filtrosFactura = ['numeroFacturaCompleto' => $numFacturaCompleto];
+
+	if ($clayma)
+	{
+		$resFactura = mostrarFacturacionClayma($conn, $bbddSql, $camposFactura, [], $filtrosFactura, [], []);
+	}
+	else
+	{
+		$resFactura = mostrarFacturacion($conn, $bbddSql, $camposFactura, [], $filtrosFactura, [], []);
+	}
+	$datosFactura = $resFactura['datos'];
+	//$numFactura = $datosFactura[0]['numero'];
+
+	if ($clayma)
+	{
+		$resDesglose = cargarFacturacionDetallesClayma($conn, $bbddSql, ['total','tipoIva'], ['numeroFacturaCompleto' => $numFacturaCompleto], [], [], []);
+	}
+	else
+	{
+		$resDesglose = cargarFacturacionDetalles($conn, $bbddSql, ['total','tipoIva'], ['numeroFacturaCompleto' => $numFacturaCompleto], [], [], []);
+	}
+	$desgloseIva = array();
+	$hayTipoIva = false;
+	foreach ($resDesglose['datos'] as $rowDesglose)
+	{
+		if (isset($rowDesglose['tipoIva']))
+		{
+			$hayTipoIva = true;
+			$tipo = $rowDesglose['tipoIva'];
+
+			if ($tipo!=0)
+			{
+				if (!isset($desgloseIva[$tipo]))
+				{
+					$desgloseIva[$tipo] = 0;
+				}
+				$desgloseIva[$tipo] += floatval($rowDesglose['total']) * $tipo / 100;
+			}
+		}
+	}
+
+	foreach ($desgloseIva as $tipoRedondeo => $importeRedondeo)
+	{
+		$desgloseIva[$tipoRedondeo] = round($importeRedondeo, 2);
+	}
+
+	if ($hayTipoIva && !isset($desgloseIva[21]))
+	{
+		$desgloseIva[21] = 0;
+	}
+
+	foreach ($desgloseIva as $tipoFiltro => $importeFiltro)
+	{
+		if ($tipoFiltro!=21 && $importeFiltro==0)
+		{
+			unset($desgloseIva[$tipoFiltro]);
+		}
+	}
+	ksort($desgloseIva);
+
+	$sumaDesgloseIva = round(array_sum($desgloseIva), 2);
+	$erroresCuadre = array();
+
+	if (abs($sumaDesgloseIva - floatval($datosFactura[0]["iva"])) > 0.01)
+	{
+		$detalleTipos = array();
+		foreach ($desgloseIva as $tipoDetalle => $importeDetalle)
+		{
+			$detalleTipos[] = "IVA ".$tipoDetalle."%: ".number_format($importeDetalle,2,',','.');
+		}
+		$erroresCuadre[] = "La suma de los importes de IVA por tipo (".implode(", ", $detalleTipos).") = ".number_format($sumaDesgloseIva,2,',','.')." no coincide con el IVA de la factura (".number_format(floatval($datosFactura[0]["iva"]),2,',','.').").";
+	}
+	
 	
 	//echo $contadorMax."<br>";
 	$presupuestosAimprimir = "";
@@ -66,19 +159,56 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	
 	if ($sumatorio==1)
 	{
-		$datosDetalles = verFacturaDetalleSumatorio($conexion,$numFactura,$anioSeleccionado); 
+		$camposDetalleSumatorio = ['concepto','unidadesSumatorio','precio','totalSumatorio','descripcion','tipoIva'];
+		$filtrosDetalleSumatorio = ['numeroFacturaCompleto' => $numFacturaCompleto];
+		$groupDetalleSumatorio = ['concepto','descripcion','precio','tipoIva'];
+		$orderDetalleSumatorio = [['campo' => 'concepto', 'dir' => 'ASC']];
+
+		if ($clayma)
+		{
+			$resDetalleSumatorio = cargarFacturacionDetallesClayma($conn, $bbddSql, $camposDetalleSumatorio, $filtrosDetalleSumatorio, [], $groupDetalleSumatorio, $orderDetalleSumatorio);
+		}
+		else
+		{
+			$resDetalleSumatorio = cargarFacturacionDetalles($conn, $bbddSql, $camposDetalleSumatorio, $filtrosDetalleSumatorio, [], $groupDetalleSumatorio, $orderDetalleSumatorio);
+		}
+		$datosDetalles = $resDetalleSumatorio['datos'];
 		$numPresupuesto = $datosFactura[0]["presupuesto"];
 		$eltitulo="";
 	}
 	else if ($combinados==0)
 	{
-		$datosDetalles = verFacturaDetalle($conexion,$numFactura,$anioSeleccionado);
+		$camposDetalle = ['concepto','descripcion','tipoIva','precio','total','unidades'];
+		$filtrosDetalle = ['numeroFacturaCompleto' => $numFacturaCompleto];
+		$orderDetalle = [['campo' => 'presupuesto', 'dir' => 'ASC'], ['campo' => 'ordenTipo', 'dir' => 'ASC'], ['campo' => 'orden', 'dir' => 'ASC']];
+
+		if ($clayma)
+		{
+			$resDetalle = cargarFacturacionDetallesClayma($conn, $bbddSql, $camposDetalle, $filtrosDetalle, [], [], $orderDetalle);
+		}
+		else
+		{
+			$resDetalle = cargarFacturacionDetalles($conn, $bbddSql, $camposDetalle, $filtrosDetalle, [], [], $orderDetalle);
+		}
+		$datosDetalles = $resDetalle['datos'];
 		$presupuestosAimprimir = $datosFactura[0]["presupuesto"];
 		$eltitulo=$datosFactura[0]["descripcion"];
 	}	
 	else
 	{
-		$presupuestosAimprimir = verNumPresupuestosCombinados($conexion,$numFactura,$anioSeleccionado);		
+		$camposCombinados = ['presupuestoDistinct'];
+		$filtrosCombinados = ['numeroFacturaCompleto' => $numFacturaCompleto];
+		$orderCombinados = [['campo' => 'presupuesto', 'dir' => 'ASC']];
+
+		if ($clayma)
+		{
+			$resCombinados = cargarFacturacionDetallesClayma($conn, $bbddSql, $camposCombinados, $filtrosCombinados, [], [], $orderCombinados);
+		}
+		else
+		{
+			$resCombinados = cargarFacturacionDetalles($conn, $bbddSql, $camposCombinados, $filtrosCombinados, [], [], $orderCombinados);
+		}
+		$presupuestosAimprimir = $resCombinados['datos'];
 		$eltitulo="";
 		$presupuestosAimprimirContador = count($presupuestosAimprimir);
 		$numPresupuesto="";
@@ -130,7 +260,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	else
 	{
 		//$datosNuevaPagina1 = $numFactura."/".$datosFactura[0]["fecha"]->format('y'). " MA";
-		$datosNuevaPagina1 = $datosFactura[0]["serieFactura"]." ".$numFactura."/".$datosFactura[0]["fecha"]->format('y');
+		$datosNuevaPagina1 = $datosFactura[0]["numeroFacturaCompleto"];
 	}
 	
 	$datosNuevaPagina2 = "Fecha: ".$datosFactura[0]["fecha"]->format('d/m/Y');
@@ -142,24 +272,14 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	$alturaSiguientePagina = 20;//50
 	
 	
-	$datosCliente =  cargarClientes($conexion," where codigo_saldo=".$datosFactura[0]["codigo"]." and codigo=".$datosFactura[0]["codigo"]);
-	
 	$retener = "";
-		
-		
-	//echo $datosFactura[0]["codigo"];
-		
-		
-		
-	if ($datosCliente[0]["retener"]==1)
+
+	if ($datosFactura[0]["retener"]==1)
 	{
 		$retener = " -  R";
 	}
-	
-	
-	$datosCliente=null;
 		
-	nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura);	           
+	nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura,$clayma);	           
 		
 	
 	
@@ -170,7 +290,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 		$altura += 5;
 		$pdf->SetFont('Arial','B',10);
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,5,"PEDIDO:  ".utf8_decode($datosFactura[0]["pedido"]),0,1,'L',false);
+		$pdf->Cell(0,5,"PEDIDO:  ".reemplazarSimbolos($datosFactura[0]["pedido"]),0,1,'L',false);
 	}
 	
 	
@@ -194,8 +314,8 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 		$pdf->SetXY($margen,$altura);
 		$observaciones = "Observaciones: ". $datosFactura[0]["observaciones"];
 		$observaciones = str_replace("\n", '. ',$observaciones);
-		$pdf->MultiCell(0,5,utf8_decode($observaciones),0,'L',false);		
-		$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($observaciones));
+		$pdf->MultiCell(0,5,reemplazarSimbolos($observaciones),0,'L',false);		
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($observaciones));
 		$numeroDeFilas = ceil ($anchoDescripcion / (180));
 		if ($numeroDeFilas<1)
 		{
@@ -219,7 +339,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 		
 		if ($altura>190)//190
 		{			
-			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura);
+			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura,$clayma);
 		}
 		
 		
@@ -228,7 +348,19 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 			$numPresupuesto = $presupuestosAimprimir[$contadorGenerico]["presupuesto"];
 			
 			
-			$datosDetalles = verFacturaDetallePresupuesto($conexion,$numFactura,$numPresupuesto,$anioSeleccionado);
+			$camposDetallePresupuesto = ['concepto','descripcion','tipoIva','precio','total','unidades','campana'];
+			$filtrosDetallePresupuesto = ['numeroFacturaCompleto' => $numFacturaCompleto, 'presupuesto' => $numPresupuesto];
+			$orderDetallePresupuesto = [['campo' => 'ordenTipo', 'dir' => 'ASC'], ['campo' => 'orden', 'dir' => 'ASC']];
+
+			if ($clayma)
+			{
+				$resDetallePresupuesto = cargarFacturacionDetallesClayma($conn, $bbddSql, $camposDetallePresupuesto, $filtrosDetallePresupuesto, [], [], $orderDetallePresupuesto);
+			}
+			else
+			{
+				$resDetallePresupuesto = cargarFacturacionDetalles($conn, $bbddSql, $camposDetallePresupuesto, $filtrosDetallePresupuesto, [], [], $orderDetallePresupuesto);
+			}
+			$datosDetalles = $resDetallePresupuesto['datos'];
 			
 			$eltitulo = $datosDetalles[0]["campana"];
 			
@@ -268,7 +400,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 			$pdf->Cell(0,5,"Factura Original: ".substr($numPresupuesto, 17),0,1,'L',false);
 			$altura += 5;*/
 		}
-		else
+		else if ($numPresupuesto!="")
 		{
 			$pdf->SetXY($margen,$altura);		
 			$pdf->Cell(0,5,"OT: ".$numPresupuesto,0,1,'L',false);
@@ -279,9 +411,9 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 		$margen += 30;
 		$pdf->SetFont('Arial','B',10);
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,5,utf8_decode($eltitulo),0,'L',false);
+		$pdf->MultiCell(0,5,reemplazarSimbolos($eltitulo),0,'L',false);
 		//$pdf->MultiCell(0,5,utf8_decode("Manipulación y envío de su Correspondencia diario del 01/05/2021 al 31/05/2021"."aaaaa  aaaa "),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($eltitulo));
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($eltitulo));
 		$numeroDeFilas = ceil ($anchoDescripcion / (180-30));
 		if ($numeroDeFilas<1)
 		{
@@ -342,7 +474,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 
 			if ($altura>$limiteAlturaDatos)
 			{
-				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura);
+				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura,$clayma);
 			}
 
 
@@ -364,7 +496,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 			{
 				//$ladescripion=" (".$row["descripcion"].")";	
 				$ladescripion=$row["descripcion"];	
-				
+				/*
 				$ladescripion = str_replace('€',EURO,$ladescripion);
 				$ladescripion = str_replace('ñ',ene,$ladescripion);
 				$ladescripion = str_replace('Ñ',ene_may,$ladescripion);
@@ -380,11 +512,12 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 				$ladescripion = str_replace('Ú',u_acento_may,$ladescripion);
 				$ladescripion = str_replace('º',signo_grado,$ladescripion);
 				$ladescripion = str_replace('°',signo_grado,$ladescripion);
-				$ladescripion = str_replace('ª',signo_ordinal,$ladescripion);				
+				$ladescripion = str_replace('ª',signo_ordinal,$ladescripion);	*/			
 	
 			}
 			
-			$elConcepto = str_replace('€',EURO,$row["concepto"]);
+			$elConcepto = $row["concepto"];
+			/*$elConcepto = str_replace('€',EURO,$row["concepto"]);
 			$elConcepto = str_replace('ñ',ene,$elConcepto);
 			$elConcepto = str_replace('Ñ',ene_may,$elConcepto);
 			$elConcepto = str_replace('á',a_acento,$elConcepto);
@@ -399,7 +532,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 			$elConcepto = str_replace('Ú',u_acento_may,$elConcepto);
 			$elConcepto = str_replace('º',signo_grado,$elConcepto);
 			$elConcepto = str_replace('°',signo_grado,$elConcepto);
-			$elConcepto = str_replace('ª',signo_ordinal,$elConcepto);
+			$elConcepto = str_replace('ª',signo_ordinal,$elConcepto);*/
 			
 			if ($elConcepto!="" and $elConcepto!=" " and $elConcepto!="  ")
 			{
@@ -409,9 +542,9 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 			//$ladescripion = $ladescripion." altura: ".$altura;
 
 			
-			if (($datosFactura[0]["codigo"]==40 || $datosFactura[0]["codigo"]==3110)   && strpos($elConcepto.$ladescripion,'..') )
+			if (($datosFactura[0]["idCodigoCliente"]==40 || $datosFactura[0]["idCodigoCliente"]==3110)   && strpos($elConcepto.$ladescripion,'..') )
 			{
-				$datitos=explode('..',$elConcepto.$ladescripion);
+				$datitos=explode('..',reemplazarSimbolos($elConcepto.$ladescripion));
 				for ($cont1=0;$cont1<count($datitos)-1;$cont1++)
 				{
 					$pdf->SetXY($margen,$altura);	
@@ -419,7 +552,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 
 					if ($cont1==0)
 					{
-						$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($row["concepto"].$ladescripion));
+						$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($row["concepto"].$ladescripion));
 						$numeroDeFilas = ceil ($anchoDescripcion / (109));
 						if ($numeroDeFilas<1)
 						{
@@ -438,11 +571,18 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 			else
 			{ 
 
-				$datosDecripcion = $elConcepto.$ladescripion;
+				$datosDecripcion = reemplazarSimbolos($elConcepto.$ladescripion);
 
-				if ($row["exentoIVA"]==true)
-				{					
-					$datosDecripcion .= " (Exento de IVA)";
+				if (isset($row["tipoIva"]))
+				{
+					if ($row["tipoIva"]==0)
+					{
+						$datosDecripcion .= " (Exento de IVA)";
+					}
+					else if ($row["tipoIva"]!=21)
+					{
+						$datosDecripcion .= " (IVA ".$row["tipoIva"]."%)";
+					}
 				}
 
 				$pdf->SetXY($margen,$altura);		
@@ -451,7 +591,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 
 				
 
-				$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($datosDecripcion));
+				$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosDecripcion));
 				$numeroDeFilas = ceil ($anchoDescripcion / (109));
 				if ($numeroDeFilas<1)
 				{
@@ -559,7 +699,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 
 			if ($altura>$limiteAlturaDatos)//265
 			{
-				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura);	
+				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura,$clayma);	
 			}
 
 		}
@@ -596,7 +736,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 		
 	if ($altura>230)//230$limiteAlturaDatos
 	{
-			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura);
+			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,$datosPrefactura,$clayma);
 	}
 	
 	
@@ -605,7 +745,14 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	$altura = 235;
 
 	$margen=$margenInicial;
-	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	if ($clayma)
+	{
+		$pdf->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+	}
+	else
+	{
+		$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	}
 	$pdf->SetLineWidth(0.8);
 	$pdf->Line($margen, $altura, 190, $altura);
 	
@@ -618,12 +765,19 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	$pdf->SetFont('Arial','',10);
 	$pdf->SetXY(20,$altura);
 	
-	$pdf->MultiCell(95,5,utf8_decode($datosFactura[0]["formaPago"]),0,'L',false);
+	$pdf->MultiCell(95,5,reemplazarSimbolos($datosFactura[0]["formaPago"]),0,'L',false);
 	
 	
 	//$cuentaBancaria = str_replace(array("\r\n", "\n\r", "\r", "\n"), "<br>", $cuentaBancaria);
 	//$cuentaBancaria = str_replace("\r", "<br>\n", $cuentaBancaria);
-	$cuentaBancaria = str_replace(";", "\n", $datosFactura[0]["cuentaDelBanco"]);
+	if ($clayma)
+	{
+		$cuentaBancaria = "ES42 2100 1945 2202 0006 7880 CAIXESBBXXX";
+	}
+	else
+	{
+		$cuentaBancaria = str_replace(";", "\n", $datosFactura[0]["cuentaDelBanco"]);
+	}
 		
 		
 	//$cuentaBancaria = $datosFactura[0]["cuentaDelBanco"];
@@ -632,7 +786,15 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	//$cuentaBancaria = $datosFactura[0]["cuentaDelBanco"];
 	$altura += 10;
 	$pdf->SetXY(20,$altura);
-	$pdf->MultiCell(95,5,utf8_decode($cuentaBancaria),0,'L',false);
+	$pdf->MultiCell(95,5,reemplazarSimbolos($cuentaBancaria),0,'L',false);
+
+	if (trim($datosFactura[0]["serieFactura"])=='NEG')
+	{
+		$altura += 10;
+		$pdf->SetFont('Arial','B',8);
+		$pdf->SetXY(20,$altura);
+		$pdf->MultiCell(95,5,reemplazarSimbolos("Documento interno sin validez fiscal"),0,'L',false);
+	}
 	
 	
 
@@ -642,40 +804,75 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 		$imprimirIRPF = true;
 	}
 
+	$numLineasIva = count($desgloseIva)>0 ? count($desgloseIva) : 1;
+	$totalLineas = 2 + $numLineasIva + ($imprimirIRPF ? 1 : 0); // Base + IVA(s) + IRPF? + Total
+
+	$espaciado = 7;
+	$fuenteCaja = 10;
+	$alturaCelda = 5;
+	$offsetInicial = ($totalLineas <= 3) ? 4 : 0;
+
+	if ($totalLineas > 4)
+	{
+		$alturaCelda = 4;
+		$offsetInicial = 2;
+		$espaciado = (27 - $offsetInicial - $alturaCelda) / ($totalLineas - 1);
+		$fuenteCaja = max(6, 10 - ($totalLineas - 4));
+	}
+
 	$altura = 240;
 	
 	$ancho = $pdf->GetPageWidth()-20-70;
 	
-	$pdf->SetFillColor(colorAzulR,colorAzulG,colorAzulB);
+	if ($clayma)
+	{
+		$pdf->SetFillColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+	}
+	else
+	{
+		$pdf->SetFillColor(colorAzulR,colorAzulG,colorAzulB);
+	}
 	$pdf->Rect($ancho, $altura, 70, 27,'F');
 	
 	
-	$pdf->SetFont('Arial','B',10);
+	$pdf->SetFont('Arial','B',$fuenteCaja);
 	$pdf->SetTextColor(colorBlancoR,colorBlancoG,colorBlancoB);
 	
 	
-	if  ($imprimirIRPF == false)
-	{
-		$altura += 4;
-	}
+	$altura += $offsetInicial;
 
 
 	$ancho+=10;
 	
 	$pdf->SetXY($ancho,$altura);			
-	$pdf->Cell(20,5,"Base Imponible:",0,0,'R',false);
+	$pdf->Cell(20,$alturaCelda,"Base Imponible:",0,0,'R',false);
 	
 	
 	
 	$pdf->SetXY($ancho+35,$altura);			
-	$pdf->Cell(20,5,number_format($datosFactura[0]["precioNeto"],2,',','.')." ".EURO,0,0,'R',false);	
+	$pdf->Cell(20,$alturaCelda,number_format($datosFactura[0]["precioNeto"],2,',','.')." ".EURO,0,0,'R',false);	
 	
-	$altura += 7;
-	$pdf->SetXY($ancho,$altura);			
-	$pdf->Cell(20,5,"IVA 21%:",0,0,'R',false);	
-	
-	$pdf->SetXY($ancho+35,$altura);	
-	$pdf->Cell(20,5,number_format($datosFactura[0]["iva"],2,',','.')." ".EURO,0,0,'R',false);
+	if (count($desgloseIva)>0)
+	{
+		foreach ($desgloseIva as $tipoIvaLinea => $importeIvaLinea)
+		{
+			$altura += $espaciado;
+			$pdf->SetXY($ancho,$altura);			
+			$pdf->Cell(20,$alturaCelda,"IVA ".$tipoIvaLinea."%:",0,0,'R',false);	
+			
+			$pdf->SetXY($ancho+35,$altura);	
+			$pdf->Cell(20,$alturaCelda,number_format($importeIvaLinea,2,',','.')." ".EURO,0,0,'R',false);
+		}
+	}
+	else
+	{
+		$altura += $espaciado;
+		$pdf->SetXY($ancho,$altura);			
+		$pdf->Cell(20,$alturaCelda,"IVA 21%:",0,0,'R',false);	
+		
+		$pdf->SetXY($ancho+35,$altura);	
+		$pdf->Cell(20,$alturaCelda,number_format($datosFactura[0]["iva"],2,',','.')." ".EURO,0,0,'R',false);
+	}
 	
 /*
 	$valorExentoIva = (isset($datosFactura[0]) && array_key_exists('precioNetoExentoIva', $datosFactura[0]))? $datosFactura[0]['precioNetoExentoIva']: null;
@@ -694,12 +891,12 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	
 	if  ($imprimirIRPF == true)
 	{
-		$altura += 7;
+		$altura += $espaciado;
 		$pdf->SetXY($ancho,$altura);			
-		$pdf->Cell(20,5,"IRPF 19%:",0,0,'R',false);	
+		$pdf->Cell(20,$alturaCelda,"IRPF 19%:",0,0,'R',false);	
 		
 		$pdf->SetXY($ancho+35,$altura);	
-		$pdf->Cell(20,5,number_format($datosFactura[0]["irpf"],2,',','.')." ".EURO,0,0,'R',false);
+		$pdf->Cell(20,$alturaCelda,number_format($datosFactura[0]["irpf"],2,',','.')." ".EURO,0,0,'R',false);
 		
 	}
 	
@@ -710,12 +907,12 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFactura
 	//$pdf->SetXY($ancho+35,$altura);		
 	//$pdf->Cell(20,5,number_format($datosFactura[0]["iva"],2,',','.')." ".EURO,1,0,'L',false);	
 	
-	$altura += 7;
+	$altura += $espaciado;
 	$pdf->SetXY($ancho,$altura);			
-	$pdf->Cell(20,5,"TOTAL:",0,0,'R',false);
+	$pdf->Cell(20,$alturaCelda,"TOTAL:",0,0,'R',false);
 	
 	$pdf->SetXY($ancho+35,$altura);			
-	$pdf->Cell(20,5,number_format($datosFactura[0]["precioTotal"],2,',','.')." ".EURO,0,0,'R',false);	
+	$pdf->Cell(20,$alturaCelda,number_format($datosFactura[0]["precioTotal"],2,',','.')." ".EURO,0,0,'R',false);	
 	
 	
 	$pdf->SetFont('Arial','',8);
@@ -767,7 +964,7 @@ Cibeles Mailing S.A. A-81339186"),0,'C',false);*/
 		
 		//////////////////////////////////////////////////////////////////////////////////////////////////
 		
-		$contadorMax++;
+		//$contadorMax++;
 	}
 		
 		
@@ -801,124 +998,126 @@ Cibeles Mailing S.A. A-81339186"),0,'C',false);*/
 
 	
 	//	CODIGO QR VERIFACTU
-	if (strlen($verifactu_qrDataUrl)>5)
+	if (trim($datosFactura[0]["serieFactura"]) != 'NEG' || trim($datosFactura[0]["serieFactura"]) != 'AB')
 	{
-		// -------- QR --------
-		if (preg_match('#^data:image/png;base64,#', $verifactu_qrDataUrl)) {
-			// 1) Quitar el encabezado "data:image/png;base64,"
-			$base64 = explode(',', $verifactu_qrDataUrl, 2)[1];
-			// 2) Decodificar a binario
-			$pngData = base64_decode($base64);
-			// 3) Guardar en fichero temporal
-			$tmpFile = tempnam(sys_get_temp_dir(), 'qr_') . '.png';
-			file_put_contents($tmpFile, $pngData);
+		if (strlen($verifactu_qrDataUrl)>5)
+		{
+			// -------- QR --------
+			if (preg_match('#^data:image/png;base64,#', $verifactu_qrDataUrl)) {
+				// 1) Quitar el encabezado "data:image/png;base64,"
+				$base64 = explode(',', $verifactu_qrDataUrl, 2)[1];
+				// 2) Decodificar a binario
+				$pngData = base64_decode($base64);
+				// 3) Guardar en fichero temporal
+				$tmpFile = tempnam(sys_get_temp_dir(), 'qr_') . '.png';
+				file_put_contents($tmpFile, $pngData);
 
-			// ============================================================
-			// === RECORTAR MÁRGENES SEGÚN EL COLOR DEL PÍXEL (0,0) =======
-			// ============================================================
-			$src = imagecreatefrompng($tmpFile);
-			if ($src !== false) {
+				// ============================================================
+				// === RECORTAR MÁRGENES SEGÚN EL COLOR DEL PÍXEL (0,0) =======
+				// ============================================================
+				$src = imagecreatefrompng($tmpFile);
+				if ($src !== false) {
 
-				imagesavealpha($src, true);
+					imagesavealpha($src, true);
 
-				$w = imagesx($src);
-				$h = imagesy($src);
+					$w = imagesx($src);
+					$h = imagesy($src);
 
-				// Color de fondo = el del píxel de la esquina
-				$bg = imagecolorat($src, 0, 0);
+					// Color de fondo = el del píxel de la esquina
+					$bg = imagecolorat($src, 0, 0);
 
-				$minX = $w;
-				$minY = $h;
-				$maxX = 0;
-				$maxY = 0;
+					$minX = $w;
+					$minY = $h;
+					$maxX = 0;
+					$maxY = 0;
 
-				for ($y = 0; $y < $h; $y++) {
-					for ($x = 0; $x < $w; $x++) {
-						if (imagecolorat($src, $x, $y) !== $bg) {
-							if ($x < $minX) $minX = $x;
-							if ($y < $minY) $minY = $y;
-							if ($x > $maxX) $maxX = $x;
-							if ($y > $maxY) $maxY = $y;
+					for ($y = 0; $y < $h; $y++) {
+						for ($x = 0; $x < $w; $x++) {
+							if (imagecolorat($src, $x, $y) !== $bg) {
+								if ($x < $minX) $minX = $x;
+								if ($y < $minY) $minY = $y;
+								if ($x > $maxX) $maxX = $x;
+								if ($y > $maxY) $maxY = $y;
+							}
 						}
 					}
+
+					// Seguridad: si por lo que sea no encuentra nada distinto, no recortamos
+					if ($maxX > $minX && $maxY > $minY) {
+						$cropW = $maxX - $minX + 1;
+						$cropH = $maxY - $minY + 1;
+
+						$dst = imagecreatetruecolor($cropW, $cropH);
+
+						// Mantener transparencia si la hubiera
+						imagealphablending($dst, false);
+						imagesavealpha($dst, true);
+						$transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+						imagefill($dst, 0, 0, $transparent);
+
+						imagecopy($dst, $src, 0, 0, $minX, $minY, $cropW, $cropH);
+
+						// Sobrescribir el fichero temporal con la versión recortada
+						imagepng($dst, $tmpFile);
+
+						imagedestroy($dst);
+					}
+
+					imagedestroy($src);
 				}
+				// ============================================================
 
-				// Seguridad: si por lo que sea no encuentra nada distinto, no recortamos
-				if ($maxX > $minX && $maxY > $minY) {
-					$cropW = $maxX - $minX + 1;
-					$cropH = $maxY - $minY + 1;
 
-					$dst = imagecreatetruecolor($cropW, $cropH);
-
-					// Mantener transparencia si la hubiera
-					imagealphablending($dst, false);
-					imagesavealpha($dst, true);
-					$transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
-					imagefill($dst, 0, 0, $transparent);
-
-					imagecopy($dst, $src, 0, 0, $minX, $minY, $cropW, $cropH);
-
-					// Sobrescribir el fichero temporal con la versión recortada
-					imagepng($dst, $tmpFile);
-
-					imagedestroy($dst);
-				}
-
-				imagedestroy($src);
+				// 4) Insertar en el PDF
+				// Posición X=150mm, Y=20mm, tamaño=38mm x 38mm (recomendado por AEAT: 30–40 mm)
+				$pdf->Image($tmpFile, 82, 238, 32, 32, 'PNG');
+				// Texto debajo del QR
+				$pdf->SetXY(82-3, 238+33);
+				$pdf->SetFont('Arial','',10);
+				$pdf->Cell(38,5,'QR de pruebas',0,0,'C');
+				// 5) Borrar el archivo temporal
+				unlink($tmpFile);
+				
 			}
-			// ============================================================
+		}
+		else if ($datosFactura[0]["fecha"]>= fechaCambioVerifactu)	
+		{ 
+			$precioVerifacturaTotal = $datosFactura[0]["precioTotal"];
+			if ($precioVerifacturaTotal==".00") $precioVerifacturaTotal=0;
+			require 'phpqrcode/qrlib.php';
 
+			$params = [
+				"nif"      => $clayma ? cifClayma : cifCibeles,
+				"numserie" => $datosNuevaPagina1,
+				"fecha"    => $datosFactura[0]["fecha"]->format('d-m-Y'),
+				"importe"  => $precioVerifacturaTotal
+			];
 
-			// 4) Insertar en el PDF
-			// Posición X=150mm, Y=20mm, tamaño=38mm x 38mm (recomendado por AEAT: 30–40 mm)
-			$pdf->Image($tmpFile, 82, 238, 32, 32, 'PNG');
+			$verifactu_qrDataUrl = urlCodigoQrVerifactu . http_build_query($params);	
+			
+			$tmpFile = tempnam(sys_get_temp_dir(), 'qr_') . '.png';
+			QRcode::png($verifactu_qrDataUrl, $tmpFile, QR_ECLEVEL_L, 4);
+
+			$pdf->Image($tmpFile, 85, 238, 30, 30, 'PNG');
+
 			// Texto debajo del QR
-			$pdf->SetXY(82-3, 238+33);
+			$pdf->SetXY(81, 238+30);
 			$pdf->SetFont('Arial','',10);
 			$pdf->Cell(38,5,'QR de pruebas',0,0,'C');
-			// 5) Borrar el archivo temporal
+
 			unlink($tmpFile);
+
 			
-		}
+			//$pdf->SetXY(81, 238+30);
+			//$pdf->SetFont('Arial','',10);
+			
+			
+		} 
+		else
+		{
+			
+		} 
 	}
-	else if ($datosFactura[0]["fecha"]>= fechaCambioVerifactu)	
-	{ 
-		$precioVerifacturaTotal = $datosFactura[0]["precioTotal"];
-		if ($precioVerifacturaTotal==".00") $precioVerifacturaTotal=0;
-		require 'phpqrcode/qrlib.php';
-
-		$params = [
-			"nif"      => cifCibeles,
-			"numserie" => $datosNuevaPagina1,
-			"fecha"    => $datosFactura[0]["fecha"]->format('d-m-Y'),
-			"importe"  => $precioVerifacturaTotal
-		];
-
-		$verifactu_qrDataUrl = urlCodigoQrVerifactu . http_build_query($params);	
-		
-		$tmpFile = tempnam(sys_get_temp_dir(), 'qr_') . '.png';
-		QRcode::png($verifactu_qrDataUrl, $tmpFile, QR_ECLEVEL_L, 4);
-
-		$pdf->Image($tmpFile, 85, 238, 30, 30, 'PNG');
-
-		// Texto debajo del QR
-		$pdf->SetXY(81, 238+30);
-		$pdf->SetFont('Arial','',10);
-		$pdf->Cell(38,5,'QR de pruebas',0,0,'C');
-
-		unlink($tmpFile);
-
-		
-		//$pdf->SetXY(81, 238+30);
-		//$pdf->SetFont('Arial','',10);
-		
-		
-	} 
-	else
-	{
-		
-	} 
-
 
 
 
@@ -931,15 +1130,28 @@ Cibeles Mailing S.A. A-81339186"),0,'C',false);*/
 
 
 	
-	$pdf->Output("I","Factura - ".$numFactura."-".date("dmy")." .pdf","UTF-8");
+	if (!empty($erroresCuadre))
+	{
+		$pdfContenido = $pdf->Output("S","Factura - ". str_replace('/', '_', $numFacturaCompleto) ."-".date("dmy").".pdf","UTF-8");
+		$pdfBase64 = base64_encode($pdfContenido);
+		$mensajeAlerta = "DESCUADRE EN LOS IMPORTES:\n".implode("\n", $erroresCuadre);
+
+		echo "<script>alert(".json_encode($mensajeAlerta).");</script>";
+		echo '<embed src="data:application/pdf;base64,'.$pdfBase64.'" type="application/pdf" width="100%" height="900px">';
+	}
+	else
+	{
+		$pdf->Output("I","Factura - ". str_replace('/', '_', $numFacturaCompleto) ."-".date("dmy")." .pdf","UTF-8");
+	}
 	
+	sqlsrv_close($conn);
 
 }
 	
 	
 
 
-function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,&$datosPrefactura)
+function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosFactura,$retener,$margenInicial,&$datosPrefactura,$clayma=false)
 {
 	$pdf->AddPage();
 	
@@ -962,15 +1174,22 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		//$pdf->SetTextColor(colorPrevisualizacionR,colorPrevisualizacionG,colorPrevisualizacionB);
 		$pdf->SetFont('Arial','B',50);	
 		$pdf->SetXY(40,10);
-		$pdf->Cell(0,0,utf8_decode("REVISAR FACTURA"),0,1,'C',false);	
+		$pdf->Cell(0,0,reemplazarSimbolos("REVISAR FACTURA"),0,1,'C',false);	
 		$pdf->SetXY(0,95);
-		$pdf->Cell(0,0,utf8_decode("REVISAR FACTURA"),0,1,'C',false);
+		$pdf->Cell(0,0,reemplazarSimbolos("REVISAR FACTURA"),0,1,'C',false);
 		$pdf->SetTextColor(0,0,0);
 	}
 
+	$serieFactura = trim($datosFactura[0]["serieFactura"]);
 
-
-	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	if ($clayma)
+	{
+		$pdf->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+	}
+	else
+	{
+		$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	}
 	$pdf->SetLineWidth(0.8);
 	//$altura = $altura + 0;
 	$altura = 6;//10
@@ -983,12 +1202,12 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	if ($datosPrefactura===1)
 	{
 		$pdf->SetTextColor(colorRojoR,colorRojoG,colorRojoB);
-		$pdf->Cell(35,5,utf8_decode("PREFACTURA Nº"),1,1,'C',false);
+		$pdf->Cell(35,5,reemplazarSimbolos("PREFACTURA Nº"),1,1,'C',false);
 		$pdf->SetTextColor(colorNegroR,colorNegroG,colorNegroB);
 	}
 	else
 	{
-		$pdf->Cell(35,5,utf8_decode("FACTURA Nº"),1,1,'C',false);
+		$pdf->Cell(35,5,reemplazarSimbolos("FACTURA Nº"),1,1,'C',false);
 		
 	}
 	
@@ -1001,6 +1220,20 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	{
 		$pdf->Cell(35,6,$datosNuevaPagina1,1,1,'C',false);	
 	}
+
+
+
+	if ($serieFactura=='RECT' || $serieFactura=='SUST' || $serieFactura=='NEG' || $serieFactura=='AB')
+	{ 
+		$altura = $altura + 6;
+		$pdf->SetXY($margen,$altura);
+		$pdf->SetFont('Arial','',10);
+		$pdf->Cell(35,5,reemplazarSimbolos("Rectifica a:"),1,1,'C',false);
+		$altura = $altura + 5;
+		$pdf->SetXY($margen,$altura);	
+		$pdf->Cell(35,5,$datosFactura[0]["origenFactura"],1,1,'C',false);	
+	}
+
 	$pdf->SetFont('Arial','',10);
 	$altura = $altura + 8;
 	$pdf->SetXY($margen,$altura);
@@ -1017,6 +1250,22 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	{
 		$pdf->Cell(0,0,"PREFACTURA",0,1,'L',false);
 	}
+	else if ($serieFactura=='RECT')
+	{
+		$pdf->Cell(0,0,reemplazarSimbolos("Factura Rectificativa por Diferencia"),0,1,'L',false);
+	}
+	else if ($serieFactura=='SUST')
+	{
+		$pdf->Cell(0,0,reemplazarSimbolos("Factura Rectificativa por Sustitucion"),0,1,'L',false);
+	}
+	else if ($serieFactura=='NEG')
+	{
+		$pdf->Cell(0,0,reemplazarSimbolos("Nota de Abono interna"),0,1,'L',false);
+	}
+	else if ($serieFactura=='AB')
+	{
+		$pdf->Cell(0,0,reemplazarSimbolos("ABONO"),0,1,'L',false);
+	}
 	else
 	{
 		$pdf->Cell(0,0,"FACTURA",0,1,'L',false);		
@@ -1029,11 +1278,38 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$pdf->SetXY($margen,$altura);	
 	
 	
-	$pdf->Cell(0,5,"Cod. Cliente: ".$datosFactura[0]["codigo"].$retener,0,1,'R',false);
+	$pdf->Cell(0,5,"Cod. Cliente: ".$datosFactura[0]["idCodigoCliente"].$retener,0,1,'R',false);
+
+	if ($serieFactura=='RECT' || $serieFactura=='SUST')
+	{
+		$altura = $altura + 8;
+		$pdf->SetXY($margen,$altura);
+		$pdf->SetFont('Arial','',8);
+
+		$facRec_motivo = $datosFactura[0]["motivo"];
+
+		$pdf->MultiCell(0,4,reemplazarSimbolos("Motivo de la rectificación: ".$facRec_motivo),0,'L',false); 
+
+		$anchoMotivo = $pdf->GetStringWidth(reemplazarSimbolos("Motivo de la rectificación: ".$facRec_motivo));
+		$numeroDeFilas = ceil ($anchoMotivo / $pdf->GetPageWidth());
+		if ($numeroDeFilas<1)
+		{
+			$numeroDeFilas = 1;
+		}	
+		$altura = $altura + (4*$numeroDeFilas);
+		$pdf->SetXY($margen,$altura);
+	}
 	
 	
 	$altura = $altura + 5;
-	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	if ($clayma)
+	{
+		$pdf->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+	}
+	else
+	{
+		$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	}
 	$pdf->SetLineWidth(0.8);
 	$pdf->Line($margen, $altura, 190, $altura);
 	
@@ -1047,9 +1323,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$pdf->SetFont('Arial','B',8);
 	$altura = $altura + 6;
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(84,4,utf8_decode($datosFactura[0]["nombre_empresa"]),0,'L',false);
+	$pdf->MultiCell(84,4,reemplazarSimbolos($datosFactura[0]["nombre_empresa"]),0,'L',false);
 	
-	$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["nombre_empresa"]);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["nombre_empresa"]));
 	$numeroDeFilas = ceil ($anchoDescripcion / 80);//84
 	if ($numeroDeFilas<1)
 	{
@@ -1059,8 +1335,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	
 	
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(84,4,utf8_decode($datosFactura[0]["direccion"]),0,'L',false);
-	$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["direccion"]);
+	$pdf->MultiCell(84,4,reemplazarSimbolos($datosFactura[0]["direccion"]),0,'L',false);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["direccion"]));
 	$numeroDeFilas = ceil ($anchoDescripcion / 84);
 	if ($numeroDeFilas<1)
 	{
@@ -1069,8 +1345,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$altura = $altura + (5*$numeroDeFilas);
 	
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(0,4,utf8_decode($datosFactura[0]["codigo_postal"]." - ".$datosFactura[0]["localidad"]),0,'L',false);
-	$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["codigo_postal"]." - ".$datosFactura[0]["localidad"]);
+	$pdf->MultiCell(0,4,reemplazarSimbolos($datosFactura[0]["codigo_postal"]." - ".$datosFactura[0]["localidad"]),0,'L',false);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["codigo_postal"]." - ".$datosFactura[0]["localidad"]));
 	$numeroDeFilas = ceil ($anchoDescripcion / 84);
 	if ($numeroDeFilas<1)
 	{
@@ -1079,8 +1355,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$altura = $altura + (5*$numeroDeFilas);
 	
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(0,4,utf8_decode($datosFactura[0]["provincia"]." (".$datosFactura[0]["nombrePais"].")"),0,'L',false);
-	$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["provincia"]."(".$datosFactura[0]["nombrePais"].")");
+	$pdf->MultiCell(0,4,reemplazarSimbolos($datosFactura[0]["provincia"]." (".$datosFactura[0]["nombrePais"].")"),0,'L',false);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["provincia"]."(".$datosFactura[0]["nombrePais"].")"));
 	$numeroDeFilas = ceil ($anchoDescripcion / 84);
 	if ($numeroDeFilas<1)
 	{
@@ -1089,8 +1365,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$altura = $altura + (5*$numeroDeFilas);
 	
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(0,4,utf8_decode($datosFactura[0]["nif_subcliente"]),0,'L',false);
-	$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["nif_subcliente"]);
+	$pdf->MultiCell(0,4,reemplazarSimbolos($datosFactura[0]["nif"]),0,'L',false);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["nif"]));
 	$numeroDeFilas = ceil ($anchoDescripcion / 84);
 	if ($numeroDeFilas<1)
 	{
@@ -1113,9 +1389,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	
 	if($datosFactura[0]["envio_domicilio"]=="" && $datosFactura[0]["envio_cp"]=="" && $datosFactura[0]["envio_poblacion"]=="" && $datosFactura[0]["envio_provincia"]=="")
 	{
-		$pdf->MultiCell(84,4,utf8_decode($datosFactura[0]["nombre_empresa"]),0,'L',false);
+		$pdf->MultiCell(84,4,reemplazarSimbolos($datosFactura[0]["nombre_empresa"]),0,'L',false);
 	
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["nombre_empresa"]);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["nombre_empresa"]));
 		if ($anchoDescripcion>0)
 		{
 			$numeroDeFilas = ceil ($anchoDescripcion / 84);
@@ -1127,9 +1403,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		}
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(84,4,utf8_decode($datosFactura[0]["direccion"]),0,'L',false);
+		$pdf->MultiCell(84,4,reemplazarSimbolos($datosFactura[0]["direccion"]),0,'L',false);
 
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["direccion"]);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["direccion"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -1140,8 +1416,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosFactura[0]["codigo_postal"]." - ".$datosFactura[0]["localidad"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["codigo_postal"]." - ".$datosFactura[0]["localidad"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosFactura[0]["codigo_postal"]." - ".$datosFactura[0]["localidad"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["codigo_postal"]." - ".$datosFactura[0]["localidad"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -1150,8 +1426,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$altura = $altura + (5*$numeroDeFilas);
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosFactura[0]["provincia"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["provincia"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosFactura[0]["provincia"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["provincia"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -1165,9 +1441,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	}
 	else
 	{
-		$pdf->MultiCell(84,4,utf8_decode($datosFactura[0]["envio_att"]),0,'L',false);
+		$pdf->MultiCell(84,4,reemplazarSimbolos($datosFactura[0]["envio_att"]),0,'L',false);
 	
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["envio_att"]);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["envio_att"]));
 		if ($anchoDescripcion>0)
 		{
 			$numeroDeFilas = ceil ($anchoDescripcion / 84);
@@ -1179,9 +1455,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		}
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(84,4,utf8_decode($datosFactura[0]["envio_nombre"]),0,'L',false);
+		$pdf->MultiCell(84,4,reemplazarSimbolos($datosFactura[0]["envio_nombre"]),0,'L',false);
 
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["envio_nombre"]);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["envio_nombre"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 80);
 		if ($numeroDeFilas<1)
 		{
@@ -1192,8 +1468,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosFactura[0]["envio_domicilio"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["envio_domicilio"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosFactura[0]["envio_domicilio"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["envio_domicilio"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -1202,8 +1478,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$altura = $altura + (5*$numeroDeFilas);
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosFactura[0]["envio_cp"]." - ".$datosFactura[0]["envio_poblacion"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["envio_cp"]." - ".$datosFactura[0]["envio_poblacion"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosFactura[0]["envio_cp"]." - ".$datosFactura[0]["envio_poblacion"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["envio_cp"]." - ".$datosFactura[0]["envio_poblacion"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -1212,8 +1488,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$altura = $altura + (5*$numeroDeFilas);
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosFactura[0]["envio_provincia"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["envio_provincia"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosFactura[0]["envio_provincia"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["envio_provincia"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -1222,8 +1498,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$altura = $altura + (5*$numeroDeFilas);
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosFactura[0]["envio_pais"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosFactura[0]["envio_pais"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosFactura[0]["envio_pais"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosFactura[0]["envio_pais"]));
 		if ($anchoDescripcion>0)
 		{
 			$numeroDeFilas = ceil ($anchoDescripcion / 84);

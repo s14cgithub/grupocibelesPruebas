@@ -30,18 +30,67 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	$eltitulo = $_POST["previsualizarClayma_campana"];
 	$usuario = $_SESSION["idEmpleado"];
 
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
 	if ($facRec!="")
 	{		
-		$datosDetalles = mostrarFacRecDetallesTemporal($conexion,$facturaOriginal,1,$usuario);
+		$res = mostrarFacRecDetallesTemporal($conn, $bbddSql, ['descripcion','concepto','exentoIVA','unidades','precio','total'], ['facturaOriginal' => $facturaOriginal, 'idUsuario' => $usuario, 'clayma' => 1], [], [['campo'=>'ordenTipo','dir'=>'ASC'],['campo'=>'orden','dir'=>'ASC']]);
+		$datosDetalles = $res['datos'];
 	}
 	else
 	{		
-		$datosDetalles = mostrarFacturasDetallesTemporal($conexion,$numPresupuesto,$usuario);
+		$res = mostrarFacturasDetallesTemporal($conn, $bbddSql, ['descripcion','concepto','tipoIva','unidades','precio','total'], ['presupuesto' => $numPresupuesto, 'idEmpleado' => $usuario], [], [['campo'=>'ordenTipo','dir'=>'ASC'],['campo'=>'orden','dir'=>'ASC']]);
+		$datosDetalles = $res['datos'];
 	}	
+
+	$desgloseIva = array();
+	$hayTipoIva = false;
+	foreach ($datosDetalles as $rowDesglose)
+	{
+		if (isset($rowDesglose['tipoIva']))
+		{
+			$hayTipoIva = true;
+			$tipo = $rowDesglose['tipoIva'];
+
+			if ($tipo!=0)
+			{
+				if (!isset($desgloseIva[$tipo]))
+				{
+					$desgloseIva[$tipo] = 0;
+				}
+				$desgloseIva[$tipo] += floatval($rowDesglose['total']) * $tipo / 100;
+			}
+		}
+	}
+
+	foreach ($desgloseIva as $tipoRedondeo => $importeRedondeo)
+	{
+		$desgloseIva[$tipoRedondeo] = round($importeRedondeo, 2);
+	}
+
+	if ($hayTipoIva && !isset($desgloseIva[21]))
+	{
+		$desgloseIva[21] = 0;
+	}
+
+	foreach ($desgloseIva as $tipoFiltro => $importeFiltro)
+	{
+		if ($tipoFiltro!=21 && $importeFiltro==0)
+		{
+			unset($desgloseIva[$tipoFiltro]);
+		}
+	}
+	ksort($desgloseIva);
 	
 	$fecha = $_POST["previsualizarClayma_fecha"];
 	$idCliente = $_POST["previsualizarClayma_idCliente"];
-	$datosCliente =  cargarClientesClayma($conexion," where codigo_saldo=".$idCliente." and codigo=".$idCliente);
+	$resCliente = cargarClientesClayma($conn, $bbddSql, ['retener','codigo_saldo','nombre_empresa','direccion','codigo_postal','localidad','provincia','nif_subcliente','envio_att','envio_nombre','envio_domicilio','envio_cp','envio_poblacion','envio_provincia','envio_pais'], ['codigo_saldo' => $idCliente, 'codigo' => $idCliente], [], []);
+	$datosCliente = $resCliente['datos'];
+
+	sqlsrv_close($conn);
+
 	$pedido = $_POST["previsualizarClayma_pedido"];
 	$detallada = $_POST["previsualizarClayma_detallada"];
 	$formaPago = $_POST["previsualizarClayma_formaPago"];
@@ -67,6 +116,19 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	
 
 
+
+	$sumaDesgloseIva = round(array_sum($desgloseIva), 2);
+	$erroresCuadre = array();
+
+	if (abs($sumaDesgloseIva - floatval($iva)) > 0.01)
+	{
+		$detalleTipos = array();
+		foreach ($desgloseIva as $tipoDetalle => $importeDetalle)
+		{
+			$detalleTipos[] = "IVA ".$tipoDetalle."%: ".number_format($importeDetalle,2,',','.');
+		}
+		$erroresCuadre[] = "La suma de los importes de IVA por tipo (".implode(", ", $detalleTipos).") = ".number_format($sumaDesgloseIva,2,',','.')." no coincide con el IVA de la factura (".number_format(floatval($iva),2,',','.').").";
+	}
 
 	$pdf = new cabeceraFactura('P','mm','A4');
 
@@ -403,7 +465,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 				$ladescripion = str_replace('ª',signo_ordinal,$ladescripion);	*/		
 				
 				
-				$ladescripion = reemplazarSimbolos($ladescripion);
+				//$ladescripion = reemplazarSimbolos($ladescripion);
 	
 			}
 			
@@ -423,8 +485,9 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 			$elConcepto = str_replace('º',signo_grado,$elConcepto);
 			$elConcepto = str_replace('ª',signo_ordinal,$elConcepto);*/
 			
-			$elConcepto = reemplazarSimbolos($row["concepto"]);
+			//$elConcepto = reemplazarSimbolos($row["concepto"]);
 
+			$elConcepto=$row["concepto"];
 			if ($elConcepto!="" and $elConcepto!=" " and $elConcepto!="  ")
 			{
 				$elConcepto=$elConcepto.". ";
@@ -434,11 +497,18 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 			//$ladescripion = $ladescripion." altura: ".$altura;
 
 
-				$datosDecripcion = $elConcepto.$ladescripion;
+				$datosDecripcion = utf8_decode($elConcepto.$ladescripion);
 
-			if ($row["exentoIVA"]==true)
-			{					
-				$datosDecripcion .= " (Exento de IVA)";
+			if (isset($row["tipoIva"]))
+			{
+				if ($row["tipoIva"]==0)
+				{
+					$datosDecripcion .= " (Exento de IVA)";
+				}
+				else if ($row["tipoIva"]!=21)
+				{
+					$datosDecripcion .= " (IVA ".$row["tipoIva"]."%)";
+				}
 			}
 
 
@@ -573,7 +643,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 
 
 	$margen=$margenInicial;
-	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	$pdf->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
 	$pdf->SetLineWidth(0.8);
 	$pdf->Line($margen, $altura, 190, $altura);
 	
@@ -612,58 +682,86 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	}
 
 
+	$numLineasIva = count($desgloseIva)>0 ? count($desgloseIva) : 1;
+	$totalLineas = 2 + $numLineasIva + ($imprimirIRPF ? 1 : 0); // Base + IVA(s) + IRPF? + Total
+
+	$espaciado = 7;
+	$fuenteCaja = 10;
+	$alturaCelda = 5;
+	$offsetInicial = ($totalLineas <= 3) ? 4 : 0;
+
+	if ($totalLineas > 4)
+	{
+		$alturaCelda = 4;
+		$offsetInicial = 2;
+		$espaciado = (27 - $offsetInicial - $alturaCelda) / ($totalLineas - 1);
+		$fuenteCaja = max(6, 10 - ($totalLineas - 4));
+	}
+
 	$altura = 240;
 	
 	$ancho = $pdf->GetPageWidth()-20-70;
 	
-	$pdf->SetFillColor(colorAzulR,colorAzulG,colorAzulB);
+	$pdf->SetFillColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
 	$pdf->Rect($ancho, $altura, 70, 27,'F');
 	
 	
-	$pdf->SetFont('Arial','B',10);
+	$pdf->SetFont('Arial','B',$fuenteCaja);
 	$pdf->SetTextColor(colorBlancoR,colorBlancoG,colorBlancoB);
 	
 
-	if  ($imprimirIRPF == false)
-	{
-		$altura += 4;
-	}
+	$altura += $offsetInicial;
 	
 	$ancho+=10;
 	
 	$pdf->SetXY($ancho,$altura);			
-	$pdf->Cell(20,5,"Base Imponible:",0,0,'R',false);
+	$pdf->Cell(20,$alturaCelda,"Base Imponible:",0,0,'R',false);
 	
 	
 	
 	$pdf->SetXY($ancho+35,$altura);			
-	$pdf->Cell(20,5,number_format($precioNeto,2,',','.')." ".EURO,0,0,'R',false);	
+	$pdf->Cell(20,$alturaCelda,number_format($precioNeto,2,',','.')." ".EURO,0,0,'R',false);	
 	
-	$altura += 7;
-	$pdf->SetXY($ancho,$altura);			
-	$pdf->Cell(20,5,"IVA 21%:",0,0,'R',false);	
-	
-	$pdf->SetXY($ancho+35,$altura);	
-	$pdf->Cell(20,5,number_format($iva,2,',','.')." ".EURO,0,0,'R',false);
+	if (count($desgloseIva)>0)
+	{
+		foreach ($desgloseIva as $tipoIvaLinea => $importeIvaLinea)
+		{
+			$altura += $espaciado;
+			$pdf->SetXY($ancho,$altura);			
+			$pdf->Cell(20,$alturaCelda,"IVA ".$tipoIvaLinea."%:",0,0,'R',false);	
+			
+			$pdf->SetXY($ancho+35,$altura);	
+			$pdf->Cell(20,$alturaCelda,number_format($importeIvaLinea,2,',','.')." ".EURO,0,0,'R',false);
+		}
+	}
+	else
+	{
+		$altura += $espaciado;
+		$pdf->SetXY($ancho,$altura);			
+		$pdf->Cell(20,$alturaCelda,"IVA 21%:",0,0,'R',false);	
+		
+		$pdf->SetXY($ancho+35,$altura);	
+		$pdf->Cell(20,$alturaCelda,number_format($iva,2,',','.')." ".EURO,0,0,'R',false);
+	}
 	
 
 	if  ($imprimirIRPF == true)
 	{
-		$altura += 7;
+		$altura += $espaciado;
 		$pdf->SetXY($ancho,$altura);			
-		$pdf->Cell(20,5,"IRPF 19%:",0,0,'R',false);	
+		$pdf->Cell(20,$alturaCelda,"IRPF 19%:",0,0,'R',false);	
 		
 		$pdf->SetXY($ancho+35,$altura);	
-		$pdf->Cell(20,5,number_format($irpf,2,',','.')." ".EURO,0,0,'R',false);
+		$pdf->Cell(20,$alturaCelda,number_format($irpf,2,',','.')." ".EURO,0,0,'R',false);
 	}
 	
 	
-	$altura += 7;
+	$altura += $espaciado;
 	$pdf->SetXY($ancho,$altura);			
-	$pdf->Cell(20,5,"TOTAL:",0,0,'R',false);
+	$pdf->Cell(20,$alturaCelda,"TOTAL:",0,0,'R',false);
 	
 	$pdf->SetXY($ancho+35,$altura);			
-	$pdf->Cell(20,5,number_format($precioTotal,2,',','.')." ".EURO,0,0,'R',false);	
+	$pdf->Cell(20,$alturaCelda,number_format($precioTotal,2,',','.')." ".EURO,0,0,'R',false);	
 	
 	
 	$pdf->SetFont('Arial','',8);
@@ -682,7 +780,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 		$pdf->SetXY($ancho+35,$altura);			
 		$pdf->Cell(20,5,number_format($provision,2,',','.')." ".EURO,0,0,'R',false);	
 
-		$altura += 7;
+		$altura += 5;
 		$pdf->SetXY($ancho,$altura);			
 		$pdf->Cell(20,5,"Total a Pagar:",0,0,'R',false);
 
@@ -721,7 +819,19 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 
 
 		
-	$pdf->Output("I","Previsualizacion Factura Clayma - ".$numFactura."-".date("dmy")." .pdf","UTF-8");
+	if (!empty($erroresCuadre))
+	{
+		$pdfContenido = $pdf->Output("S","Previsualizacion Factura Clayma - ".$numFactura."-".date("dmy").".pdf","UTF-8");
+		$pdfBase64 = base64_encode($pdfContenido);
+		$mensajeAlerta = "DESCUADRE EN LOS IMPORTES:\n".implode("\n", $erroresCuadre);
+
+		echo "<script>alert(".json_encode($mensajeAlerta).");</script>";
+		echo '<embed src="data:application/pdf;base64,'.$pdfBase64.'" type="application/pdf" width="100%" height="900px">';
+	}
+	else
+	{
+		$pdf->Output("I","Previsualizacion Factura Clayma - ".$numFactura."-".date("dmy")." .pdf","UTF-8");
+	}
 	
 	
 	
@@ -750,7 +860,7 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$pdf->SetTextColor(0,0,0);
 	
 	
-	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	$pdf->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
 	$pdf->SetLineWidth(0.8);
 	//$altura = $altura + 0;
 	$altura = 5;//10
@@ -823,7 +933,7 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	
 	
 	$altura = $altura + 5;
-	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	$pdf->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
 	$pdf->SetLineWidth(0.8);
 	$pdf->Line($margen, $altura, 190, $altura);
 	

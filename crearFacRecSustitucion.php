@@ -18,76 +18,30 @@ require($ruta."Archivos Comunes/cabecera.php");
 
 if ($_SESSION["usuario"]!="" && isset($_POST["facRecSustitucion_Accion"]) && $_POST["facRecSustitucion_Accion"]=="verRecSustitucion")
 {
-	
-	
-	$origenFactura = isset($_POST["facRecSustitucion_OrigenFac"]) ? $_POST["facRecSustitucion_OrigenFac"] : 'FACTURA NORMAL';
-	
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
 	$clayma = $_POST["facRecSustitucion_clayma"];
 	$claymaChecked = "";
+
+	$camposFacturaOriginal = ['idCodigoCliente','detallada','fecha','cuentaDelBanco','presupuesto','cliente','pedido','cantidad','descripcion'];
+	$filtrosFacturaOriginal = ['numeroFacturaCompleto' => $numFacturaOriginal];
+
 	if ($clayma=="true")
 	{
 		$esClayma = "Sí";
 		$claymaChecked = "checked";
-		if ($origenFactura=="FACTURA NORMAL") //sin comprobar
-		{
-			$datosFacturaOriginal =  verFactura_numeroCompletoClayma($conexion,$numFacturaOriginal);
-		}
-		else if ($origenFactura=="facturaRectificativa") //sin hacer
-		{
-			$datosNumFactura=explode('/',$numFacturaOriginal);
-			$anioSeleccionado = 2000+ $datosNumFactura[1];
-
-			$datosOrigenFactura1 = explode(' ',$datosNumFactura[0]); //RECT 6 
-			$tipoFacturaOriginal = $datosOrigenFactura1[0]; //RECT
-			$numeroFacturaOriginal = $datosOrigenFactura1[1]; //6
-
-			if ($tipoFacturaOriginal == "RECT")
-			{
-				$datosFacturaOriginal =  verFacturaRectificativaClayma($conexion,$numFacturaOriginal,$anioSeleccionado);
-			}
-			else if ($tipoFacturaOriginal == "SUST")
-			{
-				$datosFacturaOriginal =  verFacturaRectificativaSustitucionClayma($conexion,$numFacturaOriginal,$anioSeleccionado);
-			}
-
-
-
-
-			
-		}
-		
+		$resFacturaOriginal = mostrarFacturacionClayma($conn, $bbddSql, $camposFacturaOriginal, [], $filtrosFacturaOriginal, [], []);
 	}
 	else
 	{
 		$esClayma = "No";
-
-		if ($origenFactura=="FACTURA NORMAL")
-		{
-			$datosFacturaOriginal =  verFactura_numeroCompleto($conexion,$numFacturaOriginal);
-		}
-		else if ($origenFactura=="facturaRectificativa") 
-		{
-			$datosNumFactura=explode('/',$numFacturaOriginal);
-			$anioSeleccionado = 2000+ $datosNumFactura[1];
-
-			$datosOrigenFactura1 = explode(' ',$datosNumFactura[0]); //RECT 6 
-			$tipoFacturaOriginal = $datosOrigenFactura1[0]; //RECT
-			$numeroFacturaOriginal = $datosOrigenFactura1[1]; //6
-
-			if ($tipoFacturaOriginal == "RECT")
-			{
-				$datosFacturaOriginal =  verFacturaRectificativa($conexion,$numFacturaOriginal,$anioSeleccionado);
-			}
-			else if ($tipoFacturaOriginal == "SUST")
-			{
-				$datosFacturaOriginal =  verFacturaRectificativaSustitucion($conexion,$numFacturaOriginal,$anioSeleccionado);
-			}
-			
-		}
-		
+		$resFacturaOriginal = mostrarFacturacion($conn, $bbddSql, $camposFacturaOriginal, [], $filtrosFacturaOriginal, [], []);
 	}
+	$datosFacturaOriginal = $resFacturaOriginal['datos'];
 
-	$codigoCliente = $datosFacturaOriginal[0]["codigo"];
+	$codigoCliente = $datosFacturaOriginal[0]["idCodigoCliente"];
 	$detalladaImprimir = $datosFacturaOriginal[0]["detallada"];
 	
 	$imprimirDetalladaChecked = "";
@@ -112,7 +66,7 @@ if ($_SESSION["usuario"]!="" && isset($_POST["facRecSustitucion_Accion"]) && $_P
 	echo '<td id="fechaFacturaOriginal">'.$datosFacturaOriginal[0]["fecha"]->format("Y-m-d").'</td>';
 	echo '<td id="clayma">'.$clayma.'</td>';	
 	
-	echo '<td id="idCliente">'.$datosFacturaOriginal[0]["codigo"].'</td>';
+	echo '<td id="idCliente">'.$datosFacturaOriginal[0]["idCodigoCliente"].'</td>';
 	//echo '<td id="detallada">'.$detalladaImprimir.'</td>';	
 	echo '<td id="numCuenta">'.$datosFacturaOriginal[0]["cuentaDelBanco"].'</td>';
 
@@ -177,7 +131,7 @@ if ($_SESSION["usuario"]!="" && isset($_POST["facRecSustitucion_Accion"]) && $_P
 
 
 
-	echo '<tr><td align="right">Imprimir Detallada:</td>';
+	echo '<tr style="visibility: hidden; display: none;"><td align="right">Imprimir Detallada:</td>';
 	echo '<td align="left"><input type="checkbox" id="detallada" name="detallada" value="detallada" '.$imprimirDetalladaChecked.'></td></tr>';
 	
 	////////////////////////////////////////////
@@ -265,8 +219,8 @@ if ($_SESSION["usuario"]!="" && isset($_POST["facRecSustitucion_Accion"]) && $_P
 	<td>Unidades:</td><td><input type="number" id="unidadesDetalleNuevoTemp"></input></td>
 	<td>Precio:</td><td><input type="number" id="precioDetalleNuevoTemp"></input></td>	
 	<td></td>
-	<td align="right">Exento de IVA:</td>
-		<td><input type="checkbox" id="exentoIVA"></input></td>	
+	<td align="right">Tipo IVA:</td>
+		<td><select id="tipoIvaNuevoTemp"></select></td>	
 	</tr>';
 	
 	echo '<tr><td colspan="7" align="center"><button type="button" class="btn btn-info" onClick="anadirDetallePrefactura()">AÑADIR DETALLE</button></tr>';
@@ -274,7 +228,8 @@ if ($_SESSION["usuario"]!="" && isset($_POST["facRecSustitucion_Accion"]) && $_P
 	echo '</tbody>';
 	
 	echo '</table>';
-	
+
+	sqlsrv_close($conn);
 	
 }
 else
@@ -323,66 +278,32 @@ else
 </div> 
 
 
-<!--
 <form id="formImprimirFactura" method="post"  target="_blank" action="imprimirFactura.php">
-	<input type="hidden" id="imprimirNumFactura" name="imprimirNumFactura" value=""></input>
-	<input type="hidden" id="anioSeleccionado0" name="anioSeleccionado0" value=""></input>
+	<input type="hidden" id="numFacturaCompleto" name="numFacturaCompleto" value=""></input>
+	<input type="hidden" id="imprimirClayma" name="clayma" value=""></input>
 	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFactura"></input>	
-</form>
-
-
-<form id="formImprimirFacturaClayma"  method="post"  target="_blank" action="imprimirFacturaClayma.php">
-	<input type="hidden" id="imprimirNumFacturaClayma" name="imprimirNumFacturaClayma" value=""></input>
-	<input type="hidden" id="anioSeleccionado3" name="anioSeleccionado3" value=""></input>
-	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFactura"></input>	
-</form>
--->
-
-<form id="formPrevisualizarFacturaClayma"  method="post"  target="_blank" action="previsualizarFacturaClayma.php">
-	<input type="hidden" id="previsualizarClayma_facturaRectificativa" name="previsualizarClayma_facturaRectificativa" value="BORRADOR por Sustitucion"></input>
-	<input type="hidden" id="previsualizarClayma_presupuesto" name="previsualizarClayma_presupuesto" value=""></input>
-	
-	<input type="hidden" id="previsualizarClayma_facRecMotivo" name="previsualizarClayma_facRecMotivo" value=""></input>
-	<input type="hidden" id="previsualizarClayma_facRecfacOriginal" name="previsualizarClayma_facRecfacOriginal" value=""></input>	
-	<input type="hidden" id="previsualizarClayma_idCliente" name="previsualizarClayma_idCliente" value=""></input>
-	<input type="hidden" id="previsualizarClayma_cliente" name="previsualizarClayma_cliente" value=""></input>
-	<input type="hidden" id="previsualizarClayma_fecha" name="previsualizarClayma_fecha" value=""></input>
-	<input type="hidden" id="previsualizarClayma_pedido" name="previsualizarClayma_pedido" value=""></input>
-	<input type="hidden" id="previsualizarClayma_cantidad" name="previsualizarClayma_cantidad" value=""></input>
-	<input type="hidden" id="previsualizarClayma_formaPago" name="previsualizarClayma_formaPago" value=""></input>
-	<input type="hidden" id="previsualizarClayma_nuestraCuenta" name="previsualizarClayma_nuestraCuenta" value=""></input>
-	<input type="hidden" id="previsualizarClayma_campana" name="previsualizarClayma_campana" value=""></input>
-	<input type="hidden" id="previsualizarClayma_detallada" name="previsualizarClayma_detallada" value=""></input>
-	<input type="hidden" id="previsualizarClayma_neto" name="previsualizarClayma_neto" value=""></input>
-	<input type="hidden" id="previsualizarClayma_iva" name="previsualizarClayma_iva" value=""></input>
-	<input type="hidden" id="previsualizarClayma_irpf" name="previsualizarClayma_irpf" value=""></input>
-	<input type="hidden" id="previsualizarClayma_total" name="previsualizarClayma_total" value=""></input>
-	<input type="hidden" id="previsualizarClayma_provision" name="previsualizarClayma_provision" value=""></input>
-	<input type="hidden" id="previsualizarClayma_aPagar" name="previsualizarClayma_aPagar" value=""></input>
-
-	<input type="hidden" id="previsualizarAccion" name="previsualizarAccion" value="previsualizarFactura"></input>	
 </form>
 
 <form id="formPrevisualizarFactura"  method="post"  target="_blank" action="previsualizarFactura.php">
-	<input type="hidden" id="previsualizar_facturaRectificativa" name="previsualizar_facturaRectificativa" value="BORRADOR por Sustitucion"></input>
-	<input type="hidden" id="previsualizar_presupuesto" name="previsualizar_presupuesto" value=""></input>
-	<input type="hidden" id="previsualizar_facRecMotivo" name="previsualizar_facRecMotivo" value=""></input>
-	<input type="hidden" id="previsualizar_facRecfacOriginal" name="previsualizar_facRecfacOriginal" value=""></input>
-	<input type="hidden" id="previsualizar_idCliente" name="previsualizar_idCliente" value=""></input>
-	<input type="hidden" id="previsualizar_cliente" name="previsualizar_cliente" value=""></input>
-	<input type="hidden" id="previsualizar_fecha" name="previsualizar_fecha" value=""></input>
-	<input type="hidden" id="previsualizar_pedido" name="previsualizar_pedido" value=""></input>
-	<input type="hidden" id="previsualizar_cantidad" name="previsualizar_cantidad" value=""></input>
-	<input type="hidden" id="previsualizar_formaPago" name="previsualizar_formaPago" value=""></input>
-	<input type="hidden" id="previsualizar_nuestraCuenta" name="previsualizar_nuestraCuenta" value=""></input>
-	<input type="hidden" id="previsualizar_campana" name="previsualizar_campana" value=""></input>
-	<input type="hidden" id="previsualizar_detallada" name="previsualizar_detallada" value=""></input>
-	<input type="hidden" id="previsualizar_neto" name="previsualizar_neto" value=""></input>
-	<input type="hidden" id="previsualizar_iva" name="previsualizar_iva" value=""></input>
-	<input type="hidden" id="previsualizar_irpf" name="previsualizar_irpf" value=""></input>
-	<input type="hidden" id="previsualizar_total" name="previsualizar_total" value=""></input>
-	<input type="hidden" id="previsualizar_provision" name="previsualizar_provision" value=""></input>
-	<input type="hidden" id="previsualizar_aPagar" name="previsualizar_aPagar" value=""></input>
+	<input type="hidden" id="previsualizar_facturaRectificativa" name="facturaRectificativa" value="BORRADOR por Sustitucion"></input>
+	<input type="hidden" id="previsualizar_presupuesto" name="presupuesto" value=""></input>
+	<input type="hidden" id="previsualizar_facRecMotivo" name="facRecMotivo" value=""></input>
+	<input type="hidden" id="previsualizar_facRecfacOriginal" name="facRecfacOriginal" value=""></input>
+	<input type="hidden" id="previsualizar_idCliente" name="idCliente" value=""></input>
+	<input type="hidden" id="previsualizar_fecha" name="fecha" value=""></input>
+	<input type="hidden" id="previsualizar_pedido" name="pedido" value=""></input>
+	<input type="hidden" id="previsualizar_cantidad" name="cantidad" value=""></input>
+	<input type="hidden" id="previsualizar_formaPago" name="formaPago" value=""></input>
+	<input type="hidden" id="previsualizar_nuestraCuenta" name="nuestraCuenta" value=""></input>
+	<input type="hidden" id="previsualizar_campana" name="campana" value=""></input>
+	<input type="hidden" id="previsualizar_detallada" name="detallada" value=""></input>
+	<input type="hidden" id="previsualizar_neto" name="neto" value=""></input>
+	<input type="hidden" id="previsualizar_iva" name="iva" value=""></input>
+	<input type="hidden" id="previsualizar_irpf" name="irpf" value=""></input>
+	<input type="hidden" id="previsualizar_total" name="total" value=""></input>
+	<input type="hidden" id="previsualizar_provision" name="provision" value=""></input>
+	<input type="hidden" id="previsualizar_aPagar" name="aPagar" value=""></input>
+	<input type="hidden" id="previsualizar_clayma" name="clayma" value=""></input>
 
 	<input type="hidden" id="previsualizarAccion" name="previsualizarAccion" value="previsualizarFactura"></input>		
 </form>
@@ -428,15 +349,7 @@ IBAN ES48 0049 1839 4621 1043 1601
 	
 </form>-->
 
-<form id="formImprimirFacRec"  method="post"  target="_blank" action="imprimirFacturaRec.php">
-	<input type="hidden" id="imprimirNumFacturaRec" name="imprimirNumFacturaRec" value=""></input>		
-	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFacturaRec"></input>	
-</form>
-
-<form id="formImprimirFacRecClayma"  method="post"  target="_blank" action="imprimirFacturaRecClayma.php">
-	<input type="hidden" id="imprimirNumFacturaRecClayma" name="imprimirNumFacturaRecClayma" value=""></input>		
-	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFacturaRecClayma"></input>	
-</form>
+<!-- formImprimirFacRec / formImprimirFacRecClayma: fusionados en formImprimirFactura -->
 
 
 	
@@ -463,23 +376,20 @@ echo ("</html>");
 <script language="javascript">
 	
 	
-if (document.getElementById("clayma").innerHTML=="true")
-{
-	cargarClientesClayma(condicion="A",'clientes');
-}
-else
-{
-	cargarClientes(condicion="A",'clientes');
-}
+cargarClientes();
 
 
-document.getElementById("clientes").value = <?php echo $datosFacturaOriginal[0]["codigo_saldo"]; ?>;
+document.getElementById("clientes").value = <?php echo $datosFacturaOriginal[0]["idCodigoCliente"]; ?>;
 
 
 
-cargarFormasDePago();	
+cargarFormasDePago();
+	
 cargarPresupuestos();
 verProvisionTotalPresupuesto();
+
+mostrarTipoIva();
+
 borrarTemporalDetallesRec();
 copiarDetallesATemporalDetallesRec();
 cargarDetallesRegistrosFacRec();

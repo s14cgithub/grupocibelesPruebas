@@ -173,7 +173,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="previsualizarPr
 	$altura -= 7;
 	$pdf->SetFont('Arial','',8);
 	$pdf->SetXY(110,$altura);
-	$pdf->MultiCell(80,5,utf8_decode($datosPresupuesto["datos"][0]["cliente"])."\n".utf8_decode($datosPresupuesto["datos"][0]["persona"])."\n".utf8_decode($datosPresupuesto["datos"][0]["direccion"])."\n".$datosPresupuesto["datos"][0]["cp"]." ".utf8_decode($datosPresupuesto["datos"][0]["poblacion"]),0,'L',false);
+	$pdf->MultiCell(80,5,reemplazarSimbolos($datosPresupuesto["datos"][0]["cliente"])."\n".reemplazarSimbolos($datosPresupuesto["datos"][0]["persona"])."\n".utf8_decode($datosPresupuesto["datos"][0]["direccion"])."\n".$datosPresupuesto["datos"][0]["cp"]." ".utf8_decode($datosPresupuesto["datos"][0]["poblacion"]),0,'L',false);
 	
 	
 	$pdf->SetTextColor(13,140,252);
@@ -184,17 +184,17 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="previsualizarPr
 	{
 		$altura = $altura + 34; //75
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosPresupuesto["datos"][0]["campana"]),0,1,'C',false);
+		$pdf->Cell(0,0,reemplazarSimbolos($datosPresupuesto["datos"][0]["campana"]),0,1,'C',false);
 	}
 	else
 	{
 		$altura = $altura + 28; 
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosPresupuesto["datos"][0]["campanaObservacion"]),0,1,'C',false);
+		$pdf->Cell(0,0,reemplazarSimbolos($datosPresupuesto["datos"][0]["campanaObservacion"]),0,1,'C',false);
 		
 		$altura = $altura + 7; 
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosPresupuesto["datos"][0]["campana"]),0,1,'C',false);
+		$pdf->Cell(0,0,reemplazarSimbolos($datosPresupuesto["datos"][0]["campana"]),0,1,'C',false);
 		
 		//$altura = $altura - 7; 
 	}
@@ -281,7 +281,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="previsualizarPr
 				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$mostrarPrecio);		
 			}
 			$pdf->SetXY($margen,$altura);
-			$pdf->Cell(125,5,utf8_decode($row["tipoProceso"]),0,0,'L',false);
+			$pdf->Cell(125,5,reemplazarSimbolos($row["tipoProceso"]),0,0,'L',false);
 			$altura = $altura+5;
 		}
 		
@@ -294,7 +294,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="previsualizarPr
 			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$mostrarPrecio);	
 		}
 		$pdf->SetXY($margen+5,$altura);
-		$pdf->MultiCell(125-5,5,puntoVineta." ".utf8_decode($row["proceso"]),0,'L',false);
+		$pdf->MultiCell(125-5,5,puntoVineta." ".reemplazarSimbolos($row["proceso"]),0,'L',false);
 		
 		
 		
@@ -403,7 +403,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="previsualizarPr
 			
 			$alturaVieja=$altura;
 			
-			$anchoDescripcion = $pdf->GetStringWidth(mb_convert_encoding($row["descripcion"], 'ISO-8859-1', 'UTF-8'));
+			$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($row["descripcion"]));
 			$numeroDeFilas = $anchoDescripcion / ((125-10)-1);
 			if ($numeroDeFilas<1)
 			{
@@ -442,7 +442,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="previsualizarPr
 			$pdf->MultiCell(125-10,4,$temporal,0,'L',false);*/
 			
 			//$pdf->MultiCell(125-10,4,utf8_decode($row["descripcion"]),0,'L',false);
-			$pdf->MultiCell(125-10,4,mb_convert_encoding($row["descripcion"], 'ISO-8859-1', 'UTF-8'),0,'L',false);
+			$pdf->MultiCell(125-10,4,reemplazarSimbolos($row["descripcion"]),0,'L',false);
 			
 			$altura = $altura + (6*$numeroDeFilas);
 			

@@ -3194,61 +3194,7 @@ function mostrarCargarComerciales()
 	}						
 }
 
-function crearNuevoFormaDePago() 
-{	
-	peticionUnica1=crearComunicacion(peticionUnica1);
 
-	if(peticionUnica1)
-	{							
-		peticionUnica1.onreadystatechange = mostrarCrearNuevoFormaDePago;
-		peticionUnica1.open("POST","ajax/crearNuevaFormaDePago.php",false);
-		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaCrearNuevoFormaDePago();
-		peticionUnica1.send(query_string);
-	}	
-}
-
-function consultaCrearNuevoFormaDePago()
-{	
-
-	var consulta = "accion=crearFormaDePago";
-
-	var datos = {
-		concepto: document.getElementById("nuevaFormaDePago").value
-	};
-	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
-
-	return consulta;	
-}
-
-function mostrarCrearNuevoFormaDePago()
-{
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			var res = JSON.parse(peticionUnica1.responseText);
-
-			if (res.error!="")
-			{
-				alert(res.error);
-			}
-			else
-			{
-				/*document.getElementById("filaProcesoGuardados").style.visibility = "visible";
-				document.getElementById("filaProcesoGuardados").style.display = "table-row";				
-
-				document.getElementById("filaProcesoNuevo").style.visibility = "hidden";
-				document.getElementById("filaProcesoNuevo").style.display = "none";
-
-				document.getElementById("filaProcesoGuardados").colSpan = "7";*/
-				//alert(peticion26.responseText);
-				cargarFormasDePago();
-			}
-			peticionUnica1=null;
-		}
-	}						
-}
 
 
 

@@ -271,7 +271,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="mostrarFacturas")
 		{
 			$facturaQueRectifica =  $row["origenFactura"];
 
-			if (preg_match('/^([A-Z]+)\s+(\d+)\/(\d+)$/', $texto, $m)) 
+			if (preg_match('/^([A-Z]+)\s+(\d+)\/(\d+)$/', $facturaQueRectifica, $m)) 
 			{
 				$tipo   = $m[1]; // RECT
 				$num1   = $m[2]; // 3
@@ -387,7 +387,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="mostrarFacturas")
 		{
 			$facturaQueRectifica = $row["origenFactura"];
 
-			if (preg_match('/^([A-Z]+)\s+(\d+)\/(\d+)$/', $texto, $m)) 
+			if (preg_match('/^([A-Z]+)\s+(\d+)\/(\d+)$/', $facturaQueRectifica, $m)) 
 			{
 				$tipo   = $m[1]; // RECT
 				$num1   = $m[2]; // 3

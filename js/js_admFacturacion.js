@@ -381,37 +381,33 @@ function mostrarBotonFechaFinFacturacion()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = peticionUnica1.responseText;
-				if (datos.trim()!="")
+				if (res.activado=="0" || res.activado==0)
 				{
-					if (datos.trim()=="0")
-					{
-						document.getElementById("botonFechaFacMesAnterior").style.visibility = "hidden";
-						document.getElementById("botonFechaFacMesAnterior").style.display = "none";
-						document.getElementById("botonFechaFacMesActual").style.visibility = "visible";
-						document.getElementById("botonFechaFacMesActual").style.display = "inline";
-					}
-					else
-					{
-						document.getElementById("botonFechaFacMesActual").style.visibility = "hidden";
-						document.getElementById("botonFechaFacMesActual").style.display = "none";
-						document.getElementById("botonFechaFacMesAnterior").style.visibility = "visible";
-						document.getElementById("botonFechaFacMesAnterior").style.display = "inline";
-					}					
+					document.getElementById("botonFechaFacMesAnterior").style.visibility = "hidden";
+					document.getElementById("botonFechaFacMesAnterior").style.display = "none";
+					document.getElementById("botonFechaFacMesActual").style.visibility = "visible";
+					document.getElementById("botonFechaFacMesActual").style.display = "inline";
 				}
 				else
 				{
-					document.getElementById("estadoModal").innerHTML=3;
-					botonFechaFinFacturacion();
+					document.getElementById("botonFechaFacMesActual").style.visibility = "hidden";
+					document.getElementById("botonFechaFacMesActual").style.display = "none";
+					document.getElementById("botonFechaFacMesAnterior").style.visibility = "visible";
+					document.getElementById("botonFechaFacMesAnterior").style.display = "inline";
+				}
+
+				if (document.getElementById("estadoModal").innerHTML != "3")
+				{
 					$("#cambiarFechaFacturacionModal").modal('hide');
 				}
-				
 			}
 			peticionUnica1=null;
 		}
@@ -464,37 +460,33 @@ function mostrarBotonFechaFinFacturacionClayma()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = peticionUnica1.responseText;
-				if (datos!="")
+				if (res.activado=="0" || res.activado==0)
 				{
-					if (datos=="0")
-					{
-						document.getElementById("botonFechaFacMesAnteriorClayma").style.visibility = "hidden";
-						document.getElementById("botonFechaFacMesAnteriorClayma").style.display = "none";
-						document.getElementById("botonFechaFacMesActualClayma").style.visibility = "visible";
-						document.getElementById("botonFechaFacMesActualClayma").style.display = "inline";
-					}
-					else
-					{
-						document.getElementById("botonFechaFacMesActualClayma").style.visibility = "hidden";
-						document.getElementById("botonFechaFacMesActualClayma").style.display = "none";
-						document.getElementById("botonFechaFacMesAnteriorClayma").style.visibility = "visible";
-						document.getElementById("botonFechaFacMesAnteriorClayma").style.display = "inline";
-					}					
+					document.getElementById("botonFechaFacMesAnteriorClayma").style.visibility = "hidden";
+					document.getElementById("botonFechaFacMesAnteriorClayma").style.display = "none";
+					document.getElementById("botonFechaFacMesActualClayma").style.visibility = "visible";
+					document.getElementById("botonFechaFacMesActualClayma").style.display = "inline";
 				}
 				else
 				{
-					document.getElementById("estadoModalClayma").innerHTML=3;
-					botonFechaFinFacturacionClayma();
+					document.getElementById("botonFechaFacMesActualClayma").style.visibility = "hidden";
+					document.getElementById("botonFechaFacMesActualClayma").style.display = "none";
+					document.getElementById("botonFechaFacMesAnteriorClayma").style.visibility = "visible";
+					document.getElementById("botonFechaFacMesAnteriorClayma").style.display = "inline";
+				}
+
+				if (document.getElementById("estadoModalClayma").innerHTML != "3")
+				{
 					$("#cambFechaFactModalClayma").modal('hide');
 				}
-				
 			}
 			peticionUnica1=null;
 		}

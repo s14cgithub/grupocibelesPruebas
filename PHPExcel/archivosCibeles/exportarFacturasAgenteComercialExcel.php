@@ -1,5 +1,10 @@
 <?php
 
+ob_start();
+error_reporting(E_ALL);
+ini_set('display_errors', FALSE);
+ini_set('display_startup_errors', FALSE);
+
 //require("../../../../comprobarSesion.php");
 
 if(isset($_POST["exportarACAccion"]) && $_POST["exportarACAccion"]=="exportarExcel")
@@ -15,92 +20,48 @@ if(isset($_POST["exportarACAccion"]) && $_POST["exportarACAccion"]=="exportarExc
 	$fechaFin = $_POST["exportarFechaFin"];	
 	$orden = $_POST["exportarOrdenarPor"];	
 	$desc = $_POST["exportarDesc"];*/
-	$clayma = $_POST["exportarACClayma"];
-	$condicion = $_POST["exportarACCondiciones"];
-	$anioSeleccionado = $_POST["exportarACAnioSeleccionado"];
-	
-	
-	
-	/*$condicion = "";
-	
-	
-	$nombreCliente2="";
-	
-	$datosNombre = explode(' - ',$nombreCliente);
-	
-	$contador=0;
-	
-	while ($contador<count($datosNombre)-1)
-	{
-		if ($nombreCliente2=="")
-		{
-			$nombreCliente2 = $datosNombre[$contador];
-		}
-		else
-		{
-			$nombreCliente2 = $nombreCliente2." - ".$datosNombre[$contador];
-		}
-		
-		$contador++;
-	}
-	
-	//echo ($nombreCliente2);
-	
-	if ($nombreCliente!="Todos")
-	{
-		$condicion = " where t1.cliente='".$nombreCliente2."'";
-	}
-	if ($fechaInicio!="")
-	{
-		if ($condicion=="")
-		{
-			$condicion = " where t1.fecha >= '".$fechaInicio."'";
-		}
-		else
-		{
-			$condicion = $condicion." and t1.fecha >= '".$fechaInicio."'";
-		}
-	}
-	
-	if ($fechaFin!="")
-	{
-		if ($condicion=="")
-		{
-			$condicion = " where t1.fecha <= '".$fechaFin."'";
-		}
-		else
-		{
-			$condicion = $condicion." and t1.fecha <= '".$fechaFin."'";
-		}
-	}
-	
-	
-	
-	
-	$condicion = $condicion." order by t1.".$orden;
-	
-	if ($desc=="true")
-	{
-		$condicion = $condicion." desc";
-	}*/
-	
-	
+	$filtros = isset($_POST["exportarACFiltros"]) ? json_decode($_POST["exportarACFiltros"], true) : array();
+	$filtrosOperadores = isset($_POST["exportarACFiltrosOperadores"]) ? json_decode($_POST["exportarACFiltrosOperadores"], true) : array();
 
-	
-	//echo $clayma;
-	/*if ($clayma=="true")
-	{
-		$resultado=  mostrarFacturasClayma($conexion,$condicion,$anioSeleccionado);
-		$nombreArchivo = 'Clayma_'.date('d-m-Y').'.xlsx';
-	}
-	else
-	{
-		$resultado=  mostrarFacturas($conexion,$condicion,$anioSeleccionado);
+	$camposFactura = ['numeroFacturaCompleto','nombreComercial','cliente','fecha','precioNeto','formaPagoReal','fechaPago','serieFactura','liquidado'];
+	$joinsFactura = ['tabla2','tabla3'];
 
-		$nombreArchivo = 'Cibeles_'.date('d-m-Y').'.xlsx';
-	}*/
-	
-	$resultado = mostrarFacturasAgenteComercialClaymaYcibeles($conexion,$condicion,$anioSeleccionado);
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resCibeles = mostrarFacturacion($conn, $bbddSql, $camposFactura, $joinsFactura, $filtros, $filtrosOperadores, []);
+	$resClayma = mostrarFacturacionClayma($conn, $bbddSql, $camposFactura, $joinsFactura, $filtros, $filtrosOperadores, []);
+
+	sqlsrv_close($conn);
+
+	$resultado = array();
+
+	foreach ($resCibeles['datos'] as $fila)
+	{
+		$fila['origen'] = 'Cibeles';
+		$resultado[] = $fila;
+	}
+	foreach ($resClayma['datos'] as $fila)
+	{
+		$fila['origen'] = 'Clayma';
+		$resultado[] = $fila;
+	}
+
+	usort($resultado, function($a, $b) {
+		$cmp = strcmp($a['nombreComercial'], $b['nombreComercial']);
+		if ($cmp != 0) return $cmp;
+
+		$cmp = strcmp($a['cliente'], $b['cliente']);
+		if ($cmp != 0) return $cmp;
+
+		$cmp = strcmp($b['serieFactura'], $a['serieFactura']);
+		if ($cmp != 0) return $cmp;
+
+		if ($a['fecha'] == $b['fecha']) return 0;
+		return ($a['fecha'] < $b['fecha']) ? -1 : 1;
+	});
+
 	$nombreArchivo = 'AgenteComercial_'.date('d-m-Y').'.xlsx';
 	
 
@@ -139,9 +100,6 @@ if(isset($_POST["exportarACAccion"]) && $_POST["exportarACAccion"]=="exportarExc
  */
 
 /** Error reporting */
-error_reporting(E_ALL);
-ini_set('display_errors', TRUE);
-ini_set('display_startup_errors', TRUE);
 date_default_timezone_set('Europe/London');
 
 if (PHP_SAPI == 'cli')
@@ -166,7 +124,7 @@ $objPHPExcel->getProperties()->setCreator("")
 							 ->setCategory("result file");
 
 
-$objPHPExcel->getActiveSheet()->getStyle("A1:I1")->getFont()->setBold( true );
+$objPHPExcel->getActiveSheet()->getStyle("A1:J1")->getFont()->setBold( true );
 // Add some data
 $objPHPExcel->setActiveSheetIndex(0)
             ->setCellValue('A1', 'NOMBRE')
@@ -177,7 +135,8 @@ $objPHPExcel->setActiveSheetIndex(0)
 			->setCellValue('F1', 'FORMA DE PAGO')		
 			->setCellValue('G1', 'FECHA PAGO')
 			->setCellValue('H1', 'TIPO')
-			->setCellValue('I1', 'LIQUIDADO');
+			->setCellValue('I1', 'LIQUIDADO')
+			->setCellValue('J1', 'ORIGEN');
 
 	
 //$contador=2;
@@ -205,11 +164,11 @@ while($contadorRegistro < count($resultado))
 	if ($primeraVez)
 	{
 		$primeraVez = false;
-		$comercialActual = $resultado[$contadorRegistro]["nombre"];
+		$comercialActual = $resultado[$contadorRegistro]["nombreComercial"];
 	}
-	else if ($comercialActual!=$resultado[$contadorRegistro]["nombre"])
+	else if ($comercialActual!=$resultado[$contadorRegistro]["nombreComercial"])
 	{
-		$comercialActual = $resultado[$contadorRegistro]["nombre"];
+		$comercialActual = $resultado[$contadorRegistro]["nombreComercial"];
 		
 		$finSumatorio=$contadorCeldas-1;
 		
@@ -223,12 +182,12 @@ while($contadorRegistro < count($resultado))
 			->setFormatCode('#,##0.00_-€');	
 		
 		
-		$objPHPExcel->getActiveSheet()->getStyle('A'.$inicioSumatorio.':I'.$finSumatorio)->applyFromArray($BStyle);
+		$objPHPExcel->getActiveSheet()->getStyle('A'.$inicioSumatorio.':J'.$finSumatorio)->applyFromArray($BStyle);
 		
 		$contadorCeldas+=3;
 		
 		
-		$objPHPExcel->getActiveSheet()->getStyle('A'.$contadorCeldas.':I'.$contadorCeldas)->getFont()->setBold( true );
+		$objPHPExcel->getActiveSheet()->getStyle('A'.$contadorCeldas.':J'.$contadorCeldas)->getFont()->setBold( true );
 		$objPHPExcel->setActiveSheetIndex(0)
             ->setCellValue('A'.$contadorCeldas, 'NOMBRE')
 	 		->setCellValue('B'.$contadorCeldas, 'CLIENTE')
@@ -238,7 +197,8 @@ while($contadorRegistro < count($resultado))
 			->setCellValue('F'.$contadorCeldas, 'FORMA DE PAGO')		
 			->setCellValue('G'.$contadorCeldas, 'FECHA PAGO')
 			->setCellValue('H'.$contadorCeldas, 'TIPO')
-			->setCellValue('I'.$contadorCeldas, 'LIQUIDADO');
+			->setCellValue('I'.$contadorCeldas, 'LIQUIDADO')
+			->setCellValue('J'.$contadorCeldas, 'ORIGEN');
 		
 		$contadorCeldas++;
 		$inicioSumatorio=$contadorCeldas;
@@ -247,29 +207,27 @@ while($contadorRegistro < count($resultado))
 	}
 	
 	$fecha = "";
-	if ($resultado[$contadorRegistro]["formaPagoReal"]!='')
+	if ($resultado[$contadorRegistro]["formaPagoReal"]!='' && $resultado[$contadorRegistro]["fechaPago"]!=null)
 	{
-		$fecha = $resultado[$contadorRegistro]["fechaPago"];
+		$fecha = $resultado[$contadorRegistro]["fechaPago"]->format('d/m/Y');
 	}
-	
+
+	$fechaFactura = ($resultado[$contadorRegistro]["fecha"]!=null) ? $resultado[$contadorRegistro]["fecha"]->format('d/m/Y') : '';
 	
 	
 	
 	
 	$objPHPExcel->setActiveSheetIndex(0)
-            ->setCellValue('A'.$contadorCeldas, $resultado[$contadorRegistro]["nombre"])
+            ->setCellValue('A'.$contadorCeldas, $resultado[$contadorRegistro]["nombreComercial"])
 			->setCellValue('B'.$contadorCeldas, $resultado[$contadorRegistro]["cliente"])
-            ->setCellValue('C'.$contadorCeldas, $resultado[$contadorRegistro]["numero"])			
-			->setCellValue('D'.$contadorCeldas, $resultado[$contadorRegistro]["fecha"])
-			//->setCellValue('D'.$contadorCeldas, $resultado[$contadorRegistro]["fecha"])
-			
-			//->setCellValue('D'.$contadorCeldas, PHPExcel_Shared_Date::PHPToExcel( date("d/m/Y", strtotime($resultado[$contadorRegistro]["fecha"])) ))
-		
+            ->setCellValue('C'.$contadorCeldas, $resultado[$contadorRegistro]["numeroFacturaCompleto"])			
+			->setCellValue('D'.$contadorCeldas, $fechaFactura)
 			->setCellValue('E'.$contadorCeldas, $resultado[$contadorRegistro]["precioNeto"])
 			->setCellValue('F'.$contadorCeldas, $resultado[$contadorRegistro]["formaPagoReal"])
 			->setCellValue('G'.$contadorCeldas, $fecha)
-			->setCellValue('H'.$contadorCeldas, $resultado[$contadorRegistro]["tipo"])
-			->setCellValue('I'.$contadorCeldas, $resultado[$contadorRegistro]["liquidado"]);
+			->setCellValue('H'.$contadorCeldas, $resultado[$contadorRegistro]["serieFactura"])
+			->setCellValue('I'.$contadorCeldas, $resultado[$contadorRegistro]["liquidado"])
+			->setCellValue('J'.$contadorCeldas, $resultado[$contadorRegistro]["origen"]);
 		
 	
 	$objPHPExcel->getActiveSheet()->getStyle('E'.$contadorCeldas)->getNumberFormat()
@@ -289,7 +247,7 @@ while($contadorRegistro < count($resultado))
 	$objPHPExcel->getActiveSheet()->getStyle('E'.$contadorCeldas2)->getNumberFormat()
 			->setFormatCode('#,##0.00_-€');
 	
-	$objPHPExcel->getActiveSheet()->getStyle('A'.$inicioSumatorio.':I'.$contadorCeldas)->applyFromArray($BStyle);
+	$objPHPExcel->getActiveSheet()->getStyle('A'.$inicioSumatorio.':J'.$contadorCeldas)->applyFromArray($BStyle);
 	
 	
 	
@@ -308,6 +266,7 @@ while($contadorRegistro < count($resultado))
 	$objPHPExcel->getActiveSheet()->getColumnDimension('G')->setAutoSize(true);
 	$objPHPExcel->getActiveSheet()->getColumnDimension('H')->setAutoSize(true);
 	$objPHPExcel->getActiveSheet()->getColumnDimension('I')->setAutoSize(true);
+	$objPHPExcel->getActiveSheet()->getColumnDimension('J')->setAutoSize(true);
 	
 	
 	
@@ -328,6 +287,7 @@ $objPHPExcel->setActiveSheetIndex(0);
 	
 	
 // Redirect output to a client’s web browser (Excel2007)
+ob_end_clean();
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');
 header('Cache-Control: max-age=0');

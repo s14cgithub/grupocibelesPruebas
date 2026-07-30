@@ -16,10 +16,20 @@ if ($_SESSION["usuario"]<>"")
 	<table border ="0" align="center">		
 			<tr>
 				<td align="right">Año:</td>
-				<td><select class=""  id="anio" name="anio" onChange="buscarFactura()"></select></td>
+				<td><select class=""  id="anio" name="anio" onChange="mirarLaCargar()"></select></td>
+				
+				<td align="right">Nº Serie:</td>
+				<td><select class=""  id="serieFactura" name="serieFactura" onChange="mirarLaCargar()">
+						<option value="Todos">Todos</option>
+						<option value="FAC">Facturas</option>
+						<option value="NEG">Negativas</option>
+						<option value="RECT">Rec. Diferencias</option>
+						<option value="SUST">Rec. Sustitutivas</option>
+						
+					</select></td>
 				
 				<td align="right">&nbsp;&nbsp;&nbsp;Clayma:</td>
-				<td align="left"><input type="checkbox" id="clienteOrigen" name="clienteOrigen" value="" onchange="gestionDeCargarClientesListado('buscarCliente')" style="" > </input>  <span id="pantalla"></span> </td>
+				<td align="left"><input type="checkbox" id="clienteOrigen" name="clienteOrigen" value="" onchange="gestionDeCargarClientesListado('buscarCliente'); cargarAniosFacturacion('anio', document.getElementById('clienteOrigen').checked ? 1 : 0); document.getElementById('anio').value = 2026;" style="" > </input>  <span id="pantalla"></span> </td>
 
 				<!--
 				<td align="right">&nbsp;&nbsp;&nbsp;PreFacturas:</td>
@@ -56,12 +66,12 @@ if ($_SESSION["usuario"]<>"")
 	<tr>
 		<td align="center" colspan="">Buscar por:
 			<select class=""  id="buscarCampo" name="buscarCampo">
-				<option value="t1.numero">Factura</option>	
-				<option value="t1.descripcion">Campaña</option>	
-				<option value="t1.cliente">Cliente</option>
-				<option value="t1.presupuesto">Presupuesto</option>
-				<option value="t1.precioTotal">Total</option>				
-				<option value="t1.aPagar">Total a Pagar</option>				
+				<option value="numero">Factura</option>	
+				<option value="descripcion">Campaña</option>	
+				<option value="cliente">Cliente</option>
+				<option value="presupuesto">Presupuesto</option>
+				<option value="precioTotal">Total</option>				
+				<option value="aPagar">Total a Pagar</option>				
 			</select>
 		Texto:
 			<input class="" type="text" id="buscarTexto" name="buscarTexto"></input>
@@ -71,11 +81,11 @@ if ($_SESSION["usuario"]<>"")
 		<td align="left" colspan="3">
 			Orden:
 			<select class="" id="ordenBuscar">
-					<option value="t1.descripcion">Campaña</option>	
+					<option value="descripcion">Campaña</option>	
 					<option value="cliente">Cliente</option>
 					<option value="numero" selected>Factura</option>	
 					<option value="fecha">Fecha Factura</option>
-					<option value="t1.fechaPago">Fecha Pago</option>					
+					<option value="fechaPago">Fecha Pago</option>					
 					<option value="presupuesto">Presupuesto</option>
 					<option value="precioTotal">Total</option>				
 					<option value="aPagar">Total a Pagar</option>
@@ -85,9 +95,9 @@ if ($_SESSION["usuario"]<>"")
 			Desc: <input type="checkbox" id="ordenDesc" checked></input>
 		
 
-			<button type="button" class="btn btn-info" onClick="buscarFactura()">Buscar</button>
+			<button type="button" class="btn btn-info" onClick="mirarLaCargar()">Buscar</button>
 			<input type="submit" class="btn btn-info" onClick="gestionExportarExcelFacturaCibeles()" value="Excel" ></input>
-			<button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirRangoNumerosFacturasModal" data-whatever="@mdo" id="btnImprimir">Imprimir</button>
+			<!--<button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirRangoNumerosFacturasModal" data-whatever="@mdo" id="btnImprimir">Imprimir</button>-->
 
 
 		</td>	
@@ -298,8 +308,8 @@ else
 
 
 <form id="formImprimirFactura"  method="post"  target="_blank" action="imprimirFactura.php">
-	<input type="hidden" id="imprimirNumFactura" name="imprimirNumFactura" value=""></input>
-	<input type="hidden" id="anioSeleccionado0" name="anioSeleccionado0" value=""></input>	
+	<input type="hidden" id="numFacturaCompleto" name="numFacturaCompleto" value=""></input>
+	<input type="hidden" id="imprimirClayma" name="clayma" value=""></input>
 	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFactura"></input>	
 </form>
 <form id="formImprimirFacturaRango"  method="post"  target="_blank" action="imprimirFactura.php">
@@ -322,41 +332,26 @@ else
 	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFactura"></input>	
 </form>
 
-<form id="formImprimirAbono"  method="post"  target="_blank" action="imprimirAbono.php">
-	<input type="hidden" id="imprimirNumFacturaAbono" name="imprimirNumFacturaAbono" value=""></input>	
-	<input type="hidden" id="imprimirAnioSeleccionado" name="imprimirAnioSeleccionado" value=""></input>	
-	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirAbono"></input>	
-</form>
-
-<form id="formImprimirAbonoClayma"  method="post"  target="_blank" action="imprimirAbonoClayma.php">
-	<input type="hidden" id="imprimirNumFacturaAbonoClayma" name="imprimirNumFacturaAbonoClayma" value=""></input>	
-	<input type="hidden" id="imprimirAnioSeleccionadoClayma" name="imprimirAnioSeleccionadoClayma" value=""></input>
-	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirAbonoClayma"></input>	
-</form>
-
-<form id="formImprimirFacRec"  method="post"  target="_blank" action="imprimirFacturaRec.php">
-	<input type="hidden" id="imprimirNumFacturaRec" name="imprimirNumFacturaRec" value=""></input>		
-	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFacturaRec"></input>	
-</form>
-
-<form id="formImprimirFacRecClayma"  method="post"  target="_blank" action="imprimirFacturaRecClayma.php">
-	<input type="hidden" id="imprimirNumFacturaRecClayma" name="imprimirNumFacturaRecClayma" value=""></input>		
-	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFacturaRecClayma"></input>	
-</form>
+<!-- formImprimirAbono, formImprimirAbonoClayma, formImprimirFacRec, formImprimirFacRecClayma:
+	 fusionados en formImprimirFactura (irAImprimirAbono/irAImprimirFacRec ahora usan ese form) -->
 
 
 <form id="formExportarExcel"  method="post"  target="_blank" action="PHPExcel/archivosCibeles/exportarFacturasCibelesExcel.php">	
 	<input type="hidden" id="exportarClayma" name="exportarClayma" value=""></input>
-	<input type="hidden" id="exportarCondiciones" name="exportarCondiciones" value=""></input>
-	<input type="hidden" id="exportarAnioSeleccionado" name="exportarAnioSeleccionado" value=""></input>	
+	<input type="hidden" id="exportarFiltros" name="exportarFiltros" value=""></input>
+	<input type="hidden" id="exportarFiltrosOperadores" name="exportarFiltrosOperadores" value=""></input>
+	<input type="hidden" id="exportarOrden" name="exportarOrden" value=""></input>
+	<input type="hidden" id="exportarDesc" name="exportarDesc" value=""></input>
 	<input type="hidden" id="exportarAccion" name="exportarAccion" value="exportarExcel"></input>			
 </form>
 
 
 <form id="formExportarAgenteComercialExcel"  method="post"  target="_blank" action="PHPExcel/archivosCibeles/exportarFacturasAgenteComercialExcel.php">	
 	<input type="hidden" id="exportarACClayma" name="exportarACClayma" value=""></input>	
-	<input type="hidden" id="exportarACCondiciones" name="exportarACCondiciones" value=""></input>
-	<input type="hidden" id="exportarACAnioSeleccionado" name="exportarACAnioSeleccionado" value=""></input>	
+	<input type="hidden" id="exportarACFiltros" name="exportarACFiltros" value=""></input>
+	<input type="hidden" id="exportarACFiltrosOperadores" name="exportarACFiltrosOperadores" value=""></input>
+	<input type="hidden" id="exportarACOrden" name="exportarACOrden" value=""></input>
+	<input type="hidden" id="exportarACDesc" name="exportarACDesc" value=""></input>
 	<input type="hidden" id="exportarACAccion" name="exportarACAccion" value="exportarExcel"></input>			
 </form>
 
@@ -403,11 +398,11 @@ echo ("</html>");
 <script  src="js/js_facturas.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
 <script language="javascript">
 	
-	cargarAnios("anio");
-	document.getElementById("anio").value = 2025;
+	cargarAniosFacturacion("anio", document.getElementById("clienteOrigen").checked ? 1 : 0);
+	document.getElementById("anio").value = 2026;
 	//gestionDeCargarClientesListado('buscarCliente');
 	//cargarListadoFacturas();
-	buscarFactura();
+	cargarListadoFacturas();
 	
 	/*jQuery('document').ready(function($)
 							{

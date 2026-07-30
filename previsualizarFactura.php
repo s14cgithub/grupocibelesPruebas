@@ -14,47 +14,114 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	require($ruta."FPDF/fpdf.php");
 	require($ruta."Archivos Comunes/pagegroup.php");
 	require($ruta."Archivos Comunes/rotate.php");
-	require($ruta."Archivos Comunes/cabeceraPieFacturaGroupPag.php");
-	
-	
 
-	$numPresupuesto = isset($_POST["previsualizar_presupuesto"]) ? $_POST["previsualizar_presupuesto"] : ""; 
+	$clayma = isset($_POST['clayma']) && $_POST['clayma']==1;
+
+	if ($clayma)
+	{
+		require($ruta."Archivos Comunes/cabeceraPieFacturaClayma.php");
+	}
+	else
+	{
+		require($ruta."Archivos Comunes/cabeceraPieFacturaGroupPag.php");
+	}
+
+	$numPresupuesto = isset($_POST["presupuesto"]) ? $_POST["presupuesto"] : ""; 
 	
-	$facRec = isset($_POST["previsualizar_facturaRectificativa"]) ? $_POST["previsualizar_facturaRectificativa"] : ""; //valores: vacio, diferencias, sustitutiva
-	$facRec_motivo = isset($_POST["previsualizar_facRecMotivo"]) ? $_POST["previsualizar_facRecMotivo"] : "";
-	$facturaOriginal = isset($_POST["previsualizar_facRecfacOriginal"]) ? $_POST["previsualizar_facRecfacOriginal"] : "";
+	$facRec = isset($_POST["facturaRectificativa"]) ? $_POST["facturaRectificativa"] : ""; //valores: vacio, diferencias, sustitutiva
+	$facRec_motivo = isset($_POST["facRecMotivo"]) ? $_POST["facRecMotivo"] : "";
+	$facturaOriginal = isset($_POST["facRecfacOriginal"]) ? $_POST["facRecfacOriginal"] : "";
 	$tituloFactura = $facRec;
 
 	$numFactura = "";
 	
-	$eltitulo = $_POST["previsualizar_campana"];
+	$eltitulo = $_POST["campana"];
 	$usuario = $_SESSION["idEmpleado"];
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 	
 	if ($facRec!="")
 	{		
-		$datosDetalles = mostrarFacRecDetallesTemporal($conexion,$facturaOriginal,0,$usuario);
+		$res = mostrarFacturasDetallesTemporal($conn, $bbddSql, ['descripcion','concepto','tipoIva','unidades','precio','total'], ['facturaOriginal' => $facturaOriginal, 'idEmpleado' => $usuario], [], [['campo'=>'ordenTipo','dir'=>'ASC'],['campo'=>'orden','dir'=>'ASC']]);
+		$datosDetalles = $res['datos'];
 	}
 	else
 	{		
-		$datosDetalles = mostrarFacturasDetallesTemporal($conexion,$numPresupuesto,$usuario);
+		$res = mostrarFacturasDetallesTemporal($conn, $bbddSql, ['descripcion','concepto','tipoIva','unidades','precio','total'], ['presupuesto' => $numPresupuesto, 'idEmpleado' => $usuario], [], [['campo'=>'ordenTipo','dir'=>'ASC'],['campo'=>'orden','dir'=>'ASC']]);
+		$datosDetalles = $res['datos'];
 	}	
+
+	$desgloseIva = array();
+	$hayTipoIva = false;
+	foreach ($datosDetalles as $rowDesglose)
+	{
+		if (isset($rowDesglose['tipoIva']))
+		{
+			$hayTipoIva = true;
+			$tipo = $rowDesglose['tipoIva'];
+
+			if ($tipo!=0)
+			{
+				if (!isset($desgloseIva[$tipo]))
+				{
+					$desgloseIva[$tipo] = 0;
+				}
+				$desgloseIva[$tipo] += floatval($rowDesglose['total']) * $tipo / 100;
+			}
+		}
+	}
+
+	foreach ($desgloseIva as $tipoRedondeo => $importeRedondeo)
+	{
+		$desgloseIva[$tipoRedondeo] = round($importeRedondeo, 2);
+	}
+
+	if ($hayTipoIva && !isset($desgloseIva[21]))
+	{
+		$desgloseIva[21] = 0;
+	}
+
+	foreach ($desgloseIva as $tipoFiltro => $importeFiltro)
+	{
+		if ($tipoFiltro!=21 && $importeFiltro==0)
+		{
+			unset($desgloseIva[$tipoFiltro]);
+		}
+	}
+	ksort($desgloseIva);
 	
-	$fecha = $_POST["previsualizar_fecha"];
-	$idCliente = $_POST["previsualizar_idCliente"];
-	$datosCliente =  cargarClientes($conexion," where codigo_saldo=".$idCliente." and codigo=".$idCliente);
-	$pedido = $_POST["previsualizar_pedido"];
-	$detallada = $_POST["previsualizar_detallada"];
-	$formaPago = $_POST["previsualizar_formaPago"];
-	$cuentaBancaria = $_POST["previsualizar_nuestraCuenta"];
-	$precioNeto =  $_POST["previsualizar_neto"];
-	$iva =  $_POST["previsualizar_iva"];
-	$irpf =  $_POST["previsualizar_irpf"];
+	$fecha = $_POST["fecha"];
+	$idCliente = $_POST["idCliente"];
+
+	$camposCliente = ['retener','codigo_saldo','nombre_empresa','direccion','codigo_postal','localidad','provincia','nif_subcliente','envio_att','envio_nombre','envio_domicilio','envio_cp','envio_poblacion','envio_provincia','envio_pais'];
+	$filtrosCliente = ['codigo_saldo' => $idCliente, 'codigo' => $idCliente];
+
+	if ($clayma)
+	{
+		$resCliente = cargarClientesClayma($conn, $bbddSql, $camposCliente, $filtrosCliente, [], []);
+	}
+	else
+	{
+		$resCliente = cargarClientes($conn, $bbddSql, $camposCliente, $filtrosCliente, [], []);
+	}
+	$datosCliente = $resCliente['datos'];
+
+	sqlsrv_close($conn);
+	$pedido = $_POST["pedido"];
+	$detallada = $_POST["detallada"];
+	$formaPago = $_POST["formaPago"];
+	$cuentaBancaria = $_POST["nuestraCuenta"];
+	$precioNeto =  $_POST["neto"];
+	$iva =  $_POST["iva"];
+	$irpf =  $_POST["irpf"];
 	
-	$precioTotal = $_POST["previsualizar_total"];
-	$provision = $_POST["previsualizar_provision"];
-	$aPagar = $_POST["previsualizar_aPagar"];
+	$precioTotal = $_POST["total"];
+	$provision = $_POST["provision"];
+	$aPagar = $_POST["aPagar"];
 	
-	$cantidadGenerica = $_POST["previsualizar_cantidad"];
+	$cantidadGenerica = $_POST["cantidad"];
 	
 	/*
 	if ($datosCliente[0]["sinIva"]==1)
@@ -65,8 +132,19 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	}
 	*/
 	
-	
-	
+	$sumaDesgloseIva = round(array_sum($desgloseIva), 2);
+	$erroresCuadre = array();
+
+	if (abs($sumaDesgloseIva - floatval($iva)) > 0.01)
+	{
+		$detalleTipos = array();
+		foreach ($desgloseIva as $tipoDetalle => $importeDetalle)
+		{
+			$detalleTipos[] = "IVA ".$tipoDetalle."%: ".number_format($importeDetalle,2,',','.');
+		}
+		$erroresCuadre[] = "La suma de los importes de IVA por tipo (".implode(", ", $detalleTipos).") = ".number_format($sumaDesgloseIva,2,',','.')." no coincide con el IVA de la factura (".number_format(floatval($iva),2,',','.').").";
+	}
+
 	
 	$pdf = new cabeceraFactura('P','mm','A4');
 	
@@ -163,7 +241,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	
 	//$datosCliente=null;
 		
-	nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo);	           
+	nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo,$clayma);	           
 		
 		
 	//$alturaSiguientePagina = 40;//50
@@ -213,7 +291,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 		$altura += 5;
 		$pdf->SetFont('Arial','B',10);
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,5,"PEDIDO:  ".utf8_decode($pedido),0,1,'L',false);
+		$pdf->Cell(0,5,"PEDIDO:  ".reemplazarSimbolos($pedido),0,1,'L',false);
 	}
 	
 	
@@ -261,7 +339,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 		
 		if ($altura>190)
 		{			
-			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo);
+			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo,$clayma);
 		}
 		
 		
@@ -288,7 +366,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 			$pdf->Cell(0,5,"Factura Original: ".substr($numPresupuesto, 17),0,1,'L',false);
 			$altura += 5;*/
 		}
-		else
+		else if ($numPresupuesto!="")
 		{
 			$pdf->SetXY($margen,$altura);		
 			$pdf->Cell(0,5,"OT: ".$numPresupuesto,0,1,'L',false);
@@ -299,9 +377,9 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 		$margen += 30;
 		$pdf->SetFont('Arial','B',10);
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,5,utf8_decode($eltitulo),0,'L',false);
+		$pdf->MultiCell(0,5,reemplazarSimbolos($eltitulo),0,'L',false);
 		//$pdf->MultiCell(0,5,utf8_decode("Manipulación y envío de su Correspondencia diario del 01/05/2021 al 31/05/2021"."aaaaa  aaaa "),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($eltitulo));
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($eltitulo));
 		$numeroDeFilas = ceil ($anchoDescripcion / (180-30));
 		if ($numeroDeFilas<1)
 		{
@@ -363,7 +441,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 
 			if ($altura>$limiteAlturaDatos)
 			{
-				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo);
+				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo,$clayma);
 			}
 
 
@@ -403,7 +481,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 				$ladescripion = str_replace('ª',signo_ordinal,$ladescripion);	*/		
 				
 				
-				$ladescripion = reemplazarSimbolos($ladescripion);
+				//$ladescripion = reemplazarSimbolos($ladescripion);
 	
 			}
 			
@@ -423,8 +501,9 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 			$elConcepto = str_replace('º',signo_grado,$elConcepto);
 			$elConcepto = str_replace('ª',signo_ordinal,$elConcepto);*/
 			
-			$elConcepto = reemplazarSimbolos($row["concepto"]);
+			//$elConcepto = reemplazarSimbolos($row["concepto"]);
 
+			$elConcepto = $row["concepto"];
 			if ($elConcepto!="" and $elConcepto!=" " and $elConcepto!="  ")
 			{
 				$elConcepto=$elConcepto.". ";
@@ -434,11 +513,18 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 			//$ladescripion = $ladescripion." altura: ".$altura;
 
 
-				$datosDecripcion = $elConcepto.$ladescripion;
+				$datosDecripcion = reemplazarSimbolos($elConcepto.$ladescripion);
 
-			if ($row["exentoIVA"]==true)
-			{					
-				$datosDecripcion .= " (Exento de IVA)";
+			if (isset($row["tipoIva"]))
+			{
+				if ($row["tipoIva"]==0)
+				{
+					$datosDecripcion .= " (Exento de IVA)";
+				}
+				else if ($row["tipoIva"]!=21)
+				{
+					$datosDecripcion .= " (IVA ".$row["tipoIva"]."%)";
+				}
 			}
 
 
@@ -447,7 +533,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 			$pdf->MultiCell(110,5,($datosDecripcion),0,'L',true);
 
 
-			$anchoDescripcion = $pdf->GetStringWidth(utf8_decode($datosDecripcion));
+			$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosDecripcion));
 			$numeroDeFilas = ceil ($anchoDescripcion / (109));
 			if ($numeroDeFilas<1)
 			{
@@ -549,7 +635,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 
 			if ($altura>265)
 			{
-				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo);	
+				nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo,$clayma);	
 			}
 
 		}
@@ -559,7 +645,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	}
 	if ($altura>230)
 	{
-			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo);
+			nuevaPagina($pdf,$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo,$clayma);
 	}
 	
 	
@@ -573,7 +659,14 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 
 
 	$margen=$margenInicial;
-	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	if ($clayma)
+	{
+		$pdf->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+	}
+	else
+	{
+		$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	}
 	$pdf->SetLineWidth(0.8);
 	$pdf->Line($margen, $altura, 190, $altura);
 	
@@ -586,7 +679,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	$pdf->SetFont('Arial','',10);
 	$pdf->SetXY(20,$altura);
 	
-	$pdf->MultiCell(95,5,utf8_decode($formaPago),0,'L',false);
+	$pdf->MultiCell(95,5,reemplazarSimbolos($formaPago),0,'L',false);
 	
 	$pdf->SetFont('Arial','',6);
 	//$cuentaBancaria = str_replace(array("\r\n", "\n\r", "\r", "\n"), "<br>", $cuentaBancaria);
@@ -600,7 +693,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	//$cuentaBancaria = $datosFactura[0]["cuentaDelBanco"];
 	$altura += 10;
 	$pdf->SetXY(20,$altura);
-	$pdf->MultiCell(95,5,utf8_decode($cuentaBancaria),0,'L',false);
+	$pdf->MultiCell(95,5,reemplazarSimbolos($cuentaBancaria),0,'L',false);
 	
 	
 
@@ -612,58 +705,93 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	}
 
 
+	$numLineasIva = count($desgloseIva)>0 ? count($desgloseIva) : 1;
+	$totalLineas = 2 + $numLineasIva + ($imprimirIRPF ? 1 : 0); // Base + IVA(s) + IRPF? + Total
+
+	$espaciado = 7;
+	$fuenteCaja = 10;
+	$alturaCelda = 5;
+	$offsetInicial = ($totalLineas <= 3) ? 4 : 0;
+
+	if ($totalLineas > 4)
+	{
+		$alturaCelda = 4;
+		$offsetInicial = 2;
+		$espaciado = (27 - $offsetInicial - $alturaCelda) / ($totalLineas - 1);
+		$fuenteCaja = max(6, 10 - ($totalLineas - 4));
+	}
+
 	$altura = 240;
 	
 	$ancho = $pdf->GetPageWidth()-20-70;
 	
-	$pdf->SetFillColor(colorAzulR,colorAzulG,colorAzulB);
+	if ($clayma)
+	{
+		$pdf->SetFillColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+	}
+	else
+	{
+		$pdf->SetFillColor(colorAzulR,colorAzulG,colorAzulB);
+	}
 	$pdf->Rect($ancho, $altura, 70, 27,'F');
 	
 	
-	$pdf->SetFont('Arial','B',10);
+	$pdf->SetFont('Arial','B',$fuenteCaja);
 	$pdf->SetTextColor(colorBlancoR,colorBlancoG,colorBlancoB);
 	
 
-	if  ($imprimirIRPF == false)
-	{
-		$altura += 4;
-	}
+	$altura += $offsetInicial;
 	
 	$ancho+=10;
 	
 	$pdf->SetXY($ancho,$altura);			
-	$pdf->Cell(20,5,"Base Imponible:",0,0,'R',false);
+	$pdf->Cell(20,$alturaCelda,"Base Imponible:",0,0,'R',false);
 	
 	
 	
 	$pdf->SetXY($ancho+35,$altura);			
-	$pdf->Cell(20,5,number_format($precioNeto,2,',','.')." ".EURO,0,0,'R',false);	
+	$pdf->Cell(20,$alturaCelda,number_format($precioNeto,2,',','.')." ".EURO,0,0,'R',false);	
 	
-	$altura += 7;
-	$pdf->SetXY($ancho,$altura);			
-	$pdf->Cell(20,5,"IVA 21%:",0,0,'R',false);	
-	
-	$pdf->SetXY($ancho+35,$altura);	
-	$pdf->Cell(20,5,number_format($iva,2,',','.')." ".EURO,0,0,'R',false);
+	if (count($desgloseIva)>0)
+	{
+		foreach ($desgloseIva as $tipoIvaLinea => $importeIvaLinea)
+		{
+			$altura += $espaciado;
+			$pdf->SetXY($ancho,$altura);			
+			$pdf->Cell(20,$alturaCelda,"IVA ".$tipoIvaLinea."%:",0,0,'R',false);	
+			
+			$pdf->SetXY($ancho+35,$altura);	
+			$pdf->Cell(20,$alturaCelda,number_format($importeIvaLinea,2,',','.')." ".EURO,0,0,'R',false);
+		}
+	}
+	else
+	{
+		$altura += $espaciado;
+		$pdf->SetXY($ancho,$altura);			
+		$pdf->Cell(20,$alturaCelda,"IVA 21%:",0,0,'R',false);	
+		
+		$pdf->SetXY($ancho+35,$altura);	
+		$pdf->Cell(20,$alturaCelda,number_format($iva,2,',','.')." ".EURO,0,0,'R',false);
+	}
 	
 
 	if  ($imprimirIRPF == true)
 	{
-		$altura += 7;
+		$altura += $espaciado;
 		$pdf->SetXY($ancho,$altura);			
-		$pdf->Cell(20,5,"IRPF 19%:",0,0,'R',false);	
+		$pdf->Cell(20,$alturaCelda,"IRPF 19%:",0,0,'R',false);	
 		
 		$pdf->SetXY($ancho+35,$altura);	
-		$pdf->Cell(20,5,number_format($irpf,2,',','.')." ".EURO,0,0,'R',false);
+		$pdf->Cell(20,$alturaCelda,number_format($irpf,2,',','.')." ".EURO,0,0,'R',false);
 	}
 	
 	
-	$altura += 7;
+	$altura += $espaciado;
 	$pdf->SetXY($ancho,$altura);			
-	$pdf->Cell(20,5,"TOTAL:",0,0,'R',false);
+	$pdf->Cell(20,$alturaCelda,"TOTAL:",0,0,'R',false);
 	
 	$pdf->SetXY($ancho+35,$altura);			
-	$pdf->Cell(20,5,number_format($precioTotal,2,',','.')." ".EURO,0,0,'R',false);	
+	$pdf->Cell(20,$alturaCelda,number_format($precioTotal,2,',','.')." ".EURO,0,0,'R',false);	
 	
 	
 	$pdf->SetFont('Arial','',8);
@@ -682,7 +810,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 		$pdf->SetXY($ancho+35,$altura);			
 		$pdf->Cell(20,5,number_format($provision,2,',','.')." ".EURO,0,0,'R',false);	
 
-		$altura += 7;
+		$altura += 5;
 		$pdf->SetXY($ancho,$altura);			
 		$pdf->Cell(20,5,"Total a Pagar:",0,0,'R',false);
 
@@ -696,7 +824,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	require 'phpqrcode/qrlib.php';
 
 	$params = [
-		"nif"      => cifCibeles,
+		"nif"      => $clayma ? cifClayma : cifCibeles,
 		"numserie" => "borrador",
 		"fecha"    => "",
 		"importe"  => "0"
@@ -722,7 +850,21 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 
 		
 	
-	$pdf->Output("I","Factura - ".$numFactura."-".date("dmy")." .pdf","UTF-8");
+	$nombreArchivo = $clayma ? "Previsualizacion Factura Clayma - " : "Factura - ";
+
+	if (!empty($erroresCuadre))
+	{
+		$pdfContenido = $pdf->Output("S",$nombreArchivo.$numFactura."-".date("dmy").".pdf","UTF-8");
+		$pdfBase64 = base64_encode($pdfContenido);
+		$mensajeAlerta = "DESCUADRE EN LOS IMPORTES:\n".implode("\n", $erroresCuadre);
+
+		echo "<script>alert(".json_encode($mensajeAlerta).");</script>";
+		echo '<embed src="data:application/pdf;base64,'.$pdfBase64.'" type="application/pdf" width="100%" height="900px">';
+	}
+	else
+	{
+		$pdf->Output("I",$nombreArchivo.$numFactura."-".date("dmy")." .pdf","UTF-8");
+	}
 	
 	
 }
@@ -730,7 +872,7 @@ if(isset($_POST["previsualizarAccion"]) && $_POST["previsualizarAccion"]=="previ
 	
 
 
-function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo)
+function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$datosNuevaPagina2,$datosCliente,$retener,$margenInicial,$tituloFactura,$facturaOriginal,$facRec,$facRec_motivo,$clayma=false)
 {
 	$pdf->AddPage();
 	
@@ -739,18 +881,25 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	
 	
 	$pdf->SetXY(40,10);
-	$pdf->Cell(0,0,utf8_decode("BORRADOR"),0,1,'C',false);
+	$pdf->Cell(0,0,reemplazarSimbolos("BORRADOR"),0,1,'C',false);
 	
 	
 	$pdf->SetXY(0,95);
-	$pdf->Cell(0,0,utf8_decode("BORRADOR"),0,1,'C',false);
+	$pdf->Cell(0,0,reemplazarSimbolos("BORRADOR"),0,1,'C',false);
 	
 		
 	$pdf->SetFont('Arial','B',10);
 	$pdf->SetTextColor(0,0,0);
 	
 	
-	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	if ($clayma)
+	{
+		$pdf->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+	}
+	else
+	{
+		$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	}
 	$pdf->SetLineWidth(0.8);
 	//$altura = $altura + 0;
 	$altura = 5;//10
@@ -758,7 +907,7 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$margen += 135;
 	$pdf->SetXY($margen,$altura);
 	$pdf->SetFont('Arial','',10);
-	$pdf->Cell(35,5,utf8_decode("BORRADOR"),1,1,'C',false);
+	$pdf->Cell(35,5,reemplazarSimbolos("BORRADOR"),1,1,'C',false);
 	$altura = $altura + 5;
 	$pdf->SetXY($margen,$altura);
 	$pdf->SetFont('Arial','B',12);
@@ -770,7 +919,10 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$altura = $altura + 6;
 		$pdf->SetXY($margen,$altura);
 		$pdf->SetFont('Arial','',10);
-		$pdf->Cell(35,6,"Rect.: ".$facturaOriginal,1,1,'C',false);	
+		$pdf->Cell(35,5,reemplazarSimbolos("Rectifica a:"),1,1,'C',false);
+		$altura = $altura + 5;
+		$pdf->SetXY($margen,$altura);	
+		$pdf->Cell(35,5,$facturaOriginal,1,1,'C',false);	
 	}
 	
 	/////////////////////////////////
@@ -804,9 +956,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	
 		//$facRec_motivo = "";
 
-		$pdf->MultiCell(0,4,utf8_decode("Motivo de la rectificación: ".$facRec_motivo),0,'L',false); 
+		$pdf->MultiCell(0,4,reemplazarSimbolos("Motivo de la rectificación: ".$facRec_motivo),0,'L',false); 
 		
-		$anchoMotivo = $pdf->GetStringWidth(utf8_decode("Motivo de la rectificación: ".$facRec_motivo));
+		$anchoMotivo = $pdf->GetStringWidth(reemplazarSimbolos("Motivo de la rectificación: ".$facRec_motivo));
 		$numeroDeFilas = ceil ($anchoMotivo / $pdf->GetPageWidth());
 		if ($numeroDeFilas<1)
 		{
@@ -823,7 +975,14 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	
 	
 	$altura = $altura + 5;
-	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	if ($clayma)
+	{
+		$pdf->SetDrawColor(colorRojoClaymaR,colorRojoClaymaG,colorRojoClaymaB);
+	}
+	else
+	{
+		$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
+	}
 	$pdf->SetLineWidth(0.8);
 	$pdf->Line($margen, $altura, 190, $altura);
 	
@@ -837,9 +996,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$pdf->SetFont('Arial','B',8);
 	$altura = $altura + 6;
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(84,4,utf8_decode($datosCliente[0]["nombre_empresa"]),0,'L',false);
+	$pdf->MultiCell(84,4,reemplazarSimbolos($datosCliente[0]["nombre_empresa"]),0,'L',false);
 	
-	$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["nombre_empresa"]);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["nombre_empresa"]));
 	$numeroDeFilas = ceil ($anchoDescripcion / 80);
 	if ($numeroDeFilas<1)
 	{
@@ -849,8 +1008,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	
 	
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(84,4,utf8_decode($datosCliente[0]["direccion"]),0,'L',false);
-	$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["direccion"]);
+	$pdf->MultiCell(84,4,reemplazarSimbolos($datosCliente[0]["direccion"]),0,'L',false);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["direccion"]));
 	$numeroDeFilas = ceil ($anchoDescripcion / 84);
 	if ($numeroDeFilas<1)
 	{
@@ -859,8 +1018,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$altura = $altura + (5*$numeroDeFilas);
 	
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(0,4,utf8_decode($datosCliente[0]["codigo_postal"]." - ".$datosCliente[0]["localidad"]),0,'L',false);
-	$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["codigo_postal"]." - ".$datosCliente[0]["localidad"]);
+	$pdf->MultiCell(0,4,reemplazarSimbolos($datosCliente[0]["codigo_postal"]." - ".$datosCliente[0]["localidad"]),0,'L',false);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["codigo_postal"]." - ".$datosCliente[0]["localidad"]));
 	$numeroDeFilas = ceil ($anchoDescripcion / 84);
 	if ($numeroDeFilas<1)
 	{
@@ -869,8 +1028,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$altura = $altura + (5*$numeroDeFilas);
 	
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(0,4,utf8_decode($datosCliente[0]["provincia"]),0,'L',false);
-	$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["provincia"]);
+	$pdf->MultiCell(0,4,reemplazarSimbolos($datosCliente[0]["provincia"]),0,'L',false);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["provincia"]));
 	$numeroDeFilas = ceil ($anchoDescripcion / 84);
 	if ($numeroDeFilas<1)
 	{
@@ -879,8 +1038,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$altura = $altura + (5*$numeroDeFilas);
 	
 	$pdf->SetXY($margen,$altura);
-	$pdf->MultiCell(0,4,utf8_decode($datosCliente[0]["nif_subcliente"]),0,'L',false);
-	$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["nif_subcliente"]);
+	$pdf->MultiCell(0,4,reemplazarSimbolos($datosCliente[0]["nif_subcliente"]),0,'L',false);
+	$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["nif_subcliente"]));
 	$numeroDeFilas = ceil ($anchoDescripcion / 84);
 	if ($numeroDeFilas<1)
 	{
@@ -903,9 +1062,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	
 	if($datosCliente[0]["envio_domicilio"]=="" && $datosCliente[0]["envio_cp"]=="" && $datosCliente[0]["envio_poblacion"]=="" && $datosCliente[0]["envio_provincia"]=="")
 	{
-		$pdf->MultiCell(84,4,utf8_decode($datosCliente[0]["nombre_empresa"]),0,'L',false);
+		$pdf->MultiCell(84,4,reemplazarSimbolos($datosCliente[0]["nombre_empresa"]),0,'L',false);
 	
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["nombre_empresa"]);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["nombre_empresa"]));
 		if ($anchoDescripcion>0)
 		{
 			$numeroDeFilas = ceil ($anchoDescripcion / 84);
@@ -917,9 +1076,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		}
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(84,4,utf8_decode($datosCliente[0]["direccion"]),0,'L',false);
+		$pdf->MultiCell(84,4,reemplazarSimbolos($datosCliente[0]["direccion"]),0,'L',false);
 
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["direccion"]);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["direccion"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -930,8 +1089,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosCliente[0]["codigo_postal"]." - ".$datosCliente[0]["localidad"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["codigo_postal"]." - ".$datosCliente[0]["localidad"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosCliente[0]["codigo_postal"]." - ".$datosCliente[0]["localidad"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["codigo_postal"]." - ".$datosCliente[0]["localidad"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -940,8 +1099,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$altura = $altura + (5*$numeroDeFilas);
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosCliente[0]["provincia"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["provincia"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosCliente[0]["provincia"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["provincia"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -955,9 +1114,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	}
 	else
 	{
-		$pdf->MultiCell(84,4,utf8_decode($datosCliente[0]["envio_att"]),0,'L',false);
+		$pdf->MultiCell(84,4,reemplazarSimbolos($datosCliente[0]["envio_att"]),0,'L',false);
 	
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["envio_att"]);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["envio_att"]));
 		if ($anchoDescripcion>0)
 		{
 			$numeroDeFilas = ceil ($anchoDescripcion / 84);
@@ -969,9 +1128,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		}
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(84,4,utf8_decode($datosCliente[0]["envio_nombre"]),0,'L',false);
+		$pdf->MultiCell(84,4,reemplazarSimbolos($datosCliente[0]["envio_nombre"]),0,'L',false);
 
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["envio_nombre"]);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["envio_nombre"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 80);
 		if ($numeroDeFilas<1)
 		{
@@ -982,8 +1141,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosCliente[0]["envio_domicilio"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["envio_domicilio"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosCliente[0]["envio_domicilio"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["envio_domicilio"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -992,8 +1151,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$altura = $altura + (5*$numeroDeFilas);
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosCliente[0]["envio_cp"]." - ".$datosCliente[0]["envio_poblacion"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["envio_cp"]." - ".$datosCliente[0]["envio_poblacion"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosCliente[0]["envio_cp"]." - ".$datosCliente[0]["envio_poblacion"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["envio_cp"]." - ".$datosCliente[0]["envio_poblacion"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -1002,8 +1161,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$altura = $altura + (5*$numeroDeFilas);
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosCliente[0]["envio_provincia"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["envio_provincia"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosCliente[0]["envio_provincia"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["envio_provincia"]));
 		$numeroDeFilas = ceil ($anchoDescripcion / 84);
 		if ($numeroDeFilas<1)
 		{
@@ -1012,8 +1171,8 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$altura = $altura + (5*$numeroDeFilas);
 
 		$pdf->SetXY($margen,$altura);
-		$pdf->MultiCell(0,4,utf8_decode($datosCliente[0]["envio_pais"]),0,'L',false);
-		$anchoDescripcion = $pdf->GetStringWidth($datosCliente[0]["envio_pais"]);
+		$pdf->MultiCell(0,4,reemplazarSimbolos($datosCliente[0]["envio_pais"]),0,'L',false);
+		$anchoDescripcion = $pdf->GetStringWidth(reemplazarSimbolos($datosCliente[0]["envio_pais"]));
 		if ($anchoDescripcion>0)
 		{
 			$numeroDeFilas = ceil ($anchoDescripcion / 84);

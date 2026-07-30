@@ -1,99 +1,15 @@
 var peticionUnica1 = null;
-var laCondicion="";
 var anioSeleccionado="";
-
-function buscarPrefactura()
-{
-	var condicion="";
-	var campoAbuscar = document.getElementById("buscarCampo").value;
-	var textoAbuscar = document.getElementById("buscarTexto").value;
-	var orden = document.getElementById("ordenBuscar").value;
-	var desc = document.getElementById("buscarDesc").checked;
-	
-	
-	if (campoAbuscar=="fechaTerminado" && textoAbuscar!="" && textoAbuscar.length==10 )
-	{
-		
-		textoAbuscar = textoAbuscar.replace("/","-");
-		var datos = textoAbuscar.split('-');
-		var dia = datos[0];
-		var mes = datos[1];
-		var anio = datos[2];
-		
-		
-		var textoAbuscarPOsterior = new Date(anio+"-"+mes+"-"+dia);
-		textoAbuscarPOsterior.setDate(textoAbuscarPOsterior.getDate() + 1);
-	
-		var fechaPosterior = textoAbuscarPOsterior.getDate() + '-' + (textoAbuscarPOsterior.getMonth() + 1) + "-" + textoAbuscarPOsterior.getFullYear();
-		condicion = " where "+campoAbuscar+" >= '" + textoAbuscar + "' and "+campoAbuscar+" < '" + fechaPosterior + "'";
-	}
-	else
-	{	
-		condicion = " where "+campoAbuscar+" like '%" + textoAbuscar + "%' COLLATE SQL_LATIN1_GENERAL_CP1_CI_AI";
-	}
-	
-	
-	
-	condicion += " order by " + orden;
-	
-	if (desc==true)
-	{
-		condicion += " desc";
-	}
-	
-	laCondicion = condicion;
-	
-	
-	cargarListadoFacturasSinEmitir();
-	
-}
 
 function borrarDetallesTemporalPrefactura() //js_admemisionFacturaPendiente
 {
-	eliminarTotoFacturaDetalleTemporal();
+	eliminarTodoFacturaDetalleTemporal();
 	cargarListadoFacturasSinEmitir();
 	arrayCombinaciones = [];
 	verPresupuestosCombinados();
 }
 
-function eliminarTotoFacturaDetalleTemporal() //js_admemisionFacturaPendiente
-{	
-	peticionUnica1=null;
-	peticionUnica1=crearComunicacion(peticionUnica1);
-
-	if(peticionUnica1)
-	{							
-		peticionUnica1.onreadystatechange = mostrarEliminarTotoFacturaDetalleTemporal;
-		peticionUnica1.open("POST","ajax/eliminarTotoFacturaDetalleTemporal.php",false);
-		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaEliminarTotoFacturaDetalleTemporal();
-		peticionUnica1.send(query_string);
-	}
-}
-
-function consultaEliminarTotoFacturaDetalleTemporal()
-{	
-	var consulta = "accion=eliminarTotoFacturaDetalleTemporal";	
-	return consulta;	
-}
-
-function mostrarEliminarTotoFacturaDetalleTemporal()
-{
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{				
-			}
-			peticionUnica1=null;			
-		}
-	}						
-}
+// eliminarTodoFacturaDetalleTemporal() y sus funciones auxiliares se movieron a js_global.js (compartida con prefactura.php)
 
 function cargarListadoFacturasSinEmitir()//js_admEmisionFacturaPendiente
 {	
@@ -102,7 +18,7 @@ function cargarListadoFacturasSinEmitir()//js_admEmisionFacturaPendiente
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarListadoFacturasSinEmitir;
-		peticionUnica1.open("POST","ajax/mostrarFacturasSinEmitir.php",false);
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarListadoFacturasSinEmitir();
 		peticionUnica1.send(query_string);
@@ -111,9 +27,86 @@ function cargarListadoFacturasSinEmitir()//js_admEmisionFacturaPendiente
 
 function consultaCargarListadoFacturasSinEmitir()
 {	
-	var consulta = "accion=mostrarFacturasSinEmitir";
-	consulta += "&clayma=" + document.getElementById("clienteOrigen").checked;
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');	
+	var consulta = "accion=cargarPresupuestos";
+
+	var campos = [
+		'presupuesto',
+		'clayma',
+		'cliente',
+		'campana',
+		'fechaTerminado',
+		'inicialComercial'
+	];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = [
+		'tabla2'
+	];
+
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {
+		clayma: document.getElementById("clienteOrigen").checked ? 1 : 0		
+	};
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var filtrosOperadores = [
+		{
+			campo1: 'fechaTerminado',
+			operador: 'IS NOT NULL'			
+		},
+		{
+			campo1: 'numNoFactura',
+			operador: 'IS NULL'			
+		},
+
+	];
+
+	if (document.getElementById("clienteOrigen").checked)
+	{
+		filtrosOperadores.push({
+			campo1: 'presupuesto',
+			operador: 'NOT LIKE',
+			tipoSubconsulta: 'presupuestosEnfacturacionClayma'
+		});
+	}
+	else
+	{
+		filtrosOperadores.push({
+			campo1: 'presupuesto',
+			operador: 'NOT LIKE',
+			tipoSubconsulta: 'presupuestosEnfacturacion'
+		});
+	}
+		
+		
+
+
+
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var filtrosLike = [
+		{
+			campo: document.getElementById("buscarCampo").value,
+			valor: document.getElementById("buscarTexto").value
+		}
+	];
+
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(filtrosLike));
+
+	var order = [
+		{
+			campo: document.getElementById("ordenBuscar").value,
+			dir: document.getElementById("buscarDesc").checked ? 'DESC' : 'ASC'
+		}
+	];
+
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	consulta += "&pantallaOrigen=admEmisionFacturasPendientes";
+
 	return consulta;	
 }
 
@@ -123,14 +116,15 @@ function mostrarCargarListadoFacturasSinEmitir()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
+			{
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
@@ -160,7 +154,7 @@ function mostrarCargarListadoFacturasSinEmitir()
 					
 					
 					contenido += '<tr ' + contraste + '>';
-					contenido += '<td align="center">'+datos[contador]["inicial"]+"-"+datos[contador]["presupuesto"]+'</td>';					
+					contenido += '<td align="center">'+datos[contador]["inicialComercial"]+"-"+datos[contador]["presupuesto"]+'</td>';					
 					
 					if (datos[contador]["clayma"]==1)
 					{
@@ -180,7 +174,7 @@ function mostrarCargarListadoFacturasSinEmitir()
 					
 					contenido += '<td style="overflow:hidden; white-space: nowrap;">'+dia + "-" + mes+ "-" + anio+'</td>';					
 					
-					contenido += '<td><input type="image" value="" src="imagenes/prefactura.png" style="width:15px;" id="'+datos[contador]["presupuesto"]+'_prefactura"" onclick="irAprefactura('+datos[contador]["presupuesto"]+',\''+datos[contador]["inicial"]+'\')"></td>';					
+					contenido += '<td><input type="image" value="" src="imagenes/prefactura.png" style="width:15px;" id="'+datos[contador]["presupuesto"]+'_prefactura"" onclick="irAprefactura('+datos[contador]["presupuesto"]+',\''+datos[contador]["inicialComercial"]+'\')"></td>';					
 					
 					contenido += '<td align="center"><input type="checkbox" id="'+datos[contador]["presupuesto"]+'_combinado" onchange="gestionCombiacionesPresu(\''+datos[contador]["presupuesto"]+'\')"></input></td>';
 					
@@ -211,7 +205,7 @@ function verPresupuestosCombinados() //js_admEmisionFacturaPendiente
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerPresupuestosCombinados;
-		peticionUnica1.open("POST","ajax/verPresupuestosCombinados.php",false);
+		peticionUnica1.open("POST","ajax/mostrarFacturasDetallesTemporal.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerPresupuestosCombinados();
 		peticionUnica1.send(query_string);
@@ -220,7 +214,14 @@ function verPresupuestosCombinados() //js_admEmisionFacturaPendiente
 
 function consultaVerPresupuestosCombinados()
 {	
-	var consulta = "accion=verPresupuestosCombinados";	
+	var consulta = "accion=mostrarFacturasDetallesTemporal";
+
+	var campos = ['presupuestoDistinct'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { idUsuario: true };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -230,35 +231,30 @@ function mostrarVerPresupuestosCombinados()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{	
-				var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+				var datos = res.datos;
 				arrayCombinaciones = [];
-				if (datos != "")
-				{	
+
+				var contador = 0;					
 				
-					var contador = 0;					
+				while  (contador<datos.length)
+				{						
+					var checkboxCombinado = document.getElementById(datos[contador]["presupuesto"]+"_combinado");
+					if (checkboxCombinado)
+					{
+						checkboxCombinado.checked = true;
+					}
 					
-					while  (contador<datos.length)
-					{						
-						document.getElementById(datos[contador]["presupuesto"]+"_combinado").checked = true;
-						
-						arrayCombinaciones.push(datos[contador]["presupuesto"]);
-						contador++;
-					}		
-				}
+					arrayCombinaciones.push(datos[contador]["presupuesto"]);
+					contador++;
+				}				
 			}
 			peticionUnica1=null;
 			
@@ -317,7 +313,7 @@ function verCombinacionesSiMismoCliente() //js_admEmisionFacturaPendiente
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerCombinacionesSiMismoCliente;
-		peticionUnica1.open("POST","ajax/verCombinacionesSiMismoCliente.php",false);
+		peticionUnica1.open("POST","ajax/mostrarFacturasDetallesTemporal.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerCombinacionesSiMismoCliente();
 		peticionUnica1.send(query_string);
@@ -326,8 +322,28 @@ function verCombinacionesSiMismoCliente() //js_admEmisionFacturaPendiente
 
 function consultaVerCombinacionesSiMismoCliente()
 {	
-	var consulta = "accion=verCombinacionesSiMismoCliente";	
-	consulta += "&clayma=" + document.getElementById("clienteOrigen").checked;
+	var consulta = "accion=mostrarFacturasDetallesTemporal";
+
+	var campos;
+	var joins;
+
+	if (document.getElementById("clienteOrigen").checked)
+	{
+		campos = ['clienteDistinctClayma','nombreEmpresaClienteClayma'];
+		joins = ['tabla3','tabla5'];
+	}
+	else
+	{
+		campos = ['clienteDistinct','nombreEmpresaCliente'];
+		joins = ['tabla3','tabla4'];
+	}
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = { idUsuario: true };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -338,14 +354,15 @@ function mostrarVerCombinacionesSiMismoCliente()
 		if(peticionUnica1.status == 200)
 		{
 			booleano = true;
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{	
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
 				if (datos.length>1)				
 				{
@@ -378,24 +395,13 @@ function imprimirFacturaCombinadaPrevisualizar() //js_admEmisionFacturaPendiente
 	}
 	else
 	{
-		if (document.getElementById("clienteOrigen").checked)
-		{
-			document.getElementById("imprimirNumPresupuestoClaymaPrevisualizacion").value = campo1;			
-			document.getElementById("imprimirCombinadoSumatorioClaymaPrevisualizacion").value = document.getElementById("sumatorioModal").checked;
-			
-			campo1 = "";
-			
-			document.getElementById("formImprimirFacturaClaymaPrevisualizacion").submit();
-		}
-		else
-		{
-			document.getElementById("imprimirNumPresupuestoPrevisualizacion").value = campo1;			
-			document.getElementById("imprimirCombinadoSumatorioPrevisualizacion").value = document.getElementById("sumatorioModal").checked;
-			
-			campo1 = "";
-			
-			document.getElementById("formImprimirFacturaPrevisualizacion").submit();
-		}
+		document.getElementById("imprimirNumPresupuestoPrevisualizacion").value = campo1;			
+		document.getElementById("imprimirCombinadoSumatorioPrevisualizacion").value = document.getElementById("sumatorioModal").checked;
+		document.getElementById("imprimirClaymaPrevisualizacion").value = document.getElementById("clienteOrigen").checked ? 1 : 0;
+		
+		campo1 = "";
+		
+		document.getElementById("formImprimirFacturaPrevisualizacion").submit();
 	}
 }
 
@@ -406,7 +412,7 @@ function verSiHayDatosCombinacionPrefactura()//datos en la cabecera //js_admEmis
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerSiHayDatosCombinacionPrefactura;
-		peticionUnica1.open("POST","ajax/verSiHayDatosCombinacionPrefactura.php",false);
+		peticionUnica1.open("POST","ajax/mostrarFacturasTemporal.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerSiHayDatosCombinacionPrefactura();
 		peticionUnica1.send(query_string);
@@ -415,7 +421,14 @@ function verSiHayDatosCombinacionPrefactura()//datos en la cabecera //js_admEmis
 
 function consultaVerSiHayDatosCombinacionPrefactura()
 {	
-	var consulta = "accion=verSiHayDatosCombinacionPrefactura";	
+	var consulta = "accion=mostrarFacturasTemporal";
+
+	var campos = ['id'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { idUsuario: true };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -425,24 +438,16 @@ function mostrarVerSiHayDatosCombinacionPrefactura()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			booleano = false;
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				booleano = false;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
-			
-				if (datos.length<=0)
+				if (res.datos.length<=0)
 				{					
 					booleano = true;
 				}				
@@ -454,20 +459,17 @@ function mostrarVerSiHayDatosCombinacionPrefactura()
 
 function verDatosPresupuestosCombinados() //js_admEmisionFacturaPendiente
 {	
+	if (!seguirSiNoEsPrimeraFacturaDelMesSinConfirmar(document.getElementById("clienteOrigen").checked ? 1 : 0))
+	{
+		return;
+	}
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerDatosPresupuestosCombinados;
-		
-		if (document.getElementById("clienteOrigen").checked)
-		{
-			peticionUnica1.open("POST","ajax/verDatosPresupuestosCombinacionClayma.php",false);
-		}
-		else
-		{
-			peticionUnica1.open("POST","ajax/verDatosPresupuestosCombinacion.php",false);
-		}		
+		peticionUnica1.open("POST","ajax/anadirFacturaCombinada.php",false);
 		
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerDatosPresupuestosCombinados();
@@ -481,6 +483,7 @@ function consultaVerDatosPresupuestosCombinados()
 	
 	consulta += "&presupuestos="+campo1;
 	consulta += "&combinadoSumatorio=" + document.getElementById("sumatorioModal").checked;
+	consulta += "&clayma=" + (document.getElementById("clienteOrigen").checked ? 1 : 0);
 	campo1 = "";
 	return consulta;	
 }
@@ -491,25 +494,23 @@ function mostrarVerDatosPresupuestosCombinados()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				//var numFactura = peticionUnica1.responseText;
-				var datos = peticionUnica1.responseText.split("||||");
-				var numFactura = datos[0];
-				anioSeleccionado = datos[1];
-				
-				
+				anioSeleccionado = res.anioSeleccionado;
+
 				if (document.getElementById("clienteOrigen").checked)
 				{
-					irAImprimirFacturaClayma(numFactura,anioSeleccionado);	
+					irAImprimirFacturaClayma(res.numeroFacturaCompleto);
 				}
 				else
 				{
-					irAImprimirFactura(numFactura,anioSeleccionado);	
+					irAImprimirFactura(res.numeroFacturaCompleto);
 				}				
 				
 				location.href='admEmisionFacturasPendientes.php';				

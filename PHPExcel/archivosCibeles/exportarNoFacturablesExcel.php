@@ -1,5 +1,10 @@
 <?php
 
+ob_start();
+error_reporting(E_ALL);
+ini_set('display_errors', FALSE);
+ini_set('display_startup_errors', FALSE);
+
 //require("../../../../comprobarSesion.php");
 
 if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
@@ -9,9 +14,25 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");	
 	
-	$condicion = $_POST["exportarCondiciones"];	
-	
-	$resultado = mostrarPresupuestos2($conexion,$condicion);
+	$filtros = isset($_POST["exportarFiltros"]) ? json_decode($_POST["exportarFiltros"], true) : array();
+	$filtrosOperadores = isset($_POST["exportarFiltrosOperadores"]) ? json_decode($_POST["exportarFiltrosOperadores"], true) : array();
+	$filtrosLike = isset($_POST["exportarFiltrosLike"]) ? json_decode($_POST["exportarFiltrosLike"], true) : array();
+	$orden = isset($_POST["exportarOrden"]) ? $_POST["exportarOrden"] : '';
+	$desc = isset($_POST["exportarDesc"]) ? $_POST["exportarDesc"] : 'false';
+
+	$order = array(array('campo' => $orden, 'dir' => ($desc=="true" ? 'DESC' : 'ASC')));
+
+	$camposPresupuesto = ['numNoFactura','presupuesto','cliente','campana','importePresupuesto','numNoFacturaFecha','noFacProcesado','noSeFacturaObservaciones'];
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = cargarPresupuestos($conn, $bbddSql, $camposPresupuesto, ['tabla9'], $filtros, $filtrosOperadores, $order, $filtrosLike);
+
+	sqlsrv_close($conn);
+
+	$resultado = $res['datos'];
 
 	$nombreArchivo = 'NoFacturables_'.date('d-m-Y').'.xlsx';	
 	
@@ -43,9 +64,6 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
  */
 
 /** Error reporting */
-error_reporting(E_ALL);
-ini_set('display_errors', TRUE);
-ini_set('display_startup_errors', TRUE);
 date_default_timezone_set('Europe/London');
 
 if (PHP_SAPI == 'cli')
@@ -84,13 +102,15 @@ $objPHPExcel->setActiveSheetIndex(0)
 $contador=2;
 while($contador-2 < count($resultado))
 {
+	$fechaNoFactura = ($resultado[$contador-2]["numNoFacturaFecha"]!=null) ? $resultado[$contador-2]["numNoFacturaFecha"]->format('d/m/Y') : '';
+
 	$objPHPExcel->setActiveSheetIndex(0)
             ->setCellValue('A'.$contador, $resultado[$contador-2]["numNoFactura"])
 			->setCellValue('B'.$contador, $resultado[$contador-2]["presupuesto"])
             ->setCellValue('C'.$contador, $resultado[$contador-2]["cliente"])			
 			->setCellValue('D'.$contador, $resultado[$contador-2]["campana"])
 			->setCellValue('E'.$contador, $resultado[$contador-2]["importePresupuesto"])
-			->setCellValue('F'.$contador, $resultado[$contador-2]["numNoFacturaFecha"])
+			->setCellValue('F'.$contador, $fechaNoFactura)
 			->setCellValue('G'.$contador, $resultado[$contador-2]["noFacProcesado"])
 			->setCellValue('H'.$contador, $resultado[$contador-2]["noSeFacturaObservaciones"]);
 	
@@ -133,6 +153,7 @@ $objPHPExcel->setActiveSheetIndex(0)->getStyle('A1:H'.($contador-1))->applyFromA
 	
 	
 // Redirect output to a client’s web browser (Excel2007)
+ob_end_clean();
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');
 header('Cache-Control: max-age=0');

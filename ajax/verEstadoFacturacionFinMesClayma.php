@@ -1,69 +1,71 @@
-<?php 
+<?php
 
 if(isset($_POST["accion"]) && $_POST["accion"]=="verEstadoFacturacionFinMes")
 {
+	session_start();
 	$ruta = '../';
-	//require($ruta.$rutaCabecera);
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-	
-	$estado = $_POST["estado"]; //0 poner fecha del ultimo dia del mes anterior, si no existe ninguna factura con fecha del mes actual
-								//1 poner fecha actual
-	
-	
-	
-	
-	//$fechaActual = date("d-m-Y");
+
+	$estado = isset($_POST["estado"]) ? $_POST["estado"] : ''; //0 poner fecha del ultimo dia del mes anterior, si no existe ninguna factura con fecha del mes actual
+																//1 poner fecha actual
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
 	$fechaActual = date("Y-m-d");
 	$anioSeleccionado = date('Y');
 	$anioNuevo = false;
-	
-	$ultimaFechaCibeles = mostrarUltimaFechaFacturasCibelesClayma($conexion, $anioSeleccionado);
-	
-	if ($ultimaFechaCibeles[0]["fecha"] == null || $ultimaFechaCibeles[0]["fecha"] == "null" )
+
+	$filtrosOperadoresAnio = [
+		['campo1' => 'fecha', 'valor' => $anioSeleccionado.'-01-01', 'operador' => '>='],
+		['campo1' => 'fecha', 'valor' => $anioSeleccionado.'-12-31', 'operador' => '<=']
+	];
+
+	$resFechaMax = mostrarFacturacionClayma($conn, $bbddSql, ['fechaMax'], [], [], $filtrosOperadoresAnio, []);
+	$fechaMax = isset($resFechaMax['datos'][0]['fechaMax']) ? $resFechaMax['datos'][0]['fechaMax'] : null;
+
+	if ($fechaMax == null)
 	{
 		$anioNuevo = true;
 	}
-	
-	$mesAnterior = strtotime ( '-1 month' , strtotime ($fechaActual));
-	
-	//$ultimoDia_MesAnterior= date("t-m-Y",$mesAnterior);
-	$ultimoDia_MesAnterior= date("Y-m-t",$mesAnterior);
-	
-	/*
-	echo "\nfechaActual: ".$fechaActual;
-	echo "\nultimoDia dia  mes Anterior: ".$ultimoDia_MesAnterior;
-	echo "\nultimaFecha cibeles: ".$ultimaFechaCibeles[0]["fecha"]->format("Y-m-d")."\n";
-	*/
-	//echo "Error:".$estado. "\n";
+
+	$mesAnterior = strtotime('-1 month', strtotime($fechaActual));
+	$ultimoDia_MesAnterior = date("Y-m-t", $mesAnterior);
+
 	if ($estado==="0" && $anioNuevo==false)
 	{
-		if ($ultimoDia_MesAnterior >= $ultimaFechaCibeles[0]["fecha"]->format("Y-m-d")) //no existe ninguna factura de este mes
-		{			
-			echo cambiarDatosFacturarFechaActualClayma($conexion, 0, $ultimoDia_MesAnterior);
+		if ($ultimoDia_MesAnterior >= $fechaMax->format("Y-m-d")) //no existe ninguna factura de este mes
+		{
+			$res = modificarFacturarFechaActualClayma($conn, $bbddSql, ['activado' => 0, 'fechaImprimir' => $ultimoDia_MesAnterior]);
+			sqlsrv_close($conn);
+			echo json_encode(array('error' => $res['error'], 'activado' => 0));
 		}
 		else
 		{
-			
-			echo "Error: existe facturas con fecha del mes actual".$ultimoDia_MesAnterior;
+			sqlsrv_close($conn);
+			echo json_encode(array('error' => 'Existe facturas con fecha del mes actual'));
 		}
 	}
 	else if ($estado==="0")
-	{ 				
-		echo cambiarDatosFacturarFechaActualClayma($conexion, 0, $ultimoDia_MesAnterior);		
+	{
+		$res = modificarFacturarFechaActualClayma($conn, $bbddSql, ['activado' => 0, 'fechaImprimir' => $ultimoDia_MesAnterior]);
+		sqlsrv_close($conn);
+		echo json_encode(array('error' => $res['error'], 'activado' => 0));
 	}
 	else if ($estado==="1")
 	{
-		echo cambiarDatosFacturarFechaActualClayma($conexion, 1,$fechaActual);
+		$res = modificarFacturarFechaActualClayma($conn, $bbddSql, ['activado' => 1, 'fechaImprimir' => $fechaActual]);
+		sqlsrv_close($conn);
+		echo json_encode(array('error' => $res['error'], 'activado' => 1));
 	}
 	else
 	{
-		$resultado=verEstadoFacturacionFinMesClayma($conexion);
-		echo  $resultado[0]["activado"];
-
-
+		$resEstado = mostrarFacturarFechaActualClayma($conn, $bbddSql, ['activado']);
+		sqlsrv_close($conn);
+		echo json_encode(array('error' => $resEstado['error'], 'activado' => $resEstado['datos'][0]['activado']));
 	}
-		
 }
 
 ?>

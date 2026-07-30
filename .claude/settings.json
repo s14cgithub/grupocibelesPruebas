@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd *)",
+      "Bash(ls*)",
+      "Bash(find*)",
+      "Bash(grep*)",
+      "Bash(cat*)",
+      "Bash(awk*)",
+      "Bash(wc*)",
+      "Bash(sed -n*)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git show*)",
+      "Bash(git branch*)",
+      "Bash(git ls-tree*)",
+      "Bash(git grep*)",
+      "Read(//172.26.8.20/gestionGrupocibelesPreproduccionPruebas/**)",
+      "Read(\\\\172.26.8.20\\gestionGrupocibelesPreproduccionPruebas\\**)",
+      "Grep(//172.26.8.20/gestionGrupocibelesPreproduccionPruebas/**)",
+      "Grep(\\\\172.26.8.20\\gestionGrupocibelesPreproduccionPruebas\\**)",
+      "Glob(//172.26.8.20/gestionGrupocibelesPreproduccionPruebas/**)",
+      "Glob(\\\\172.26.8.20\\gestionGrupocibelesPreproduccionPruebas\\**)",
+      "Read(**)",
+      "Grep(**)",
+      "Glob(**)"
+    ],
+    "additionalDirectories": [
+      "\\\\172.26.8.20\\gestionGrupocibelesPreproduccionPruebas\\"
+    ]
+  }
+}

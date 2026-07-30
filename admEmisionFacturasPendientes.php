@@ -51,7 +51,7 @@ if ($_SESSION["usuario"]<>"")
 	Desc: <input type="checkbox" id="buscarDesc"></input>
 	
 	
-		<button type="button" class="btn btn-info" onClick="buscarPrefactura()">BUSCAR</button>		
+		<button type="button" class="btn btn-info" onClick="cargarListadoFacturasSinEmitir()">BUSCAR</button>		
 		<!--<button type="button" class="btn btn-info" data-toggle="modal" data-target="#facturasMasivasModal" data-whatever="@mdo"">FACTURAS MASIVAS</button>-->
 		<button id="tablaBotonCombinar" style="visibility:hidden;display:none" type="button" class="btn btn-info" onClick="combinarPresupuestos()">COMBINAR PRESUPUESTOS</button>
 		
@@ -186,8 +186,9 @@ else
 
 
 <form id="formImprimirFactura"  method="post"  target="_blank" action="imprimirFactura.php">
-	<input type="hidden" id="imprimirNumFactura" name="imprimirNumFactura" value=""></input>
-	<input type="hidden" id="anioSeleccionado0" name="anioSeleccionado0" value=""></input>
+	<input type="hidden" id="numFacturaCompleto" name="numFacturaCompleto" value=""></input>
+	<input type="hidden" id="imprimirClayma" name="clayma" value=""></input>
+	
 	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFactura"></input>	
 </form>
 
@@ -204,6 +205,7 @@ else
 <form id="formImprimirFacturaPrevisualizacion"  method="post"  target="_blank" action="previsualizarFacturaCombinada.php">
 	<input type="hidden" id="imprimirNumPresupuestoPrevisualizacion" name="imprimirNumPresupuestoPrevisualizacion" value=""></input>	
 	<input type="hidden" id="imprimirCombinadoSumatorioPrevisualizacion" name="imprimirCombinadoSumatorioPrevisualizacion" value=""></input>
+	<input type="hidden" id="imprimirClaymaPrevisualizacion" name="clayma" value=""></input>
 
 	<input type="hidden" id="previsualizarAccion" name="previsualizarAccion" value="previsualizarFactura"></input>	
 </form>
@@ -301,7 +303,7 @@ echo ("</html>");
 	//+'&buscarTexto='+document.getElementById("buscarTexto").value+'&ordenBuscar='+document.getElementById("ordenBuscar").value+'&buscarDesc='+document.getElementById("buscarDesc").checked + '\'';
 	
 	//cargarAnios("anioSeleccionado");
-	buscarPrefactura();
+	cargarListadoFacturasSinEmitir();
 	//cargarListadoFacturasSinEmitir();
 	document.getElementById("button-up").addEventListener("click", scrollUp);
 	

@@ -116,7 +116,7 @@ if ($_SESSION["usuario"]<>"")
 	
 	
 	
-	echo '<tr><td align="right">Para Imprimir:</td><td colspan="3">Detallada:&nbsp&nbsp<input type="checkbox" id="detallada" name="detallada" value="detallada"></td>';
+	echo '<tr><td align="right"  style="visibility: hidden; display: none;">Para Imprimir:</td><td colspan="3" style="visibility: hidden; display: none;">Detallada:&nbsp&nbsp<input type="checkbox" id="detallada" name="detallada" value="detallada"></td>';
 	
 	//echo '<td>Para Combinar:</td><td colspan="3"><input type="checkbox" id="paraCombinar" name="paraCombinar" onchange="cambioCombinacionPresupuesto()"></td></tr>';
 	
@@ -158,7 +158,8 @@ if ($_SESSION["usuario"]<>"")
 		echo '<button type="button" class="btn btn-info" id="botonModificarPresupuesto" onClick="grabarFactura()">EMITIR FACTURA</button>';
 		//echo '<button type="button" class="btn btn-warning" id="botonEmitirPreFactura" onClick="grabarFactura(1)">EMITIR PRE-FACTURA</button>';
 		
-		echo '<button type="button" class="btn btn-info" onclick="calcularImporteFranqueoDesdePrefactura1()">VER IMPORTE FRANQUEO</button>';
+		/*el siguiente boton hace las cosas mal, y lo comento por que al parecer nadie lo utiliza*/ 
+		//echo '<button type="button" class="btn btn-info" onclick="calcularImporteFranqueoDesdePrefactura1()">VER IMPORTE FRANQUEO</button>';
 		
 		echo '<button type="button" class="btn btn-info" id="botonVolver" onClick="gestionarVolverPrefacturaBorrarTemporal(1)">VOLVER</button>';
 		
@@ -168,7 +169,7 @@ if ($_SESSION["usuario"]<>"")
 	{
 		//echo '<button type="button" class="btn btn-info" onclick="guardarPrefacturaCabeceraTemporal()">GUARDAR</button>';
 		
-		echo '<button type="button" class="btn btn-info" onclick="calcularImporteFranqueoDesdePrefactura1()">VER IMPORTE FRANQUEO</button>';
+		//echo '<button type="button" class="btn btn-info" onclick="calcularImporteFranqueoDesdePrefactura1()">VER IMPORTE FRANQUEO</button>';
 		
 		//echo '<button type="button" class="btn btn-info" id="botonVolver" onClick="location.href = \'admEmisionFacturasPendientes.php?clayma=0\'">VOLVER</button>';
 		
@@ -209,11 +210,11 @@ if ($_SESSION["usuario"]<>"")
 	echo '<tr><td>Descripcion:</td><td colspan="6"><input type="text" id="descripcionDetalleNuevoTemp" style="width:100%"  placeholder="Introducir Descripcion"></input></td></tr>';
 	echo '<tr><td>Nota Cibeles:</td><td colspan="6"><input type="text" id="notaDetalleNuevoTemp" style="width:100%" placeholder="Introducir Notas de Cibeles"></input></td></tr>';
 	echo '<tr>
-	<td>Unidades:</td><td><input type="number" id="unidadesDetalleNuevoTemp"></input></td>
-	<td>Precio:</td><td><input type="number" id="precioDetalleNuevoTemp"></input></td>	
-	<td></td>
-	<td align="right">Exento de IVA:</td>
-		<td><input type="checkbox" id="exentoIVA"></input></td>	
+		<td>Unidades:</td><td><input type="number" id="unidadesDetalleNuevoTemp"></input></td>
+		<td>Precio:</td><td><input type="number" id="precioDetalleNuevoTemp"></input></td>	
+		<td></td>
+		<td align="right">Tipo IVA:</td>
+		<td><select id="tipoIvaNuevoTemp"></select></td>	
 	</tr>';
 	
 	echo '<tr><td colspan="7" align="center"><button type="button" class="btn btn-info" onClick="anadirDetallePrefactura()">AÑADIR DETALLE</button></tr>';
@@ -296,8 +297,9 @@ else
 </div> 
 
 <form id="formImprimirFactura" method="post"  target="_blank" action="imprimirFactura.php">
-	<input type="hidden" id="imprimirNumFactura" name="imprimirNumFactura" value=""></input>
+	<input type="hidden" id="numFacturaCompleto" name="numFacturaCompleto" value=""></input>
 	<input type="hidden" id="anioSeleccionado0" name="anioSeleccionado0" value=""></input>
+	<input type="hidden" id="imprimirClayma" name="clayma" value=""></input>
 	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFactura"></input>	
 </form>
 
@@ -309,44 +311,23 @@ else
 </form>
 
 
-<form id="formPrevisualizarFacturaClayma"  method="post"  target="_blank" action="previsualizarFacturaClayma.php">
-	<input type="hidden" id="previsualizarClayma_presupuesto" name="previsualizarClayma_presupuesto" value=""></input>
-	<input type="hidden" id="previsualizarClayma_idCliente" name="previsualizarClayma_idCliente" value=""></input>
-	<input type="hidden" id="previsualizarClayma_cliente" name="previsualizarClayma_cliente" value=""></input>
-	<input type="hidden" id="previsualizarClayma_fecha" name="previsualizarClayma_fecha" value=""></input>
-	<input type="hidden" id="previsualizarClayma_pedido" name="previsualizarClayma_pedido" value=""></input>
-	<input type="hidden" id="previsualizarClayma_cantidad" name="previsualizarClayma_cantidad" value=""></input>
-	<input type="hidden" id="previsualizarClayma_formaPago" name="previsualizarClayma_formaPago" value=""></input>
-	<input type="hidden" id="previsualizarClayma_nuestraCuenta" name="previsualizarClayma_nuestraCuenta" value=""></input>
-	<input type="hidden" id="previsualizarClayma_campana" name="previsualizarClayma_campana" value=""></input>
-	<input type="hidden" id="previsualizarClayma_detallada" name="previsualizarClayma_detallada" value=""></input>
-	<input type="hidden" id="previsualizarClayma_neto" name="previsualizarClayma_neto" value=""></input>
-	<input type="hidden" id="previsualizarClayma_iva" name="previsualizarClayma_iva" value=""></input>
-	<input type="hidden" id="previsualizarClayma_irpf" name="previsualizarClayma_irpf" value=""></input>
-	<input type="hidden" id="previsualizarClayma_total" name="previsualizarClayma_total" value=""></input>
-	<input type="hidden" id="previsualizarClayma_provision" name="previsualizarClayma_provision" value=""></input>
-	<input type="hidden" id="previsualizarClayma_aPagar" name="previsualizarClayma_aPagar" value=""></input>
-
-	<input type="hidden" id="previsualizarAccion" name="previsualizarAccion" value="previsualizarFactura"></input>	
-</form>
-
 <form id="formPrevisualizarFactura"  method="post"  target="_blank" action="previsualizarFactura.php">
-	<input type="hidden" id="previsualizar_presupuesto" name="previsualizar_presupuesto" value=""></input>
-	<input type="hidden" id="previsualizar_idCliente" name="previsualizar_idCliente" value=""></input>
-	<input type="hidden" id="previsualizar_cliente" name="previsualizar_cliente" value=""></input>
-	<input type="hidden" id="previsualizar_fecha" name="previsualizar_fecha" value=""></input>
-	<input type="hidden" id="previsualizar_pedido" name="previsualizar_pedido" value=""></input>
-	<input type="hidden" id="previsualizar_cantidad" name="previsualizar_cantidad" value=""></input>
-	<input type="hidden" id="previsualizar_formaPago" name="previsualizar_formaPago" value=""></input>
-	<input type="hidden" id="previsualizar_nuestraCuenta" name="previsualizar_nuestraCuenta" value=""></input>
-	<input type="hidden" id="previsualizar_campana" name="previsualizar_campana" value=""></input>
-	<input type="hidden" id="previsualizar_detallada" name="previsualizar_detallada" value=""></input>
-	<input type="hidden" id="previsualizar_neto" name="previsualizar_neto" value=""></input>
-	<input type="hidden" id="previsualizar_iva" name="previsualizar_iva" value=""></input>
-	<input type="hidden" id="previsualizar_irpf" name="previsualizar_irpf" value=""></input>
-	<input type="hidden" id="previsualizar_total" name="previsualizar_total" value=""></input>
-	<input type="hidden" id="previsualizar_provision" name="previsualizar_provision" value=""></input>
-	<input type="hidden" id="previsualizar_aPagar" name="previsualizar_aPagar" value=""></input>
+	<input type="hidden" id="previsualizar_presupuesto" name="presupuesto" value=""></input>
+	<input type="hidden" id="previsualizar_idCliente" name="idCliente" value=""></input>
+	<input type="hidden" id="previsualizar_fecha" name="fecha" value=""></input>
+	<input type="hidden" id="previsualizar_pedido" name="pedido" value=""></input>
+	<input type="hidden" id="previsualizar_cantidad" name="cantidad" value=""></input>
+	<input type="hidden" id="previsualizar_formaPago" name="formaPago" value=""></input>
+	<input type="hidden" id="previsualizar_nuestraCuenta" name="nuestraCuenta" value=""></input>
+	<input type="hidden" id="previsualizar_campana" name="campana" value=""></input>
+	<input type="hidden" id="previsualizar_detallada" name="detallada" value=""></input>
+	<input type="hidden" id="previsualizar_neto" name="neto" value=""></input>
+	<input type="hidden" id="previsualizar_iva" name="iva" value=""></input>
+	<input type="hidden" id="previsualizar_irpf" name="irpf" value=""></input>
+	<input type="hidden" id="previsualizar_total" name="total" value=""></input>
+	<input type="hidden" id="previsualizar_provision" name="provision" value=""></input>
+	<input type="hidden" id="previsualizar_aPagar" name="aPagar" value=""></input>
+	<input type="hidden" id="previsualizar_clayma" name="clayma" value=""></input>
 
 	<input type="hidden" id="previsualizarAccion" name="previsualizarAccion" value="previsualizarFactura"></input>		
 </form>
@@ -453,16 +434,19 @@ echo ("</html>");
 <script language="javascript">
 	
 	
-	
-	
-verProvisionPrefactura();	
-cargarFormasDePago();	
-//copiarPresupuestoAFacturaTemporal();
 verDatosUnPresupuesto();
-gestionDeCargarClientesListado('clientes');
+comprobarIvaCliente();
+//cargarListadoClientesPrefactura();
+verProvisionPrefactura();
+
+cargarFormasDePago();	
+mostrarTipoIva();
+//copiarPresupuestoAFacturaTemporal();
+
+
 
 	
-cargarClientes('A','cliente_importeFranqueoModal');
+cargarListadoClientesImporteFranqueoModal();
 	
 	//var array = [1,3,4,5,6];
 //copiarPresupuestoAFacturaDetalleTemporal();
@@ -486,7 +470,7 @@ cargarClientes('A','cliente_importeFranqueoModal');
 						document.getElementById("camposClaymaCombinado").innerHTML = "No";
 					}
 					document.getElementById("camposClaymaCombinado").style.visibility="visible";
-					document.getElementById("camposClaymaCombinado").style.display="table-row";
+					document.getElementById("camposClaymaCombinado").style.display="inline-block";
 					document.getElementById("camposClayma").style.visibility="hidden";
 					document.getElementById("camposClayma").style.display="none";
 
@@ -495,7 +479,7 @@ cargarClientes('A','cliente_importeFranqueoModal');
 					var text= sel.options[sel.selectedIndex].text;
 					document.getElementById("camposClienteCombiando").innerHTML = text;
 					document.getElementById("camposClienteCombiando").style.visibility="visible";
-					document.getElementById("camposClienteCombiando").style.display="table-row";
+					document.getElementById("camposClienteCombiando").style.display="inline-block";
 					document.getElementById("camposCliente").style.visibility="hidden";
 					document.getElementById("camposCliente").style.display="none";';
 			
@@ -510,7 +494,7 @@ cargarClientes('A','cliente_importeFranqueoModal');
 	?>
 	
 	
-	comprobarIvaCliente(document.getElementById("clientes").value);
+	
 	
 	guardarValorClienteInicial();
 	

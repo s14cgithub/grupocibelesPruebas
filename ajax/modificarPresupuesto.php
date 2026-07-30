@@ -11,6 +11,10 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="modificarRegistro")
 	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
 	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
 	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
+
+	if (isset($datos['numNoFactura'])) {
+		$datos['numNoFacturaFecha'] = date('d/m/Y H:i:s');
+	}
 	
 
 	$conn1 = conectarSQL($conexion);
@@ -47,16 +51,25 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="modificarRegistro")
 
 	$joins2 = array();
 
-	$numPresupuesto = $filtros['presupuesto'];
+	if (isset($filtros['presupuesto'])) {
+		$filtros2 = ['presupuesto' => $filtros['presupuesto']];
+	} else if (isset($filtros['numNoFactura'])) {
+		$filtros2 = ['numNoFactura' => $filtros['numNoFactura']];
+	} else {
+		$filtros2 = array();
+	}
 
-	$filtros2 = [
-		'presupuesto' => $numPresupuesto
-	];
+	$campos2Consulta = $campos2;
+	if (!in_array('presupuesto', $campos2Consulta)) {
+		$campos2Consulta[] = 'presupuesto';
+	}
 
 	$filtrosOperadores2 = array();
 	$order2 = array();
 
-	$cargarPresupuestos = cargarPresupuestos($conn,$bbddSql, $campos2, $joins2, $filtros2,$filtrosOperadores2, $order2);
+	$cargarPresupuestos = cargarPresupuestos($conn,$bbddSql, $campos2Consulta, $joins2, $filtros2,$filtrosOperadores2, $order2);
+
+	$numPresupuesto = isset($cargarPresupuestos['datos'][0]['presupuesto']) ? $cargarPresupuestos['datos'][0]['presupuesto'] : (isset($filtros['presupuesto']) ? $filtros['presupuesto'] : '');
 
 
 	$i = 0;

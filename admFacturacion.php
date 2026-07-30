@@ -68,8 +68,8 @@ if ($_SESSION["facturasManipulacion"]==1 || $_SESSION["facturasManipulacion"]==2
 	echo '<br><br>
 <h3>FACTURAS DE MANIPULACION</h3>
 <button type="button" class="btn btn-info" onClick="location.href = \'admEmisionFacturasPendientes.php\'">PREFACTURA</button>
-<button type="button" class="btn btn-info" onClick="location.href = \'admEmisionFacturasPendientesMensuales.php\'">PREFACTURA - MENSUAL</button>
-<button type="button" class="btn btn-info" data-toggle="modal" data-target="#crearFacturaMensualModal" data-whatever="@mdo"">CREAR FAC. MENSUAL</button>
+<!--<button type="button" class="btn btn-info" onClick="location.href = \'admEmisionFacturasPendientesMensuales.php\'">PREFACTURA - MENSUAL</button>-->
+<!--<button type="button" class="btn btn-info" data-toggle="modal" data-target="#crearFacturaMensualModal" data-whatever="@mdo"">CREAR FAC. MENSUAL</button>-->
 <button type="button" class="btn btn-info" onClick="location.href = \'admFacturasVisualizar.php\'">FACTURAS</button>
 
 <!--<button type="button" class="btn btn-info" onClick="location.href = \'admFacturasSinCobrar.php\'">FACTURAS SIN COBRAR</button>-->
