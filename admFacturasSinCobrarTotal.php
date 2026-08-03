@@ -26,11 +26,11 @@ if ($_SESSION["usuario"]!="")
 		<td align="center" colspan="">Buscar por:
 			<select class=""  id="buscarCampo" name="buscarCampo">
 				
-				<option value="t1.cliente" >Cliente</option>
-				<option value="t1.codigo_saldo">codigo_saldo</option>
-				<option value="t1.factura" selected>Factura</option>
-				<option value="t1.importe">Total</option>
-				<option value="t1.aPagar">Total a Pagar</option>
+				<option value="cliente" >Cliente</option>
+				<option value="codigo_saldo">codigo_saldo</option>
+				<option value="numeroFacturaCompleto" selected>Factura</option>
+				<option value="importe">Total</option>
+				<option value="aPagar">Total a Pagar</option>
 				
 								
 			</select>
@@ -39,13 +39,13 @@ if ($_SESSION["usuario"]!="")
 	Orden:
 			
 			<select class="" id="ordenBuscar">					
-					<option value="t1.cliente">Cliente</option>
-					<option value="t1.cliente, t1.idCliente">Cliente, idCliente</option>
-					<option value="t1.codigo_saldo">codigo_saldo</option>				
-					<option value="t1.factura">Factura</option>
-					<option value="t1.fecha" selected>Fecha</option>
-					<option value="t1.importe">Total</option>	
-					<option value="t1.aPagar">Total a Pagar</option>
+					<option value="cliente">Cliente</option>
+					<option value="clienteIdCliente">Cliente, idCliente</option>
+					<option value="codigo_saldo">codigo_saldo</option>				
+					<option value="numeroFacturaCompleto">Factura</option>
+					<option value="fecha" selected>Fecha</option>
+					<option value="importe">Total</option>	
+					<option value="aPagar">Total a Pagar</option>
 					<option value="totalCliente">Total agrupado por Cliente</option>
 				
 				
@@ -55,7 +55,7 @@ if ($_SESSION["usuario"]!="")
 			Desc: <input type="checkbox" id="ordenDesc" checked></input>
 		
 
-			<button type="button" class="btn btn-info" onClick="buscarFactura()">Buscar</button>
+			<button type="button" class="btn btn-info" onClick="listadoFacturasPendientesTotal()">Buscar</button>
 			
 			<button type="button" class="btn btn-info" onClick="gestionImprimir()">Imprimir</button>
 
@@ -150,18 +150,18 @@ else
 
 <form id="formImprimirInforme" name="formImprimirInforme" method="post"  target="_blank" action="imprimirInformeFacturaSinCobrarTotal.php">
 	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirInforme"></input>	
-	<input type="hidden" id="imprimirCondicion" name="imprimirCondicion" value=""></input>	
-	<input type="hidden" id="imprimirDomiciliado" name="imprimirDomiciliado" value=""></input>	
-	<input type="hidden" id="imprimirFechaInicio" name="imprimirFechaInicio" value=""></input>	
-	<input type="hidden" id="imprimirFechaFin" name="imprimirFechaFin" value=""></input>	
+	<input type="hidden" id="imprimirFiltros" name="imprimirFiltros" value=""></input>	
+	<input type="hidden" id="imprimirFiltrosLike" name="imprimirFiltrosLike" value=""></input>	
+	<input type="hidden" id="imprimirFiltrosOperadores" name="imprimirFiltrosOperadores" value=""></input>	
+	<input type="hidden" id="imprimirOrder" name="imprimirOrder" value=""></input>	
 </form>
 
 <form id="formExcelFacturasSinCobrar" method="post"  target="_blank" action="PHPExcel/archivosCibeles/exportarFacturasSinCobrar.php">
 	<input type="hidden" id="exportarAccion" name="exportarAccion" value="exportarExcel"></input>	
-	<input type="hidden" id="exportarExcel_Condicion" name="exportarExcel_Condicion" value=""></input>
-	<input type="hidden" id="exportarExcel_Domiciliado" name="exportarExcel_Domiciliado" value=""></input>	
-	<input type="hidden" id="exportarExcel_FechaInicio" name="exportarExcel_FechaInicio" value=""></input>	
-	<input type="hidden" id="exportarExcel_FechaFin" name="exportarExcel_FechaFin" value=""></input>	
+	<input type="hidden" id="exportarExcel_Filtros" name="exportarExcel_Filtros" value=""></input>
+	<input type="hidden" id="exportarExcel_FiltrosLike" name="exportarExcel_FiltrosLike" value=""></input>	
+	<input type="hidden" id="exportarExcel_FiltrosOperadores" name="exportarExcel_FiltrosOperadores" value=""></input>	
+	<input type="hidden" id="exportarExcel_Order" name="exportarExcel_Order" value=""></input>	
 </form>
 
 
@@ -228,8 +228,7 @@ echo ("</html>");
 
 
 
-	//listadoFacturasPendientesTotal();
-	buscarFactura();
+	listadoFacturasPendientesTotal();
 	//cargarClientes('A','buscarCliente');
 	//cargarClientes('A','clientesModal');
 	document.getElementById("button-up").addEventListener("click", scrollUp);

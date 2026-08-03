@@ -1,14 +1,16 @@
 var peticionUnica1 = null;
 var claymaG1=false;
-var laCondicion="";
 var guardarBusqueda = "";
 var arrayAgrupamiento = [];
 var refrescar = true;
+var busquedaFiltros = {};
+var busquedaFiltrosLike = [];
+var busquedaFiltrosOperadores = [];
+var busquedaOrder = [];
 
-function buscarFactura()
-{
+function listadoFacturasPendientesTotal() //js_facturaSinCobrar
+{	
 	arrayAgrupamiento = [];
-	var condicion="";
 	var campoAbuscar = document.getElementById("buscarCampo").value;
 	var textoAbuscar = document.getElementById("buscarTexto").value;
 	var orden = document.getElementById("ordenBuscar").value;
@@ -19,104 +21,50 @@ function buscarFactura()
 	
 	guardarBusqueda = "buscarCampo=" + campoAbuscar + "|buscarTexto=" + textoAbuscar + "|ordenBuscar=" + orden + "|ordenDesc=" + desc + "|fechaInicio=" + fechaInicio + "|fechaFin=" + fechaFin + "|origen=" + document.getElementById("buscarPorOrigen").value + "|domiciliada=" + document.getElementById("domiciliada").checked;
 
-	//var clayma = document.getElementById("clienteOrigen").checked;
-	
-	
-	if (campoAbuscar == "t1.codigo_saldo" && textoAbuscar != "")
+	busquedaFiltros = {};
+	busquedaFiltrosLike = [];
+	busquedaFiltrosOperadores = [];
+
+	busquedaFiltros.sinFormaPago = 1;
+
+	if (campoAbuscar == "codigo_saldo" && textoAbuscar != "")
 	{
-		condicion = " where  "+campoAbuscar+" = '"+textoAbuscar+"'";	
+		busquedaFiltros.codigo_saldo = textoAbuscar;
 	}
-	else
+	else if (textoAbuscar != "")
 	{
-		//condicion = " where idCliente = codigo_saldo and  "+campoAbuscar+" like '%" + textoAbuscar + "%'";	
-		condicion = " where  "+campoAbuscar+" like '%" + textoAbuscar + "%'";	
+		busquedaFiltrosLike.push({campo: campoAbuscar, valor: textoAbuscar});
 	}
-		
-	
-	
-	
+
 	if (fechaInicio!="" && fechaInicio!=null && fechaInicio != "null")
 	{
-		var laFecha = fechaInicio.replace("/","-");
-		var datos = laFecha.split('-');
-		var anio = datos[0];
-		var mes = datos[1];
-		var dia = datos[2];	
-	
-		var laFecha1 = dia+"-"+mes+"-"+anio;
-		
-		condicion += " and t1.fecha >= '"+laFecha1+"'";
+		busquedaFiltrosOperadores.push({campo1: 'fecha', valor: fechaInicio, operador: '>='});
 	}
 	
 	if (fechaFin!="" && fechaFin!=null && fechaFin != "null")
 	{
-		laFecha = fechaFin.replace("/","-");
-		datos = laFecha.split('-');
-		anio = datos[0];
-		mes = datos[1];
-		dia = datos[2];	
-	
-		laFecha1 = dia+"-"+mes+"-"+anio;
-		
-		condicion += " and t1.fecha <= '"+laFecha1+"'";
+		busquedaFiltrosOperadores.push({campo1: 'fecha', valor: fechaFin, operador: '<='});
 	}
 	
 	
 	if (document.getElementById("domiciliada").checked==true)
 	{
-		condicion += " and t1.domiciliada = 1";
+		busquedaFiltros.domiciliada = 1;
 	}
 	
 	if (document.getElementById("buscarPorOrigen").value!="todos")
 	{
-		condicion += " and t1.origen2 = '"+document.getElementById("buscarPorOrigen").value+"'";
+		busquedaFiltros.origen2 = document.getElementById("buscarPorOrigen").value;
 	}
 	
-	if (orden =="t1.factura")
-	{
-		if (desc==true)
-		{
-			condicion += " order by len(" + orden+") desc,"+orden + " desc";
-		}
-		else
-		{
-			condicion += " order by len(" + orden+"),"+orden;
-		}
-		
-	}
-	else
-	{
-		condicion += " order by " + orden;
-		if (desc==true)
-		{
-			condicion += " desc";
-		}
-		
-		
-	}
-	
+	busquedaOrder = [{campo: orden, dir: desc ? 'DESC' : 'ASC'}];
 
-	
-	
-	
-	
-	laCondicion = condicion;
-	
-	
-	//cargarListadoFacturasSinEmitir();
-	
-	listadoFacturasPendientesTotal();
-	
-}
-
-function listadoFacturasPendientesTotal() //js_facturaSinCobrar
-{	
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarListadoFacturasPendientesTotal;
-		peticionUnica1.open("POST","ajax/mostrarListadoFacturasPendientesTotal.php",false);
+		peticionUnica1.open("POST","ajax/cargarFacturasCibelesClaymaCorreos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaListadoFacturasPendientesTotal();
 		peticionUnica1.send(query_string);
@@ -125,10 +73,18 @@ function listadoFacturasPendientesTotal() //js_facturaSinCobrar
 
 function consultaListadoFacturasPendientesTotal()
 {	
-	var consulta = "accion=mostrarListadoFacturasPendientesTotal";
-	
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');
-	consulta += "&guardarBusqueda=" + guardarBusqueda;
+	var consulta = "accion=cargarFacturasCibelesClaymaCorreos";
+
+	var campos = ['origen','origen2','numeroFacturaCompleto','idCliente','codigo_saldo','cliente','importe','aPagar','fecha'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(busquedaFiltros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(busquedaFiltrosOperadores));
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(busquedaFiltrosLike));
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(busquedaOrder));
+
+	consulta += "&pantallaDeOrigen=js_facturasSinCobrarTotal.js";
+	consulta += "&guardarBusqueda=" + encodeURIComponent(guardarBusqueda);
 	guardarBusqueda = "";
 	
 	
@@ -141,14 +97,15 @@ function mostrarListadoFacturasPendientesTotal()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
 				var contenido = "";	
 				contenido += '<tr><td style="border:none !important;"></td><td style="border:none !important;"></td><td style="border:none !important;"></td><td colspan=3 style="border:none !important; font-weight: bold; text-align: right; overflow:hidden; white-space: nowrap;" id="sumatorioApagar">aaa</td><td style="border:none !important;"></td><td style="border:none !important; text-align:right;">Dar de baja varias a la vez:</td><td style="border:none !important;"><input type="image" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarFacturaPendienteMasivo2()"></td></tr>';
@@ -178,7 +135,7 @@ function mostrarListadoFacturasPendientesTotal()
 					var mes = datos[contador]["fecha"]["date"].substr(5,2);
 					var anio = datos[contador]["fecha"]["date"].substr(0,4);
 					
-					
+					var numFactura = datos[contador]["numeroFacturaCompleto"];
 					
 					if (contador%2==0)
 					{
@@ -211,84 +168,39 @@ function mostrarListadoFacturasPendientesTotal()
 					}
 					
 
-					if (datos[contador]["origen"]=="ABONO" || datos[contador]["origen2"]=="CIBELES" || datos[contador]["origen2"]=="CLAYMA")
-					{
-						let fechaRegistro = new Date(datos[contador]["fecha"]["date"]);
-						let fechaLimite   = new Date(fechaCambioVerifactu); 
-
-						if (fechaRegistro>fechaLimite)
-						{
-							contenido += '<td align="right" id="'+datos[contador]["numeroFacturaCompleto"]+'_factura">'+datos[contador]["numeroFacturaCompleto"]+'</td>';
-						}
-						else
-						{
-							contenido += '<td align="right" id="'+datos[contador]["factura"]+'_factura">'+datos[contador]["factura"]+ '/'+anio.substr(2,2)+'</td>';
-						}						
-					}
-					else
-					{
-						contenido += '<td align="center" id="'+datos[contador]["factura"]+'_factura">'+datos[contador]["factura"]+'</td>';
-					}
+					contenido += '<td align="right" id="'+numFactura+'_factura">'+numFactura+'</td>';
+					
+					contenido += '<td id="'+numFactura+'_idCliente" style="visibility: hidden;display: none;">'+datos[contador]["idCliente"]+'</td>';
 					
 					
-					//contenido += '<td align="center" id="'+datos[contador]["factura"]+'_factura">'+datos[contador]["factura"]+'</td>';			
+					contenido += '<td  align="center" id="'+numFactura+'_codSaldo">'+datos[contador]["codigo_saldo"]+'</td>';
 					
-					contenido += '<td id="'+datos[contador]["factura"]+'_idCliente" style="visibility: hidden;display: none;">'+datos[contador]["idCliente"]+'</td>';
-					
-					
-					contenido += '<td  align="center" id="'+datos[contador]["factura"]+'_codSaldo">'+datos[contador]["codigo_saldo"]+'</td>';
-					
-					contenido += '<td  id="'+datos[contador]["factura"]+'_Cliente">'+datos[contador]["cliente"]+'</td>';
+					contenido += '<td  id="'+numFactura+'_Cliente">'+datos[contador]["cliente"]+'</td>';
 					
 					contenido += '<td align="right"><span style="overflow:hidden; white-space: nowrap;">'+Number(datos[contador]["importe"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €</span></td>';
-					contenido += '<td align="right"><span style="overflow:hidden; white-space: nowrap;" id="'+datos[contador]["factura"]+'_aPagar">'+Number(datos[contador]["aPagar"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €</span></td>';
+					contenido += '<td align="right"><span style="overflow:hidden; white-space: nowrap;" id="'+numFactura+'_aPagar">'+Number(datos[contador]["aPagar"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €</span></td>';
 					
 					
 					
 					contenido += '<td><span style="overflow:hidden; white-space: nowrap;">'+dia + "-" + mes+ "-" + anio+'</span></td>';		
 					
 					//forma de pago
-					if (datos[contador]["origen"]=='MANIPULADOS' ||datos[contador]["origen"]=='ABONO' || datos[contador]["origen"]=='REC DIFERENCIAS' || datos[contador]["origen"]=='REC SUSTITUCION')
-					{
-						contenido += '<td><input type="text" id="'+datos[contador]["factura"]+'_formaPago_'+datos[contador]["origen"]+'_'+datos[contador]["origen2"]+'_'+anio+'" value="" onblur="modificarFacturaPendienteMasivo(\''+datos[contador]["factura"]+'_formaPago_'+datos[contador]["origen"]+'_'+datos[contador]["origen2"]+'_'+anio+'\')"></input></td>';
-						
-					}
-					else if (datos[contador]["origen"]=='CORREOS')
-					{						
-						contenido += '<td><input type="text" id="'+datos[contador]["factura"]+'_formaPago_'+datos[contador]["origen"]+'_'+datos[contador]["origen2"]+'" value="" onblur="modificarFacturaPendienteMasivo(\''+datos[contador]["factura"]+'_formaPago_CORREOS_CORREOS'+'\')"></input></td>';
-					}
-					
-					//contenido += '<td><input type="text" id="'+datos[contador]["factura"]+'_formaPago_'+datos[contador]["origen"]+'_'+datos[contador]["origen2"]+'_'+anio+'" value=""></input></td>';
+					contenido += '<td><input type="text" id="'+numFactura+'_formaPago_'+datos[contador]["origen2"]+'" value="" onblur="modificarFacturaPendienteMasivo(\''+numFactura+'_formaPago_'+datos[contador]["origen2"]+'\')"></input></td>';
 					
 					if (contador==0)
 					{
-						mandarFoco = datos[contador]["factura"]+'_formaPago_'+datos[contador]["origen"]+'_'+datos[contador]["origen2"]+'_'+anio;
+						mandarFoco = numFactura+'_formaPago_'+datos[contador]["origen2"];
 					}
 					
 
 					//modificar
-					if (datos[contador]["origen"]=='MANIPULADOS')
+					if (datos[contador]["origen"]=='CORREOS')
 					{
-						/*contenido += '<td><input type="image" id="'+datos[contador]["factura"]+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarFacturaPendiente('+datos[contador]["factura"]+',\''+datos[contador]["origen"]+',\''+datos[contador]["origen2"]+'\')"></td>';	*/
-						
-						contenido += '<td><input type="image" id="'+datos[contador]["factura"]+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarFacturaPendiente('+datos[contador]["factura"]+',\''+datos[contador]["origen"]+'\',\''+datos[contador]["origen2"]+'\', \''+anio+'\')"></td>';
-						
+						contenido += '<td><input type="image" id="'+numFactura+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarFacturaCorreospendienteDesdeTotal(\''+numFactura+'\')"></td>';
 					}
-					else if (datos[contador]["origen"]=='CORREOS')
+					else
 					{
-						contenido += '<td><input type="image" id="'+datos[contador]["factura"]+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarFacturaCorreospendienteDesdeTotal(\''+datos[contador]["factura"]+'\')"></td>';
-					}
-					else if (datos[contador]["origen"]=='ABONO')
-					{
-						contenido += '<td><input type="image" id="'+datos[contador]["factura"]+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarAbonoPendiente('+datos[contador]["factura"]+',\''+datos[contador]["origen"]+'\',\''+datos[contador]["origen2"]+'\', \''+anio+'\')"></td>';
-					}
-					else if (datos[contador]["origen"]=='REC DIFERENCIAS')
-					{
-						contenido += '<td><input type="image" id="'+datos[contador]["factura"]+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarRecDiferenciasPendiente('+datos[contador]["factura"]+',\''+datos[contador]["origen"]+'\',\''+datos[contador]["origen2"]+'\', \''+anio+'\')"></td>';
-					}
-					else if (datos[contador]["origen"]=='REC SUSTITUCION')
-					{
-						contenido += '<td><input type="image" id="'+datos[contador]["factura"]+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarRecSustitucionPendiente('+datos[contador]["factura"]+',\''+datos[contador]["origen"]+'\',\''+datos[contador]["origen2"]+'\', \''+anio+'\')"></td>';
+						contenido += '<td><input type="image" id="'+numFactura+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;"  onclick="modificarFacturaPendiente(\''+numFactura+'\',\''+datos[contador]["origen2"]+'\')"></td>';
 					}
 
 					
@@ -366,32 +278,17 @@ function modificarFacturaPendienteMasivo2()
 			var contador=0;
 			while (contador<arrayAgrupamiento.length)		
 			{
-				var datosArray = arrayAgrupamiento[contador].split('_');
+				var datosArray = arrayAgrupamiento[contador].split('_formaPago_');
+				var numeroFacturaCompleto = datosArray[0];
+				var origen2 = datosArray[1];
 				
-				
-				if (datosArray[2]=='CORREOS')
+				if (origen2=='CORREOS')
 				{
-					modificarFacturaCorreospendienteDesdeTotal(datosArray[0]);
-				}
-				else if (datosArray[2]=='MANIPULADOS')
-				{
-					modificarFacturaPendiente(datosArray[0],datosArray[2],datosArray[3],datosArray[4]);
-				}
-				else if (datosArray[2]=='ABONO')
-				{
-					modificarAbonoPendiente(datosArray[0],datosArray[2],datosArray[3],datosArray[4]);
-				}
-				else if (datosArray[2]=='REC DIFERENCIAS')
-				{
-					modificarRecDiferenciasPendiente(datosArray[0],datosArray[2],datosArray[3],datosArray[4]);
-				}
-				else if (datosArray[2]=='REC SUSTITUCION')
-				{
-					modificarRecSustitucionPendiente(datosArray[0],datosArray[2],datosArray[3],datosArray[4]);
+					modificarFacturaCorreospendienteDesdeTotal(numeroFacturaCompleto);
 				}
 				else
 				{
-					alert("Error");
+					modificarFacturaPendiente(numeroFacturaCompleto, origen2);
 				}
 
 				contador++;
@@ -400,7 +297,7 @@ function modificarFacturaPendienteMasivo2()
 			
 			refrescar = true;
 			arrayAgrupamiento = [];
-			buscarFactura();
+			listadoFacturasPendientesTotal();
 			alert("Finalizado");
 		}
 
@@ -420,7 +317,7 @@ function listadoFacturasPendientesTotal_Sumatorio() //js_facturaSinCobrar
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarListadoFacturasPendientesTotal_Sumatorio;
-		peticionUnica1.open("POST","ajax/mostrarListadoFacturasPendientesTotalSumatorio.php",false);
+		peticionUnica1.open("POST","ajax/cargarFacturasCibelesClaymaCorreos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaListadoFacturasPendientesTotal_Sumatorio();
 		peticionUnica1.send(query_string);
@@ -429,8 +326,14 @@ function listadoFacturasPendientesTotal_Sumatorio() //js_facturaSinCobrar
 
 function consultaListadoFacturasPendientesTotal_Sumatorio()
 {	
-	var consulta = "accion=mostrarListadoFacturasPendientesTotal";	
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');
+	var consulta = "accion=cargarFacturasCibelesClaymaCorreos";	
+
+	var campos = ['aPagarSumatorio'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(busquedaFiltros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(busquedaFiltrosOperadores));
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(busquedaFiltrosLike));
 	
 	return consulta;	
 }
@@ -441,17 +344,18 @@ function mostrarListadoFacturasPendientesTotal_Sumatorio()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
 				
-				document.getElementById("sumatorioApagar").innerHTML = "Total Pendiente: " + Number(datos[0]["aPagar"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €';				
+				document.getElementById("sumatorioApagar").innerHTML = "Total Pendiente: " + Number(datos[0]["aPagarSumatorio"]).toLocaleString('de-DE',{minimumFractionDigits: 2})+' €';				
 								
 			}
 			peticionUnica1 = null;
@@ -463,12 +367,12 @@ function mostrarListadoFacturasPendientesTotal_Sumatorio()
 
 
 
-function modificarFacturaPendiente(numero, origen="", origen2="", anio) 
+function modificarFacturaPendiente(numeroFacturaCompleto, origen2) 
 {
-	if (document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).value.trim()=="")
+	if (document.getElementById(numeroFacturaCompleto+"_formaPago_"+origen2).value.trim()=="")
 	{
 		alert("Introducir una Forma de pago");
-		document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).focus();
+		document.getElementById(numeroFacturaCompleto+"_formaPago_"+origen2).focus();
 	}
 	else
 	{
@@ -477,41 +381,21 @@ function modificarFacturaPendiente(numero, origen="", origen2="", anio)
 		if(peticionUnica1)
 		{							
 			peticionUnica1.onreadystatechange = mostrarModificarFacturaPendiente;
-			peticionUnica1.open("POST","ajax/modificarFacturasPendientes.php",false);
+			peticionUnica1.open("POST","ajax/modificarFacturaSinCobrarPendiente.php",false);
 			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-			var query_string = consultaModificarFacturaPendiente(numero, origen, origen2, anio);
+			var query_string = consultaModificarFacturaPendiente(numeroFacturaCompleto, origen2);
 			peticionUnica1.send(query_string);
 		}
 	}
 }
 
-function consultaModificarFacturaPendiente(numero, origen, origen2, anio)
+function consultaModificarFacturaPendiente(numeroFacturaCompleto, origen2)
 {	
-	var consulta = "accion=modificarFacturasPendientes";
-	consulta += "&factura="+numero;
-	consulta += "&formaPago=" + document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).value;
+	var consulta = "accion=modificarFacturaSinCobrarPendiente";
+	consulta += "&numeroFacturaCompleto=" + encodeURIComponent(numeroFacturaCompleto);
+	consulta += "&origen2=" + encodeURIComponent(origen2);
+	consulta += "&formaPago=" + encodeURIComponent(document.getElementById(numeroFacturaCompleto+"_formaPago_"+origen2).value);
 	
-	
-	
-	/*if (origen2=="") 
-	{
-		consulta +="&clayma=" + document.getElementById("clienteOrigen").checked;
-	}
-	else */
-	if (origen2=="CIBELES")
-	{
-		claymaG1 = false;
-		consulta +="&clayma=false";
-	}
-	else if (origen2=="CLAYMA")
-	{
-		claymaG1 = true;
-		consulta +="&clayma=true";
-	}
-	
-	consulta += "&anioSeleccionado="+anio;
-	
-	numeroFactura = numero;
 	return consulta;	
 }
 
@@ -521,42 +405,17 @@ function mostrarModificarFacturaPendiente()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else 
 			{
-				/*if (document.getElementById("clienteOrigen").checked==true)
-				{
-					
-				}
-				else
-				{
-					insertarMovivimientoFacturaCibeles(numeroFactura);
-				}*/
-				if (claymaG1==false)
-				{
-					//insertarMovivimientoFacturaCibeles(numeroFactura);
-				}
-				
-				
-				
-				numeroFactura="";
-				
-				/*var ruta = window.location.pathname.split('/');
-				var nombre = ruta[ruta.length-1];
-				
-				if (nombre == 'admFacturasSinCobrarTotal.php')
-				{
-					listadoFacturasPendientesTotal();
-					//buscarFactura();
-				}
-				else*/
 				if (refrescar == true)
 				{
-					//listadoFacturasPendientes();
-					buscarFactura();
+					listadoFacturasPendientesTotal();
 				}				
 			}
 			peticionUnica1=null;			
@@ -581,246 +440,76 @@ function gestionInformeFacSinCobrar() //js_facturasSinCobrarTotal
 	document.getElementById("formImprimirInforme").submit();
 }
 
-function modificarFacturaCorreospendienteDesdeTotal(factura) //js_facturasSinCobrarTotal
+function modificarFacturaCorreospendienteDesdeTotal(numeroFacturaCompleto) //js_facturasSinCobrarTotal
 {
 	
-	if (document.getElementById(factura+"_formaPago_CORREOS_CORREOS").value.trim()==""||document.getElementById(factura+"_formaPago_CORREOS_CORREOS").value==null)
+	if (document.getElementById(numeroFacturaCompleto+"_formaPago_CORREOS").value.trim()==""||document.getElementById(numeroFacturaCompleto+"_formaPago_CORREOS").value==null)
 	{
 		alert("Rellenar la Forma de Pago");
-		document.getElementById(factura+"_formaPago_CORREOS_CORREOS").focus();		
+		document.getElementById(numeroFacturaCompleto+"_formaPago_CORREOS").focus();		
 	}
 	else
 	{
 	
 		//var elImporte = 
 		
-		var codigoCliente = document.getElementById(factura+"_idCliente").innerHTML;	
-		var aPagar = document.getElementById(factura+"_aPagar").innerHTML.replace(' €','').replace('.','').replace(',','.');
-		var formaPago = document.getElementById(factura+"_formaPago_CORREOS_CORREOS").value;
-		var numeroOficial = document.getElementById(factura+"_factura").innerHTML;
+		modificarSaldoFacturaCorreos(numeroFacturaCompleto);
 		
-		var fecha="";
-		
-		insertarMovimientoPF(codigoCliente,fecha,formaPago,aPagar,numeroOficial);	
-		
-		modificarDatosPFenCliente(codigoCliente, fecha, aPagar);
-		
-		modificarFacturaCorreosPendiente2(factura);
+		modificarFacturaPendiente(numeroFacturaCompleto, 'CORREOS');
 		
 	}
 }
 
-
-
-
-function modificarAbonoPendiente(numero, origen="", origen2="", anio) 
+function modificarSaldoFacturaCorreos(numeroFacturaCompleto)
 {
-	if (document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).value.trim()=="")
-	{
-		alert("Introducir una Forma de pago");
-		document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).focus();
-	}
-	else
-	{
-		peticionUnica1=crearComunicacion(peticionUnica1);
-
-		if(peticionUnica1)
-		{							
-			peticionUnica1.onreadystatechange = mostrarModificarAbonoPendiente;
-			peticionUnica1.open("POST","ajax/modificarAbonoPendientes.php",false);
-			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-			var query_string = consultaModificarAbonoPendiente(numero,origen, origen2, anio);
-			peticionUnica1.send(query_string);
-		}
+	peticionUnica1=crearComunicacion(peticionUnica1);
+							
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarModificarSaldoFacturaCorreos;
+		peticionUnica1.open("POST","ajax/modificarSaldo.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaModificarSaldoFacturaCorreos(numeroFacturaCompleto);
+		peticionUnica1.send(query_string);						
 	}
 }
 
-function consultaModificarAbonoPendiente(numero, origen, origen2, anio)
+function consultaModificarSaldoFacturaCorreos(numeroFacturaCompleto)
 {	
-	var consulta = "accion=modificarAbonosPendientes";
-	consulta += "&abono="+numero;
-	consulta += "&formaPago=" + document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).value;	
-	
-	if (origen2=="CIBELES")
-	{
-		claymaG1 = false;
-		consulta +="&clayma=false";
-	}
-	else if (origen2=="CLAYMA")
-	{
-		claymaG1 = true;
-		consulta +="&clayma=true";
-	}
-	
-	consulta += "&anioSeleccionado=" + anio;
-	
-	numeroFactura = numero;
+	var consulta = "accion=modificarSaldo";
+
+	var codigoCliente = document.getElementById(numeroFacturaCompleto+"_idCliente").innerHTML;	
+	var aPagar = document.getElementById(numeroFacturaCompleto+"_aPagar").innerHTML.replace(' €','').replace('.','').replace(',','.');
+	var formaPago = document.getElementById(numeroFacturaCompleto+"_formaPago_CORREOS").value;
+	var numeroOficial = document.getElementById(numeroFacturaCompleto+"_factura").innerHTML;
+
+	var datos = {
+		codigoCliente: codigoCliente,
+		fecha: "",
+		formaPago: formaPago,
+		importe: aPagar,
+		clayma: 0,
+		informacionCuadre: 'pantalla: facturas sin cobrar - correos',
+		presupuesto: numeroOficial
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
 	return consulta;	
 }
 
-function mostrarModificarAbonoPendiente()
+function mostrarModificarSaldoFacturaCorreos()
 {
 	if (peticionUnica1.readyState == 4)
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
-			else
-			{				
-				numeroFactura="";				
-				
-				if (refrescar==true)
-				{
-					buscarFactura();
-				}					
-				
-			}
-			peticionUnica1=null;			
-		}
-	}						
-}
-
-
-function modificarRecDiferenciasPendiente(numero, origen="", origen2="", anio) 
-{
-	if (document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).value.trim()=="")
-	{
-		alert("Introducir una Forma de pago");
-		document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).focus();
-	}
-	else
-	{
-		peticionUnica1=crearComunicacion(peticionUnica1);
-
-		if(peticionUnica1)
-		{							
-			peticionUnica1.onreadystatechange = mostrarModificarRecDiferenciasPendiente;
-			peticionUnica1.open("POST","ajax/modificarRecDiferenciasPendientes.php",false);
-			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-			var query_string = consultaModificarRecDiferenciasPendiente(numero,origen, origen2, anio);
-			peticionUnica1.send(query_string);
-		}
-	}
-}
-
-function consultaModificarRecDiferenciasPendiente(numero, origen, origen2, anio)
-{	
-	var consulta = "accion=modificarRecDiferenciasPendientes";
-	consulta += "&factura="+numero;
-	consulta += "&formaPago=" + document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).value;	
-	
-	if (origen2=="CIBELES")
-	{
-		claymaG1 = false;
-		consulta +="&clayma=false";
-	}
-	else if (origen2=="CLAYMA")
-	{
-		claymaG1 = true;
-		consulta +="&clayma=true";
-	}
-	
-	consulta += "&anioSeleccionado=" + anio;
-	
-	numeroFactura = numero;
-	return consulta;	
-}
-
-function mostrarModificarRecDiferenciasPendiente()
-{
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{
-				numeroFactura="";				
-				
-				if (refrescar==true)
-				{
-					buscarFactura();
-				}					
-				
-			}
-			peticionUnica1=null;			
-		}
-	}						
-}
-
-
-function modificarRecSustitucionPendiente(numero, origen="", origen2="", anio) 
-{
-	if (document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).value.trim()=="")
-	{
-		alert("Introducir una Forma de pago");
-		document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).focus();
-	}
-	else
-	{
-		peticionUnica1=crearComunicacion(peticionUnica1);
-
-		if(peticionUnica1)
-		{							
-			peticionUnica1.onreadystatechange = mostrarModificarRecSustitucionPendiente;
-			peticionUnica1.open("POST","ajax/modificarRecSustitucionPendientes.php",false);
-			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-			var query_string = consultaModificarRecSustitucionPendiente(numero,origen, origen2, anio);
-			peticionUnica1.send(query_string);
-		}
-	}
-}
-
-function consultaModificarRecSustitucionPendiente(numero, origen, origen2, anio)
-{	
-	var consulta = "accion=modificarRecSustitucionPendientes";
-	consulta += "&factura="+numero;
-	consulta += "&formaPago=" + document.getElementById(numero+"_formaPago_"+origen+"_"+origen2+"_"+anio).value;	
-	
-	if (origen2=="CIBELES")
-	{
-		claymaG1 = false;
-		consulta +="&clayma=false";
-	}
-	else if (origen2=="CLAYMA")
-	{
-		claymaG1 = true;
-		consulta +="&clayma=true";
-	}
-	
-	consulta += "&anioSeleccionado=" + anio;
-	
-	numeroFactura = numero;
-	return consulta;	
-}
-
-function mostrarModificarRecSustitucionPendiente()
-{
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{
-				numeroFactura="";				
-				
-				if (refrescar==true)
-				{
-					buscarFactura();
-				}					
-				
-			}
-			peticionUnica1=null;			
+			peticionUnica1=null;
 		}
 	}						
 }
@@ -876,81 +565,22 @@ function mostrarInsertarMovimientoAbonoCibeles()
 	}						
 }
 
-function modificarFacturaCorreosPendiente2(factura)	//js_facturasCorreosPendientes			
-{
-	peticionUnica1=crearComunicacion(peticionUnica1);
-							
-	if(peticionUnica1)
-	{							
-		peticionUnica1.onreadystatechange = mostrarModificarFacturaCorreosPendiente2;
-		peticionUnica1.open("POST","ajax/modificarFacturasCorreosPendientes.php",false);
-		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaModificarFacturaCorreosPendiente2(factura);
-		peticionUnica1.send(query_string);						
-	}
-}
-
-function consultaModificarFacturaCorreosPendiente2(factura)
-{	
-	var consulta = "accion=modificarFacturaCorreosPendientes";
-	
-	consulta +="&factura=" + factura; 
-	
-	consulta +="&formaPago=" + document.getElementById(factura+"_formaPago_CORREOS_CORREOS").value;
-	
-	return consulta;	
-}
-
-
-function mostrarModificarFacturaCorreosPendiente2()
-{
-	if (peticionUnica1.readyState == 4)
-	{
-		if(peticionUnica1.status == 200)
-		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{				
-				/*var ruta = window.location.pathname.split('/');
-				var nombre = ruta[ruta.length-1];
-				
-				if (nombre == 'admFacturasSinCobrarTotal.php')
-				{
-					listadoFacturasPendientesTotal();
-					//buscarFactura();
-				}
-				else*/
-				if (refrescar == true)				
-				{
-					//cargarListadoFacturasCorreosPendientes();
-					buscarFactura();
-				}
-			}
-			peticionUnica1=null;
-				
-		}
-	}						
-}
-
 function gestionImprimir()
 {
-	document.getElementById("imprimirCondicion").value = laCondicion;
-	document.getElementById("imprimirDomiciliado").value = document.getElementById("domiciliada").checked;
-	document.getElementById("imprimirFechaInicio").value = document.getElementById("buscarFechaInicio").value;
-	document.getElementById("imprimirFechaFin").value = document.getElementById("buscarFechaFin").value;
+	document.getElementById("imprimirFiltros").value = JSON.stringify(busquedaFiltros);
+	document.getElementById("imprimirFiltrosLike").value = JSON.stringify(busquedaFiltrosLike);
+	document.getElementById("imprimirFiltrosOperadores").value = JSON.stringify(busquedaFiltrosOperadores);
+	document.getElementById("imprimirOrder").value = JSON.stringify(busquedaOrder);
 	
 	document.getElementById("formImprimirInforme").submit();
 }
 
 function gestionExportarExcelFacturaSinCobrar()
 {	
-	document.getElementById("exportarExcel_Condicion").value = laCondicion;
-	document.getElementById("exportarExcel_Domiciliado").value = document.getElementById("domiciliada").checked;
-	document.getElementById("exportarExcel_FechaInicio").value = document.getElementById("buscarFechaInicio").value;
-	document.getElementById("exportarExcel_FechaFin").value = document.getElementById("buscarFechaFin").value;
+	document.getElementById("exportarExcel_Filtros").value = JSON.stringify(busquedaFiltros);
+	document.getElementById("exportarExcel_FiltrosLike").value = JSON.stringify(busquedaFiltrosLike);
+	document.getElementById("exportarExcel_FiltrosOperadores").value = JSON.stringify(busquedaFiltrosOperadores);
+	document.getElementById("exportarExcel_Order").value = JSON.stringify(busquedaOrder);
 	
 	document.getElementById("formExcelFacturasSinCobrar").submit();
 }

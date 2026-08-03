@@ -19,17 +19,35 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 	
 	
 	
-	$condicion = $_POST["imprimirCondicion"];	
-	
-	$domiciliada =  $_POST["imprimirDomiciliado"];	
-	
-	$fechaInicio =  $_POST["imprimirFechaInicio"];	
-	$fechaFin =  $_POST["imprimirFechaFin"];	
-	
-	
-	
-	
-	$datosFactura = mostrarListadoFacturasPendientesTotal($conexion, $condicion);	
+	$filtros = isset($_POST["imprimirFiltros"]) ? json_decode($_POST["imprimirFiltros"], true) : array();
+	$filtrosLike = isset($_POST["imprimirFiltrosLike"]) ? json_decode($_POST["imprimirFiltrosLike"], true) : array();
+	$filtrosOperadores = isset($_POST["imprimirFiltrosOperadores"]) ? json_decode($_POST["imprimirFiltrosOperadores"], true) : array();
+	$order = isset($_POST["imprimirOrder"]) ? json_decode($_POST["imprimirOrder"], true) : array();
+
+	$domiciliada = isset($filtros['domiciliada']) && $filtros['domiciliada']==1 ? "true" : "false";
+
+	$fechaInicio = "";
+	$fechaFin = "";
+
+	foreach ($filtrosOperadores as $f)
+	{
+		if ($f['campo1']=='fecha' && $f['operador']=='>=')
+		{
+			$fechaInicio = $f['valor'];
+		}
+		if ($f['campo1']=='fecha' && $f['operador']=='<=')
+		{
+			$fechaFin = $f['valor'];
+		}
+	}
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resultadoConsulta = mostrarFacturasCibelesClaymaCorreos($conn, $bbddSql, ['origen','numeroFacturaCompleto','idCliente','codigo_saldo','cliente','importe','aPagar','fecha','descripcion','saldo'], $filtros, $filtrosOperadores, $filtrosLike, $order);
+
+	$datosFactura = $resultadoConsulta['datos'];
 	
 	
 	if (count($datosFactura)<=0)
@@ -274,7 +292,7 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 
 		$margen = 70;
 		$pdf->SetXY($margen,$altura);		
-		$pdf->Cell(0,0,utf8_decode($datosFactura[$contador]["factura"]),0,1,'C',false);
+		$pdf->Cell(0,0,utf8_decode($datosFactura[$contador]["numeroFacturaCompleto"]),0,1,'C',false);
 		
 		/*$margen = 60;;
 		$pdf->SetXY($margen,$altura);

@@ -14,65 +14,73 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="verEstadoFacturacionFinMes")
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];
 
-	$fechaActual = date("d-m-Y");
-	$anioSeleccionado = date('Y');
-	$anioNuevo = false;
-
-	$filtrosOperadoresAnio = [
-		['campo1' => 'fecha', 'valor' => $anioSeleccionado.'-01-01', 'operador' => '>='],
-		['campo1' => 'fecha', 'valor' => $anioSeleccionado.'-12-31', 'operador' => '<=']
-	];
-
-	$resFechaMax = mostrarFacturacion($conn, $bbddSql, ['fechaMax'], [], [], $filtrosOperadoresAnio, []);
-	$ultimaFechaCibeles = [['fecha' => $resFechaMax['datos'][0]['fechaMax']]];
-
-	if ($ultimaFechaCibeles[0]["fecha"] == null || $ultimaFechaCibeles[0]["fecha"] == "null" )
+	if (mostrarSePuedeImprimir($conn, $bbddSql) == 1)
 	{
-		$anioNuevo = true;
-	}
+		$fechaActual = date("d-m-Y");
+		$anioSeleccionado = date('Y');
+		$anioNuevo = false;
 
-	$mesAnterior = strtotime ( '-1 month' , strtotime ($fechaActual));
-	$ultimoDia_MesAnterior= date("t/m/Y",$mesAnterior);
+		$filtrosOperadoresAnio = [
+			['campo1' => 'fecha', 'valor' => $anioSeleccionado.'-01-01', 'operador' => '>='],
+			['campo1' => 'fecha', 'valor' => $anioSeleccionado.'-12-31', 'operador' => '<=']
+		];
 
-	if ($estado==="0" && $anioNuevo==false)
-	{
-		$numero1 = intval(date("Y",$mesAnterior));
-		$numero2 = intval($ultimaFechaCibeles[0]["fecha"]->format("Y"));
+		$resFechaMax = mostrarFacturacion($conn, $bbddSql, ['fechaMax'], [], [], $filtrosOperadoresAnio, []);
+		$ultimaFechaCibeles = [['fecha' => $resFechaMax['datos'][0]['fechaMax']]];
 
-		$ultimoDiaMesAnteriorFecha = new DateTime();
-		$ultimoDiaMesAnteriorFecha->setTimestamp($mesAnterior);
-		$ultimoDiaMesAnteriorFecha->modify('last day of this month');
-		$ultimoDiaMesAnteriorFecha->setTime(23, 59, 59);
+		if ($ultimaFechaCibeles[0]["fecha"] == null || $ultimaFechaCibeles[0]["fecha"] == "null" )
+		{
+			$anioNuevo = true;
+		}
 
-		if ($ultimoDiaMesAnteriorFecha >= $ultimaFechaCibeles[0]["fecha"] && $numero1>=$numero2 ) //no existe ninguna factura de este mes
+		$mesAnterior = strtotime ( '-1 month' , strtotime ($fechaActual));
+		$ultimoDia_MesAnterior= date("t/m/Y",$mesAnterior);
+
+		if ($estado==="0" && $anioNuevo==false)
+		{
+			$numero1 = intval(date("Y",$mesAnterior));
+			$numero2 = intval($ultimaFechaCibeles[0]["fecha"]->format("Y"));
+
+			$ultimoDiaMesAnteriorFecha = new DateTime();
+			$ultimoDiaMesAnteriorFecha->setTimestamp($mesAnterior);
+			$ultimoDiaMesAnteriorFecha->modify('last day of this month');
+			$ultimoDiaMesAnteriorFecha->setTime(23, 59, 59);
+
+			if ($ultimoDiaMesAnteriorFecha >= $ultimaFechaCibeles[0]["fecha"] && $numero1>=$numero2 ) //no existe ninguna factura de este mes
+			{
+				$res = modificarFacturarFechaActual($conn, $bbddSql, ['activado' => 0, 'fechaImprimir' => $ultimoDia_MesAnterior]);
+				sqlsrv_close($conn);
+				echo json_encode(array('error' => $res['error'], 'activado' => 0));
+			}
+			else
+			{
+				sqlsrv_close($conn);
+				echo json_encode(array('error' => 'Existe facturas con fecha del mes actual'));
+			}
+		}
+		else if ($estado==="0")
 		{
 			$res = modificarFacturarFechaActual($conn, $bbddSql, ['activado' => 0, 'fechaImprimir' => $ultimoDia_MesAnterior]);
 			sqlsrv_close($conn);
 			echo json_encode(array('error' => $res['error'], 'activado' => 0));
 		}
+		else if ($estado==="1")
+		{
+			$res = modificarFacturarFechaActual($conn, $bbddSql, ['activado' => 1, 'fechaImprimir' => $fechaActual]);
+			sqlsrv_close($conn);
+			echo json_encode(array('error' => $res['error'], 'activado' => 1));
+		}
 		else
 		{
+			$resEstado = mostrarFacturarFechaActual($conn, $bbddSql, ['activado']);
 			sqlsrv_close($conn);
-			echo json_encode(array('error' => 'Existe facturas con fecha del mes actual'));
+			echo json_encode(array('error' => $resEstado['error'], 'activado' => $resEstado['datos'][0]['activado']));
 		}
-	}
-	else if ($estado==="0")
-	{
-		$res = modificarFacturarFechaActual($conn, $bbddSql, ['activado' => 0, 'fechaImprimir' => $ultimoDia_MesAnterior]);
-		sqlsrv_close($conn);
-		echo json_encode(array('error' => $res['error'], 'activado' => 0));
-	}
-	else if ($estado==="1")
-	{
-		$res = modificarFacturarFechaActual($conn, $bbddSql, ['activado' => 1, 'fechaImprimir' => $fechaActual]);
-		sqlsrv_close($conn);
-		echo json_encode(array('error' => $res['error'], 'activado' => 1));
 	}
 	else
 	{
-		$resEstado = mostrarFacturarFechaActual($conn, $bbddSql, ['activado']);
 		sqlsrv_close($conn);
-		echo json_encode(array('error' => $resEstado['error'], 'activado' => $resEstado['datos'][0]['activado']));
+		echo json_encode(array('error' => 'No se puede cambiar en este momento'));
 	}
 }
 

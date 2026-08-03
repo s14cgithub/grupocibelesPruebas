@@ -48,6 +48,96 @@ function reemplazarSimbolos($texto)
 	return $resultado;
 }
 
+function diaDeLaSemanaActual() 
+{
+	$diaTexto="";
+	if (date("N")=="1")
+	{
+		$diaTexto = "Lunes";
+	}
+	else if (date("N")=="2")
+	{
+		$diaTexto = "Martes";
+	}
+	else if (date("N")=="3")
+	{
+		$diaTexto = "Miercoles";
+	}
+	else if (date("N")=="4")
+	{
+		$diaTexto = "Jueves";
+	}
+	else if (date("N")=="5")
+	{
+		$diaTexto = "Viernes";
+	}
+	else if (date("N")=="6")
+	{
+		$diaTexto = "Sabado";
+	}
+	
+	else if (date("N")=="7")
+	{
+		$diaTexto = "Domingo";
+	}
+	return $diaTexto;
+}
+
+function mesActual()
+{
+	$mesTexto="";
+	if (date("n")=="1")
+	{		
+		$mesTexto = "Enero";
+	}
+	else if (date("n")=="2")
+	{		
+		$mesTexto = "Febrero";
+	}
+	else if (date("n")=="3")
+	{		
+		$mesTexto = "Marzo";
+	}
+	else if (date("n")=="4")
+	{		
+		$mesTexto = "Abril";
+	}
+	else if (date("n")=="5")
+	{		
+		$mesTexto = "Mayo";
+	}
+	else if (date("n")=="6")
+	{		
+		$mesTexto = "Junio";
+	}
+	else if (date("n")=="7")
+	{		
+		$mesTexto = "Julio";
+	}
+	else if (date("n")=="8")
+	{		
+		$mesTexto = "Agosto";
+	}
+	else if (date("n")=="9")
+	{		
+		$mesTexto = "Septiembre";
+	}
+	else if (date("n")=="10")
+	{		
+		$mesTexto = "Octubre";
+	}
+	else if (date("n")=="11")
+	{		
+		$mesTexto = "Noviembre";
+	}
+	else if (date("n")=="12")
+	{		
+		$mesTexto = "Diciembre";
+	}
+	
+	return $mesTexto;
+}
+
 function cargarLogin($conn_sis, $bbddSql, $campos, $filtros, $filtrosOperadores, $order)
 {
 
@@ -5960,6 +6050,7 @@ function mostrarFacturacion($conn_sis, $bbddSql, $campos, $joins, $filtros, $fil
     $camposPermitidos = array(
         'numeroFacturaCompleto' => 't1.numeroFacturaCompleto',
         'idCodigoCliente' => 't1.idCodigoCliente',
+        'codigo_saldo' => 't2.codigo_saldo',
         'cliente' => 't1.cliente',
         'fecha' => 't1.fecha',
         'aPagar' => 't1.aPagar',
@@ -6025,6 +6116,8 @@ function mostrarFacturacion($conn_sis, $bbddSql, $campos, $joins, $filtros, $fil
         'numFacRec' => "(SELECT TOP 1 fr.numeroFacturaCompleto FROM [".$bbddSql."].[dbo].[facturacion] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura IN ('RECT','SUST')) as numFacRec",
         'facNeg' => "(CASE WHEN EXISTS (SELECT 1 FROM [".$bbddSql."].[dbo].[facturacion] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura = 'NEG') THEN 1 ELSE 0 END) as facNeg",
         'numFacNeg' => "(SELECT TOP 1 fr.numeroFacturaCompleto FROM [".$bbddSql."].[dbo].[facturacion] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura = 'NEG') as numFacNeg",
+        'facAbono' => "(CASE WHEN EXISTS (SELECT 1 FROM [".$bbddSql."].[dbo].[facturacion] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura = 'AB') THEN 1 ELSE 0 END) as facAbono",
+        'numFacAbono' => "(SELECT TOP 1 fr.numeroFacturaCompleto FROM [".$bbddSql."].[dbo].[facturacion] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura = 'AB') as numFacAbono",
         'aPagarSumatorio' => 'SUM(t1.aPagar) as aPagarSumatorio',
         'precioNetoSumatorio' => 'SUM(t1.precioNeto) as precioNetoSumatorio',
         'fechaMax' => 'MAX(t1.fecha) as fechaMax'
@@ -6097,6 +6190,10 @@ function mostrarFacturacion($conn_sis, $bbddSql, $campos, $joins, $filtros, $fil
     }
     if (isset($filtros['soloPagadas']) && $filtros['soloPagadas'] == 1) {
         $condicion[] = 't1.fechaPago IS NOT NULL';
+    }
+    if (isset($filtros['codigo_saldo'])) {
+        $condicion[] = 't2.codigo_saldo = ?';
+        $params[] = $filtros['codigo_saldo'];
     }
     
 
@@ -6228,6 +6325,7 @@ function mostrarFacturacionClayma($conn_sis, $bbddSql, $campos, $joins, $filtros
     $camposPermitidos = array(
         'numeroFacturaCompleto' => 't1.numeroFacturaCompleto',
         'idCodigoCliente' => 't1.idCodigoCliente',
+        'codigo_saldo' => 't2.codigo_saldo',
         'cliente' => 't1.cliente',
         'fecha' => 't1.fecha',
         'aPagar' => 't1.aPagar',
@@ -6292,6 +6390,8 @@ function mostrarFacturacionClayma($conn_sis, $bbddSql, $campos, $joins, $filtros
         'numFacRec' => "(SELECT TOP 1 fr.numeroFacturaCompleto FROM [".$bbddSql."].[dbo].[facturacionClayma] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura IN ('RECT','SUST')) as numFacRec",
         'facNeg' => "(CASE WHEN EXISTS (SELECT 1 FROM [".$bbddSql."].[dbo].[facturacionClayma] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura = 'NEG') THEN 1 ELSE 0 END) as facNeg",
         'numFacNeg' => "(SELECT TOP 1 fr.numeroFacturaCompleto FROM [".$bbddSql."].[dbo].[facturacionClayma] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura = 'NEG') as numFacNeg",
+        'facAbono' => "(CASE WHEN EXISTS (SELECT 1 FROM [".$bbddSql."].[dbo].[facturacionClayma] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura = 'AB') THEN 1 ELSE 0 END) as facAbono",
+        'numFacAbono' => "(SELECT TOP 1 fr.numeroFacturaCompleto FROM [".$bbddSql."].[dbo].[facturacionClayma] fr WHERE fr.origenFactura = t1.numeroFacturaCompleto AND fr.serieFactura = 'AB') as numFacAbono",
         'aPagarSumatorio' => 'SUM(t1.aPagar) as aPagarSumatorio',
         'precioNetoSumatorio' => 'SUM(t1.precioNeto) as precioNetoSumatorio',
         'fechaMax' => 'MAX(t1.fecha) as fechaMax'
@@ -6357,6 +6457,10 @@ function mostrarFacturacionClayma($conn_sis, $bbddSql, $campos, $joins, $filtros
     }
     if (isset($filtros['soloPagadas']) && $filtros['soloPagadas'] == 1) {
         $condicion[] = 't1.fechaPago IS NOT NULL';
+    }
+    if (isset($filtros['codigo_saldo'])) {
+        $condicion[] = 't2.codigo_saldo = ?';
+        $params[] = $filtros['codigo_saldo'];
     }
 
     /*
@@ -6722,6 +6826,276 @@ function mostrarFacturacionCibelesYCorreos($conn_sis, $bbddSql, $campos, $joins,
     'datos' => $result,
     'sql' => $consulta,
      'params' => $params
+    );
+}
+
+function mostrarFacturasCibelesClaymaCorreos($conn_sis, $bbddSql, $campos, $filtros, $filtrosOperadores, $filtrosLike, $order)
+{
+    $camposPermitidos = array(
+        'origen' => 'tabla.origen',
+        'origen2' => 'tabla.origen2',
+        'numeroFacturaCompleto' => 'tabla.numeroFacturaCompleto',
+        'idCliente' => 'tabla.idCliente',
+        'codigo_saldo' => 'tabla.codigo_saldo',
+        'cliente' => 'tabla.cliente',
+        'importe' => 'tabla.importe',
+        'aPagar' => 'tabla.aPagar',
+        'fecha' => 'tabla.fecha',
+        'domiciliada' => 'tabla.domiciliada',
+        'formaPago' => 'tabla.formaPago',
+        'descripcion' => 'tabla.descripcion',
+        'saldo' => 'tabla.saldo',
+        'precioNeto' => 'tabla.precioNeto',
+        'formaPagoReal' => 'tabla.formaPagoReal',
+        'fechaPago' => 'tabla.fechaPago',
+        'aPagarSumatorio' => 'SUM(tabla.aPagar) as aPagarSumatorio',
+        'precioNetoSumatorio' => 'SUM(tabla.precioNeto) as precioNetoSumatorio'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['domiciliada'])) {
+        $condicion[] = 'tabla.domiciliada = ?';
+        $params[] = $filtros['domiciliada'];
+    }
+    if (isset($filtros['origen2']) && $filtros['origen2'] != '') {
+        $condicion[] = 'tabla.origen2 = ?';
+        $params[] = $filtros['origen2'];
+    }
+    if (isset($filtros['codigo_saldo'])) {
+        $condicion[] = 'tabla.codigo_saldo = ?';
+        $params[] = $filtros['codigo_saldo'];
+    }
+    if (isset($filtros['sinFormaPago']) && $filtros['sinFormaPago'] == 1) {
+        $condicion[] = "(tabla.formaPagoReal IS NULL OR tabla.formaPagoReal = '') AND (tabla.fechaPago IS NULL OR tabla.fechaPago ='') ";
+    }
+
+    $origenesIncluidos = array();
+    if (isset($filtros['incluirCibeles']) && $filtros['incluirCibeles'] == 1) {
+        $origenesIncluidos[] = 'CIBELES';
+    }
+    if (isset($filtros['incluirClayma']) && $filtros['incluirClayma'] == 1) {
+        $origenesIncluidos[] = 'CLAYMA';
+    }
+    if (isset($filtros['incluirCorreos']) && $filtros['incluirCorreos'] == 1) {
+        $origenesIncluidos[] = 'CORREOS';
+    }
+    if (!empty($origenesIncluidos)) {
+        $placeholders = implode(',', array_fill(0, count($origenesIncluidos), '?'));
+        $condicion[] = "tabla.origen2 IN ($placeholders)";
+        foreach ($origenesIncluidos as $o) {
+            $params[] = $o;
+        }
+    }
+
+    // ---------- FILTROS OPERADORES ----------
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=');
+
+    $camposComparablesPermitidos = array(
+        'fecha' => 'tabla.fecha'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    // ---------- FILTROS LIKE ----------
+    $camposLikePermitidos = array(
+        'cliente' => 'tabla.cliente',
+        'numeroFacturaCompleto' => 'tabla.numeroFacturaCompleto',
+        'importe' => 'tabla.importe',
+        'aPagar' => 'tabla.aPagar',
+        'precioNeto' => 'tabla.precioNeto',
+        'origen' => 'tabla.origen'
+    );
+
+    if (is_array($filtrosLike) && !empty($filtrosLike)) {
+        foreach ($filtrosLike as $f) {
+            if (
+                isset($f['campo'], $f['valor']) &&
+                isset($camposLikePermitidos[$f['campo']]) &&
+                trim($f['valor']) !== ''
+            ) {
+                $condicion[] = $camposLikePermitidos[$f['campo']] . ' LIKE ?';
+                $params[] = '%' . $f['valor'] . '%';
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'cliente' => 'tabla.cliente',
+        'clienteIdCliente' => 'tabla.cliente, tabla.idCliente',
+        'codigo_saldo' => 'tabla.codigo_saldo',
+        'numeroFacturaCompleto' => 'tabla.numeroFacturaCompleto',
+        'fecha' => 'tabla.fecha',
+        'importe' => 'tabla.importe',
+        'aPagar' => 'tabla.aPagar',
+        'precioNeto' => 'tabla.precioNeto',
+        'origen2' => 'tabla.origen2',
+        'totalCliente' => 'SUM(tabla.aPagar) OVER (PARTITION BY tabla.codigo_saldo)'
+    );
+
+    $sqlOrder = '';
+
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM (
+
+        SELECT
+            CASE t1.serieFactura
+                WHEN 'RECT' THEN 'REC DIFERENCIAS'
+                WHEN 'SUST' THEN 'REC SUSTITUCION'
+                WHEN 'AB' THEN 'ABONO'
+                ELSE 'MANIPULADOS'
+            END as origen,
+            t1.numeroFacturaCompleto as numeroFacturaCompleto,
+            t1.cliente as cliente,
+            t1.idCodigoCliente as idCliente,
+            t1.idCodigoCliente as codigo_saldo,
+            t1.fecha,
+            t1.precioTotal as importe,
+            t1.aPagar,
+            t2.domiciliada,
+            t3.concepto as formaPago,
+            t1.descripcion as descripcion,
+            t2.importePF as saldo,
+            t1.precioNeto,
+            t1.formaPagoReal,
+            t1.fechaPago,
+            'CIBELES' as origen2
+        FROM [".$bbddSql."].[dbo].[facturacion] as t1
+        inner join [".$bbddSql."].[dbo].[clientes] as t2 on t1.idCodigoCliente = t2.codigo AND t2.codigo = t2.codigo_saldo
+        inner join [".$bbddSql."].[dbo].[formaDePago] as t3 on t3.id = t2.idFormaPago
+
+        UNION
+
+        SELECT
+            CASE t1.serieFactura
+                WHEN 'RECT' THEN 'REC DIFERENCIAS'
+                WHEN 'SUST' THEN 'REC SUSTITUCION'
+                WHEN 'AB' THEN 'ABONO'
+                ELSE 'MANIPULADOS'
+            END as origen,
+            t1.numeroFacturaCompleto as numeroFacturaCompleto,
+            t1.cliente as cliente,
+            t1.idCodigoCliente as idCliente,
+            t1.idCodigoCliente as codigo_saldo,
+            t1.fecha,
+            t1.precioTotal as importe,
+            t1.aPagar,
+            t2.domiciliada,
+            t3.concepto as formaPago,
+            t1.descripcion as descripcion,
+            t2.importePF as saldo,
+            t1.precioNeto,
+            t1.formaPagoReal,
+            t1.fechaPago,
+            'CLAYMA' as origen2
+        FROM [".$bbddSql."].[dbo].[facturacionClayma] as t1
+        inner join [".$bbddSql."].[dbo].[clientesClayma] as t2 on t1.idCodigoCliente = t2.codigo AND t2.codigo = t2.codigo_saldo
+        inner join [".$bbddSql."].[dbo].[formaDePago] as t3 on t3.id = t2.idFormaPago
+
+        UNION
+
+        SELECT
+            'CORREOS' as origen,
+            t1.numeroOficial as numeroFacturaCompleto,
+            t2.subcliente as cliente,
+            t2.codigo as idCliente,
+            t2.codigo_saldo,
+            t1.fecha,
+            t1.importe,
+            t1.aPagar,
+            t2.domiciliada,
+            t3.concepto as formaPago,
+            t1.campana as descripcion,
+            t2.importePF as saldo,
+            t1.neto as precioNeto,
+            t1.formaPago as formaPagoReal,
+            t1.fechaPago,
+            'CORREOS' as origen2
+        FROM [".$bbddSql."].[dbo].[facturasCorreos] as t1
+        inner join [".$bbddSql."].[dbo].[clientes] as t2 on t1.codigoCliente = t2.codigo
+        inner join [".$bbddSql."].[dbo].[formaDePago] as t3 on t3.id = t2.idFormaPago
+
+        ) AS tabla
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'datos' => $result,
+        'sql' => $consulta,
+        'params' => $params
     );
 }
 

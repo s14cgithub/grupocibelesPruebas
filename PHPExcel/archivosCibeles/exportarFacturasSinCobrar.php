@@ -1,5 +1,7 @@
 <?php
 
+ob_start();
+
 //require("../../../../comprobarSesion.php");
 
 if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
@@ -8,17 +10,19 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-	
-	$condicion = $_POST["exportarExcel_Condicion"];	
-	
-	$domiciliada =  $_POST["exportarExcel_Domiciliado"];	
-	
-	$fechaInicio =  $_POST["exportarExcel_FechaInicio"];	
-	$fechaFin =  $_POST["exportarExcel_FechaFin"];	
-		
-	
-	
-	$resultado = mostrarListadoFacturasPendientesTotal($conexion, $condicion);	
+
+	$filtros = isset($_POST["exportarExcel_Filtros"]) ? json_decode($_POST["exportarExcel_Filtros"], true) : array();
+	$filtrosLike = isset($_POST["exportarExcel_FiltrosLike"]) ? json_decode($_POST["exportarExcel_FiltrosLike"], true) : array();
+	$filtrosOperadores = isset($_POST["exportarExcel_FiltrosOperadores"]) ? json_decode($_POST["exportarExcel_FiltrosOperadores"], true) : array();
+	$order = isset($_POST["exportarExcel_Order"]) ? json_decode($_POST["exportarExcel_Order"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resultadoConsulta = mostrarFacturasCibelesClaymaCorreos($conn, $bbddSql, ['origen','numeroFacturaCompleto','codigo_saldo','cliente','importe','aPagar','fecha'], $filtros, $filtrosOperadores, $filtrosLike, $order);
+
+	$resultado = $resultadoConsulta['datos'];
 	
 	
 /**
@@ -49,8 +53,8 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 
 /** Error reporting */
 error_reporting(E_ALL);
-ini_set('display_errors', TRUE);
-ini_set('display_startup_errors', TRUE);
+ini_set('display_errors', FALSE);
+ini_set('display_startup_errors', FALSE);
 date_default_timezone_set('Europe/London');
 
 if (PHP_SAPI == 'cli')
@@ -90,7 +94,7 @@ while($contador-2 < count($resultado))
 {
 	$objPHPExcel->setActiveSheetIndex(0)
             ->setCellValue('A'.$contador, $resultado[$contador-2]["origen"])
-			->setCellValue('B'.$contador, $resultado[$contador-2]["factura"])
+			->setCellValue('B'.$contador, $resultado[$contador-2]["numeroFacturaCompleto"])
             ->setCellValue('C'.$contador, $resultado[$contador-2]["codigo_saldo"])
 			->setCellValue('D'.$contador, $resultado[$contador-2]["cliente"])
 			->setCellValue('E'.$contador, $resultado[$contador-2]["importe"])
@@ -115,7 +119,9 @@ $objPHPExcel->getActiveSheet()->setTitle('Simple');
 $objPHPExcel->setActiveSheetIndex(0);
 
 $nombreArchivo = 'Facturas Sin Cobrar'.date('d/m/Y').'.xls';
-	
+
+ob_end_clean();
+
 // Redirect output to a client’s web browser (Excel2007)
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');

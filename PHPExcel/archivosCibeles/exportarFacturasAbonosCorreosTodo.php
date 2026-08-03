@@ -1,38 +1,48 @@
 <?php
 
+ob_start();
+
 //require("../../../../comprobarSesion.php");
 
-if(isset($_POST["exportarACAccion"]) && $_POST["exportarACAccion"]=="exportarExcel")
+if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 {
 	
 	$ruta = '../../';
 	
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-	
-	/*$nombreCliente = $_POST["exportarCliente"];	
-	$fechaInicio = $_POST["exportarFechaInicio"];	
-	$fechaFin = $_POST["exportarFechaFin"];	
-	$orden = $_POST["exportarOrdenarPor"];	
-	$desc = $_POST["exportarDesc"];*/
 
-	$condicion = $_POST["exportarACCondiciones"];
-	$anioSeleccionado = $_POST["exportarACAnioSeleccionado"];
+	$filtros = isset($_POST["exportarExcel_Filtros"]) ? json_decode($_POST["exportarExcel_Filtros"], true) : array();
+	$filtrosLike = isset($_POST["exportarExcel_FiltrosLike"]) ? json_decode($_POST["exportarExcel_FiltrosLike"], true) : array();
+	$filtrosOperadores = isset($_POST["exportarExcel_FiltrosOperadores"]) ? json_decode($_POST["exportarExcel_FiltrosOperadores"], true) : array();
+	$order = isset($_POST["exportarExcel_Order"]) ? json_decode($_POST["exportarExcel_Order"], true) : array();
 
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 
-	
-	
-	
-	$resultado = mostrarFacturasAbonosCorreosClayma($conexion,$condicion,$anioSeleccionado);
+	$resultadoConsulta = mostrarFacturasCibelesClaymaCorreos($conn, $bbddSql, ['origen','origen2','numeroFacturaCompleto','cliente','fecha','fechaPago','formaPagoReal','precioNeto'], $filtros, $filtrosOperadores, $filtrosLike, $order);
+
+	$resultado = $resultadoConsulta['datos'];
+
+	foreach ($resultado as &$fila)
+	{
+		if ($fila['origen2']=='CORREOS')
+		{
+			$fila['tipo'] = 'facturaCorreos';
+		}
+		else if ($fila['origen2']=='CLAYMA')
+		{
+			$fila['tipo'] = ($fila['origen']=='ABONO') ? 'abonoClayma' : 'facturaClayma';
+		}
+		else
+		{
+			$fila['tipo'] = ($fila['origen']=='ABONO') ? 'abono' : 'factura';
+		}
+	}
+	unset($fila);
+
 	$nombreArchivo = 'facturasAbonosCorreos_'.date('d-m-Y').'.xlsx';
-	
-
-	
-	//echo count($resultado);
-	
-	
-	
-	
 	
 	
 /**
@@ -63,8 +73,8 @@ if(isset($_POST["exportarACAccion"]) && $_POST["exportarACAccion"]=="exportarExc
 
 /** Error reporting */
 error_reporting(E_ALL);
-ini_set('display_errors', TRUE);
-ini_set('display_startup_errors', TRUE);
+ini_set('display_errors', FALSE);
+ini_set('display_startup_errors', FALSE);
 date_default_timezone_set('Europe/London');
 
 if (PHP_SAPI == 'cli')
@@ -125,7 +135,7 @@ while($contadorRegistro < count($resultado))
 {
 	$objPHPExcel->setActiveSheetIndex(0)
             ->setCellValue('A'.$contadorCeldas, $resultado[$contadorRegistro]["cliente"])
-			->setCellValue('B'.$contadorCeldas, $resultado[$contadorRegistro]["numero"])
+			->setCellValue('B'.$contadorCeldas, $resultado[$contadorRegistro]["numeroFacturaCompleto"])
             ->setCellValue('C'.$contadorCeldas, $resultado[$contadorRegistro]["tipo"])			
 			->setCellValue('D'.$contadorCeldas, $resultado[$contadorRegistro]["fecha"])		
 			->setCellValue('E'.$contadorCeldas, $resultado[$contadorRegistro]["fechaPago"])
@@ -188,8 +198,8 @@ $objPHPExcel->getActiveSheet()->setTitle('Simple');
 $objPHPExcel->setActiveSheetIndex(0);
 
 
-	
-	
+ob_end_clean();
+
 // Redirect output to a client’s web browser (Excel2007)
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');

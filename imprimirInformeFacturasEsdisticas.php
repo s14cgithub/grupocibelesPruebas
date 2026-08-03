@@ -1,4 +1,4 @@
-<?php 
+﻿<?php 
 session_start(); 
 require("comprobarSesion.php");
 
@@ -22,7 +22,91 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirFacEstadis
 	$anio = $_POST["anioFacturaEstd"];	
 	$orden = $_POST["ordenFacturaEstd"];
 	$origen = $_POST["origenFacturaEstd"];
-	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$camposOrdenPermitidos = array('nombre_empresa', 'codigo_saldo', 'franqueo', 'manipulado', 'mediaFranqueo', 'mediaManipulado', 'numFacturasCorreos', 'numFacManipulado');
+	$ordenPartes = explode(' ', trim($orden));
+	$campoOrden = in_array($ordenPartes[0], $camposOrdenPermitidos) ? $ordenPartes[0] : 'nombre_empresa';
+	$dirOrden = (isset($ordenPartes[1]) && strtolower($ordenPartes[1]) == 'desc') ? 'DESC' : 'ASC';
+
+	$filtrosOperadoresAnio = [
+		['campo1' => 'fecha', 'valor' => $anio.'-01-01', 'operador' => '>='],
+		['campo1' => 'fecha', 'valor' => $anio.'-12-31', 'operador' => '<=']
+	];
+
+	$stats = array();
+
+	if ($origen=="Cibeles")
+	{
+		$resClientes = cargarClientes($conn, $bbddSql, ['codigo_saldo','nombre_empresa'], [], [['campo1'=>'codigo_saldo','campo2'=>'codigo','operador'=>'=']], []);
+		$resFacturas = mostrarFacturacion($conn, $bbddSql, ['codigo_saldo','precioNeto'], ['tabla2'], [], $filtrosOperadoresAnio, []);
+		$resCorreos = mostrarFacturacionCorreos($conn, $bbddSql, ['codigo_saldo','neto'], ['tabla2'], [], $filtrosOperadoresAnio, []);
+	}
+	else
+	{
+		$resClientes = cargarClientesClayma($conn, $bbddSql, ['codigo_saldo','nombre_empresa'], [], [['campo1'=>'codigo_saldo','campo2'=>'codigo','operador'=>'=']], []);
+		$resFacturas = mostrarFacturacionClayma($conn, $bbddSql, ['codigo_saldo','precioNeto'], ['tabla2'], [], $filtrosOperadoresAnio, []);
+		$resCorreos = array('datos' => array());
+	}
+
+	$nombresPorCliente = array();
+	foreach ($resClientes['datos'] as $c)
+	{
+		$nombresPorCliente[$c['codigo_saldo']] = $c['nombre_empresa'];
+	}
+
+	foreach ($resFacturas['datos'] as $f)
+	{
+		$codigo = $f['codigo_saldo'];
+		if (!isset($stats[$codigo]))
+		{
+			$stats[$codigo] = array('manipulado'=>0,'numFacManipulado'=>0,'franqueo'=>0,'numFacturasCorreos'=>0);
+		}
+		$stats[$codigo]['manipulado'] += $f['precioNeto'];
+		$stats[$codigo]['numFacManipulado']++;
+	}
+
+	foreach ($resCorreos['datos'] as $f)
+	{
+		$codigo = $f['codigo_saldo'];
+		if (!isset($stats[$codigo]))
+		{
+			$stats[$codigo] = array('manipulado'=>0,'numFacManipulado'=>0,'franqueo'=>0,'numFacturasCorreos'=>0);
+		}
+		$stats[$codigo]['franqueo'] += $f['neto'];
+		$stats[$codigo]['numFacturasCorreos']++;
+	}
+
+	$datos = array();
+	foreach ($stats as $codigo => $s)
+	{
+		$datos[] = array(
+			'codigo_saldo' => $codigo,
+			'nombre_empresa' => isset($nombresPorCliente[$codigo]) ? $nombresPorCliente[$codigo] : '',
+			'manipulado' => $s['manipulado'],
+			'numFacManipulado' => $s['numFacManipulado'],
+			'franqueo' => $s['franqueo'],
+			'numFacturasCorreos' => $s['numFacturasCorreos'],
+			'mediaManipulado' => $s['numFacManipulado']>0 ? $s['manipulado']/$s['numFacManipulado'] : 0,
+			'mediaFranqueo' => $s['numFacturasCorreos']>0 ? $s['franqueo']/$s['numFacturasCorreos'] : 0
+		);
+	}
+
+	usort($datos, function($a,$b) use ($campoOrden,$dirOrden) {
+		if ($a[$campoOrden] == $b[$campoOrden]) return 0;
+		$resultado = ($a[$campoOrden] < $b[$campoOrden]) ? -1 : 1;
+		return ($dirOrden == 'DESC') ? -$resultado : $resultado;
+	});
+
+	if (count($datos)==0)
+	{
+		echo "No hay datos para mostrar";
+	}
+	else
+	{
 	
 	$pdf = new FPDF('P','mm','A4');
 
@@ -82,16 +166,6 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirFacEstadis
 	
 	
 		
-	
-	if ($origen=="Cibeles")
-	{
-		$datos = verEstadisticasFacturasPorAnio($conexion, $anio, $orden);
-	}
-	else
-	{
-		$datos = verEstadisticasFacturasPorAnioClayma($conexion, $anio, $orden);
-	}
-	
 	
 	$pdf->SetDrawColor(colorAzulR,colorAzulG,colorAzulB);
 	$pdf->SetLineWidth(0.2);
@@ -252,6 +326,7 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirFacEstadis
 	
 	
 	
+	}
 }
 else
 {

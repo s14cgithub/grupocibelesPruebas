@@ -269,7 +269,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="verDatosPresupuestosCombinados"
 	else
 	{
 		sqlsrv_close($conn);
-		echo json_encode(array('error' => 'No se puede imprimir en este momento', 'ok' => false));
+		echo json_encode(array('error' => 'No se puede generar la factura en este momento', 'ok' => false));
 	}
 
 }

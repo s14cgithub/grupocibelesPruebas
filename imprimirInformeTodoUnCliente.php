@@ -18,24 +18,89 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirTodoClien
 	$anio = $_POST["anio"];	
 	$clayma = $_POST["clayma"];
 	$idCliente = $_POST["idCliente"];
-	
-	//echo $clayma;
-	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$filtrosOperadores = [
+		['campo1' => 'fecha', 'valor' => $anio.'-01-01', 'operador' => '>='],
+		['campo1' => 'fecha', 'valor' => $anio.'-12-31', 'operador' => '<=']
+	];
+
+	$campos = ['numeroFacturaCompleto','cliente','fecha','precioNeto','iva','aPagar','presupuesto','codigo_saldo','serieFactura','origenFactura'];
+
+	$datosInforme = array();
+
 	if ($clayma=="true")
-	{ 
-		$datosInforme = cargarTodoUnClienteClayma($conexion,$idCliente, $anio);
-		
+	{
+		$resFacturas = mostrarFacturacionClayma($conn, $bbddSql, $campos, ['tabla2'], ['codigo_saldo' => $idCliente], $filtrosOperadores, []);
+		foreach ($resFacturas['datos'] as $fila)
+		{
+			if ($fila['serieFactura']=='AB')
+			{
+				$fila['origen'] = 'Abono';
+				$fila['presupuesto'] = '';
+			}
+			else
+			{
+				$fila['origen'] = 'Facturas';
+			}
+			$datosInforme[] = $fila;
+		}
 	}
 	else
 	{
-		$datosInforme = cargarTodoUnCliente($conexion,$idCliente, $anio);
+		$resFacturas = mostrarFacturacion($conn, $bbddSql, $campos, ['tabla2'], ['codigo_saldo' => $idCliente], $filtrosOperadores, []);
+		foreach ($resFacturas['datos'] as $fila)
+		{
+			if ($fila['serieFactura']=='AB')
+			{
+				$fila['origen'] = 'Abono';
+				$fila['presupuesto'] = '';
+			}
+			else
+			{
+				$fila['origen'] = 'Facturas';
+			}
+			$datosInforme[] = $fila;
+		}
+
+		$camposCorreos = ['numeroOficial','nombre_empresa','fecha','neto','iva','aPagar','campana','codigo_saldo'];
+		$resCorreos = mostrarFacturacionCorreos($conn, $bbddSql, $camposCorreos, ['tabla2'], ['codigo_saldo' => $idCliente], $filtrosOperadores, []);
+		foreach ($resCorreos['datos'] as $fila)
+		{
+			$datosInforme[] = array(
+				'origen' => 'Franqueo',
+				'numeroFacturaCompleto' => $fila['numeroOficial'],
+				'cliente' => $fila['nombre_empresa'],
+				'fecha' => $fila['fecha'],
+				'precioNeto' => $fila['neto'],
+				'iva' => $fila['iva'],
+				'aPagar' => $fila['aPagar'],
+				'presupuesto' => $fila['campana'],
+				'codigo_saldo' => $fila['codigo_saldo']
+			);
+		}
 	}
-	
+
+	usort($datosInforme, function($a, $b) {
+		if ($a['origen'] != $b['origen']) {
+			return strcmp($b['origen'], $a['origen']);
+		}
+		$lenA = strlen($a['numeroFacturaCompleto']);
+		$lenB = strlen($b['numeroFacturaCompleto']);
+		if ($lenA != $lenB) {
+			return $lenA - $lenB;
+		}
+		return strcmp($a['numeroFacturaCompleto'], $b['numeroFacturaCompleto']);
+	});
+
 	
 	if (count($datosInforme)>0)
 	{
 	
-		$nombreCliente = $datosInforme[0]["nombre_empresa"];
+		$nombreCliente = $datosInforme[0]["cliente"];
 
 		$pdf = new PDF_PageGroup('P','mm','A4');
 		$alturaSiguientePagina = 35;
@@ -92,7 +157,7 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirTodoClien
 			{				
 				$altura += 8;
 				$pdf->SetFont('Arial','B',10);
-				$pdf->SetXY($margen+40,$altura);
+				$pdf->SetXY($margen+45,$altura);
 				$pdf->Cell(20,0,number_format($totalPrecioTipo,2,',','.')." ".EURO,0,1,'R',false); 
 				
 				$totalPrecioTipo=0;				
@@ -116,19 +181,22 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirTodoClien
 			$altura += 5;
 			
 			$pdf->SetXY($margen,$altura);
-			$pdf->Cell(20,0,$datosInforme[$contador]["numero"],0,1,'R',false); 
+			$pdf->Cell(20,0,$datosInforme[$contador]["numeroFacturaCompleto"],0,1,'R',false); 
 			
 			
-			$margen += 40;
-			$pdf->SetXY($margen,$altura);
-			$pdf->Cell(13,0,$datosInforme[$contador]["origen"],0,1,'C',false); 
-			
-			$margen += 30;
+			$margen += 65;
 			$pdf->SetXY($margen,$altura);
 			
-			$detalle = $datosInforme[$contador]["presupuesto"];
+			if ($datosInforme[$contador]["origen"]!='Franqueo' && substr($datosInforme[$contador]["numeroFacturaCompleto"],0,3)!='FAC')
+			{
+				$detalle = $datosInforme[$contador]["origenFactura"];
+			}
+			else
+			{
+				$detalle = $datosInforme[$contador]["presupuesto"];
+			}
 			
-			$detalle = str_replace("Factura Original:", "Fac:", $detalle);
+			//$detalle = str_replace("Factura Original:", "Fac:", $detalle);
 			
 			
 			if (strlen($detalle)> 18)
@@ -138,7 +206,7 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirTodoClien
 			
 			//$detalle = $detalle ." " .$altura; 
 			
-			$pdf->Cell(10,0,$detalle,0,1,'L',false); 
+			$pdf->Cell(10,0,$detalle,0,1,'R',false); 
 			
 							
 			$margen += 40;
@@ -159,7 +227,7 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirTodoClien
 		$pdf->SetFont('Arial','B',10);
 		$altura += 8;
 			
-		$pdf->SetXY($margen+40,$altura);
+		$pdf->SetXY($margen+45,$altura);
 		$pdf->Cell(20,0,number_format($totalPrecioTipo,2,',','.')." ".EURO,0,1,'R',false); 
 		
 		
@@ -174,7 +242,7 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirTodoClien
 		
 		$pdf->SetFont('Arial','B',12);
 		$altura += 8;
-		$pdf->SetXY($margen+40,$altura);
+		$pdf->SetXY($margen+45,$altura);
 		$pdf->Cell(20,0,"Total: ".number_format($totalPrecio,2,',','.')." ".EURO,0,1,'R',false); 
 
 		
@@ -213,7 +281,7 @@ function titulos(&$pdf,&$altura,$margenInicial,$margen,$anio,$codigoCliente,$nom
 		$pdf->SetXY($margen,$altura);
 
 
-		$pdf->Cell(0,0,"INFORME DE FACTURAS - ABONOS - FRANQUEO",0,1,'C',false);
+		$pdf->Cell(0,0,"INFORME DE FACTURAS",0,1,'C',false);
 
 
 		$altura += 15;
@@ -229,20 +297,16 @@ function titulos(&$pdf,&$altura,$margenInicial,$margen,$anio,$codigoCliente,$nom
 	$pdf->SetFont('Arial','BI',12);
 	$pdf->SetXY($margen,$altura);
 	
-	
+	$margen += 2;
 	$altura += 15;
 	$pdf->SetXY($margen,$altura);
-	$pdf->Cell(0,0,"Numero"); 
+	$pdf->Cell(0,0,"Factura"); 
 
-	$margen += 40;
+	$margen += 58;
 	$pdf->SetXY($margen,$altura);
-	$pdf->Cell(0,0,"Tipo"); 
+	$pdf->Cell(0,0,"Origen"); 
 
-	$margen += 30;
-	$pdf->SetXY($margen,$altura);
-	$pdf->Cell(0,0,"Prespuesto"); 
-
-	$margen += 40;
+	$margen += 48;
 	$pdf->SetXY($margen,$altura);
 	$pdf->Cell(0,0,"Fecha"); 
 

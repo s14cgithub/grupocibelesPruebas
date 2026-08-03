@@ -120,7 +120,7 @@ if ($_SESSION["facturas"]==1 || $_SESSION["facturas"]==2)
 	echo '<br><br>
 <h3>FACTURAS</h3>
 <button type="button" class="btn btn-info" onClick="location.href = \'admFacturasSinCobrarTotal.php\'">FAC. TOTAL SIN COBRAR</button>
-<button type="button" class="btn btn-info" onClick="location.href = \'admFacturasSinCobrarAnteriores.php\'">SIN COBRAR AÑOS ANTERIORES</button>
+<!--<button type="button" class="btn btn-info" onClick="location.href = \'admFacturasSinCobrarAnteriores.php\'">SIN COBRAR AÑOS ANTERIORES</button>-->
 <button type="button" class="btn btn-info" onClick="cargarListadoClientesExcelFacturaTotal()">EXCEL</button>
 <button type="button" class="btn btn-info" onClick="verTodoUnCliente()">VER UN CLIENTE</button>
 ';
@@ -689,7 +689,7 @@ if ($_SESSION["admInformes"]==1 || $_SESSION["admInformes"]==2)
         		<form>
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Clayma: </label>
-						<input type="checkbox" class="" id="claymaVerTodoModal" onChange="verTodoUnClienteClayma()"></input>
+						<input type="checkbox" class="" id="claymaVerTodoModal" onChange="cargarClientesVerTodo()"></input>
           			</div>						
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Cliente:</label>
@@ -698,7 +698,7 @@ if ($_SESSION["admInformes"]==1 || $_SESSION["admInformes"]==2)
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Año</label>
 													
-						<select id="anioVerTodoModal" class="form-control"><option value="2026">2026</option><option value="2025" selected>2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option></select>
+						<select id="anioVerTodoModal" class="form-control"><option value="2026" selected>2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option></select>
           			</div>							
         		</form>
       		</div>
@@ -726,14 +726,14 @@ if ($_SESSION["admInformes"]==1 || $_SESSION["admInformes"]==2)
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Ordenar Por:</label>
 						<select id="facturaEstadistica_orden" class="form-control">
-							<option value="t9.nombre_empresa">Cliente</option>
-							<option value="t9.codigo_saldo">Codigo Saldo</option>
-							<option value="isnull(franqueo,0)">Franqueo</option>
-							<option value="isnull(t9.factura,0) + isnull(t9.abono,0)">Manipulado</option>							
-							<option value="isnull(isnull(t9.franqueo,0)/nullif(isnull(numFacturasCorreos,0),0),0) ">Media Franqueo</option>
-							<option value="isnull((isnull(t9.factura,0) + isnull(t9.abono,0))/nullif(isnull(numFactura,0),0),0)">Media Manipulado</option>
-							<option value="isnull(franqueo,0) as franqueo, isnull(numFacturasCorreos,0)">Nº de Facturas Franqueo</option>
-							<option value="isnull(numFactura,0) + isnull(numAbono,0)">Nº de Facturas Manipulado</option>
+							<option value="nombre_empresa">Cliente</option>
+							<option value="codigo_saldo">Codigo Saldo</option>
+							<option value="franqueo">Franqueo</option>
+							<option value="manipulado">Manipulado</option>							
+							<option value="mediaFranqueo">Media Franqueo</option>
+							<option value="mediaManipulado">Media Manipulado</option>
+							<option value="numFacturasCorreos">Nº de Facturas Franqueo</option>
+							<option value="numFacManipulado">Nº de Facturas Manipulado</option>
 						</select>
           			</div>
 					<div class="form-group">

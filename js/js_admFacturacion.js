@@ -629,10 +629,73 @@ function informeFranqueoExtensiones()
 
 function cargarListadoClientesExcelFacturaTotal()
 {
-	booleano=true;
-	cargarClientes('A','clienteExcelFacturasTotalModal');	
+	cargarClientesExcelFacturasTotal();
 	
 	$("#excelFacturasTotal").modal('show');
+}
+
+function cargarClientesExcelFacturasTotal() //cargarClientes de js_global.js esta comentada; version local
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		peticionUnica1.onreadystatechange = mostrarCargarClientesExcelFacturasTotal;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarClientesExcelFacturasTotal();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarClientesExcelFacturasTotal()
+{	
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo_saldo','nombre_empresa'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { activo: 1 };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var filtrosOperadores = [{ campo1: 'codigo_saldo', campo2: 'codigo', operador: '=' }];
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var order = [{ campo: 'nombre_empresa', dir: 'ASC' }];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;	
+}
+
+function mostrarCargarClientesExcelFacturasTotal()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				var contenido = '<option value="todos">todos</option>';
+				var contador = 0;
+
+				while (contador<datos.length)
+				{
+					contenido += '<option value="'+datos[contador]["codigo_saldo"]+'">'+datos[contador]["nombre_empresa"]+' - '+datos[contador]["codigo_saldo"]+'</option>';
+					contador++;
+				}
+
+				document.getElementById("clienteExcelFacturasTotalModal").innerHTML = contenido;
+			}
+			peticionUnica1=null;
+		}
+	}						
 }
 
 function informeExcelFacturasTotal() 
@@ -664,21 +727,71 @@ function informeExcelFacturasTotal()
 
 function verTodoUnCliente()
 {
-	booleano=false;
-	cargarClientes('B','clienteVerTodoModal');
+	cargarClientesVerTodo();
 	$("#verTodoDelClienteModal").modal('show');
 }
 
-function verTodoUnClienteClayma()
+function cargarClientesVerTodo() //cargarClientes/cargarClientesClayma de js_global.js estan comentadas; version local
 {
-	if (document.getElementById("claymaVerTodoModal").checked==true)
-	{
-		cargarClientesClayma('A','clienteVerTodoModal');
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{							
+		var clayma = document.getElementById("claymaVerTodoModal").checked;
+
+		peticionUnica1.onreadystatechange = mostrarCargarClientesVerTodo;
+		peticionUnica1.open("POST", clayma ? "ajax/cargarClientesClayma.php" : "ajax/cargarClientes.php", false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
+		var query_string = consultaCargarClientesVerTodo();
+		peticionUnica1.send(query_string);
 	}
-	else
+}
+
+function consultaCargarClientesVerTodo()
+{	
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo_saldo','nombre_empresa'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtrosOperadores = [{ campo1: 'codigo_saldo', campo2: 'codigo', operador: '=' }];
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var order = [{ campo: 'nombre_empresa', dir: 'ASC' }];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;	
+}
+
+function mostrarCargarClientesVerTodo()
+{
+	if (peticionUnica1.readyState == 4)
 	{
-		cargarClientes('A','clienteVerTodoModal');
-	}
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				var contenido = "";
+				var contador = 0;
+
+				while (contador<datos.length)
+				{
+					contenido += '<option value="'+datos[contador]["codigo_saldo"]+'">'+datos[contador]["nombre_empresa"]+' - '+datos[contador]["codigo_saldo"]+'</option>';
+					contador++;
+				}
+
+				document.getElementById("clienteVerTodoModal").innerHTML = contenido;
+			}
+			peticionUnica1=null;
+		}
+	}						
 }
 
 function verTodoUnCliente2()

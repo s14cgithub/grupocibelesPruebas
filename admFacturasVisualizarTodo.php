@@ -3,7 +3,7 @@
 <?php 
 
 session_start(); 
-$_SESSION['titulo']="FACTURAS - ABONO - CORREOS";
+$_SESSION['titulo']="TODAS LAS FACTURAS";
 $ruta="/";
 
 require($ruta."comprobarSesion.php");
@@ -16,7 +16,7 @@ if ($_SESSION["usuario"]<>"")
 	<table border ="0" align="center">		
 		<tr>
 			<td align="right">Año:</td>
-			<td align="left"><select class=""  id="anio" name="anio" onChange="buscarFactura()"></select></td>
+			<td align="left"><select class=""  id="anio" name="anio" onChange="buscarFactura()"><option value="2026" selected>2026</option><option value="2025">2025</option><option value="2024">2024</option><option value="2023">2023</option><option value="2022">2022</option></select></td>
 			<td align="right" colspan="6" style="text-align:right;">
 			
 			
@@ -34,9 +34,9 @@ if ($_SESSION["usuario"]<>"")
 		<td align="left">
 			<select class=""  id="buscarCampo" name="buscarCampo">
 				<option value="cliente">Cliente</option>	
-				<option value="numero">Numero</option>	
-				<option value="precioNeto">Importe</option>
-				<option value="tipo">Tipo</option>
+				<option value="numeroFacturaCompleto">Factura</option>	
+				<option value="precioNeto">Precio Neto</option>
+				<option value="origen">Origen</option>
 						
 			</select>
 		</td>
@@ -48,9 +48,9 @@ if ($_SESSION["usuario"]<>"")
 		<td align="left" colspan=""><select class="" id="ordenBuscar">
 					<option value="cliente" selected>Cliente</option>	
 					<option value="fecha">Fecha</option>
-					<option value="numero">Numero</option>					
+					<option value="numeroFacturaCompleto">Factura</option>					
 					<option value="precioNeto">Precio Neto</option>		
-					<option value="tipo">Tipo</option>
+					<option value="origen2">Origen</option>
 			</select>
 		</td>
 
@@ -233,20 +233,16 @@ else
 
 
 <form id="formExportarAgenteComercialExcel"  method="post"  target="_blank" action="PHPExcel/archivosCibeles/exportarFacturasAbonosCorreosTodo.php">		
-	<input type="hidden" id="exportarACCondiciones" name="exportarACCondiciones" value=""></input>
-	<input type="hidden" id="exportarACAnioSeleccionado" name="exportarACAnioSeleccionado" value=""></input>	
-	<input type="hidden" id="exportarACAccion" name="exportarACAccion" value="exportarExcel"></input>			
+	<input type="hidden" id="exportarExcel_Filtros" name="exportarExcel_Filtros" value=""></input>
+	<input type="hidden" id="exportarExcel_FiltrosLike" name="exportarExcel_FiltrosLike" value=""></input>
+	<input type="hidden" id="exportarExcel_FiltrosOperadores" name="exportarExcel_FiltrosOperadores" value=""></input>
+	<input type="hidden" id="exportarExcel_Order" name="exportarExcel_Order" value=""></input>
+	<input type="hidden" id="exportarAccion" name="exportarAccion" value="exportarExcel"></input>			
 </form>
 
 <form id="formImprimirFactura"  method="post"  target="_blank" action="imprimirFactura.php">
-	<input type="hidden" id="imprimirNumFactura" name="imprimirNumFactura" value=""></input>
-	<input type="hidden" id="anioSeleccionado0" name="anioSeleccionado0" value=""></input>	
-	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFactura"></input>	
-</form>
-
-<form id="formImprimirFacturaClayma"  method="post"  target="_blank" action="imprimirFacturaClayma.php">
-	<input type="hidden" id="imprimirNumFacturaClayma" name="imprimirNumFacturaClayma" value=""></input>
-	<input type="hidden" id="anioSeleccionado3" name="anioSeleccionado3" value=""></input>	
+	<input type="hidden" id="numFacturaCompleto" name="numFacturaCompleto" value=""></input>
+	<input type="hidden" id="imprimirClayma" name="clayma" value=""></input>
 	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirFactura"></input>	
 </form>
 
@@ -290,9 +286,6 @@ echo ("</html>");
 <script  src="js/js_global.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
 <script  src="js/js_admFacturasVisualizarTodo.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
 <script language="javascript">
-	
-	cargarAnios("anio");
-	document.getElementById("anio").value = 2025;
 	
 	buscarFactura();
 	//gestionAgenteComercial();

@@ -1,5 +1,7 @@
 <?php
 
+ob_start();
+
 //require("../../../../comprobarSesion.php");
 
 if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
@@ -13,19 +15,84 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	$orden = $_POST["ordenFacturaEstdExcel"];
 	
 	$origen = $_POST["origenFacturaEstdExcel"];
-	
-	
-	
-	
-	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$camposOrdenPermitidos = array('nombre_empresa', 'codigo_saldo', 'franqueo', 'manipulado', 'mediaFranqueo', 'mediaManipulado', 'numFacturasCorreos', 'numFacManipulado');
+	$ordenPartes = explode(' ', trim($orden));
+	$campoOrden = in_array($ordenPartes[0], $camposOrdenPermitidos) ? $ordenPartes[0] : 'nombre_empresa';
+	$dirOrden = (isset($ordenPartes[1]) && strtolower($ordenPartes[1]) == 'desc') ? 'DESC' : 'ASC';
+
+	$filtrosOperadoresAnio = [
+		['campo1' => 'fecha', 'valor' => $anio.'-01-01', 'operador' => '>='],
+		['campo1' => 'fecha', 'valor' => $anio.'-12-31', 'operador' => '<=']
+	];
+
+	$stats = array();
+
 	if ($origen=="Cibeles")
 	{
-		$resultado = verEstadisticasFacturasPorAnio($conexion, $anio, $orden);
+		$resClientes = cargarClientes($conn, $bbddSql, ['codigo_saldo','nombre_empresa'], [], [['campo1'=>'codigo_saldo','campo2'=>'codigo','operador'=>'=']], []);
+		$resFacturas = mostrarFacturacion($conn, $bbddSql, ['codigo_saldo','precioNeto'], ['tabla2'], [], $filtrosOperadoresAnio, []);
+		$resCorreos = mostrarFacturacionCorreos($conn, $bbddSql, ['codigo_saldo','neto'], ['tabla2'], [], $filtrosOperadoresAnio, []);
 	}
 	else
 	{
-		$resultado = verEstadisticasFacturasPorAnioClayma($conexion, $anio, $orden);
+		$resClientes = cargarClientesClayma($conn, $bbddSql, ['codigo_saldo','nombre_empresa'], [], [['campo1'=>'codigo_saldo','campo2'=>'codigo','operador'=>'=']], []);
+		$resFacturas = mostrarFacturacionClayma($conn, $bbddSql, ['codigo_saldo','precioNeto'], ['tabla2'], [], $filtrosOperadoresAnio, []);
+		$resCorreos = array('datos' => array());
 	}
+
+	$nombresPorCliente = array();
+	foreach ($resClientes['datos'] as $c)
+	{
+		$nombresPorCliente[$c['codigo_saldo']] = $c['nombre_empresa'];
+	}
+
+	foreach ($resFacturas['datos'] as $f)
+	{
+		$codigo = $f['codigo_saldo'];
+		if (!isset($stats[$codigo]))
+		{
+			$stats[$codigo] = array('manipulado'=>0,'numFacManipulado'=>0,'franqueo'=>0,'numFacturasCorreos'=>0);
+		}
+		$stats[$codigo]['manipulado'] += $f['precioNeto'];
+		$stats[$codigo]['numFacManipulado']++;
+	}
+
+	foreach ($resCorreos['datos'] as $f)
+	{
+		$codigo = $f['codigo_saldo'];
+		if (!isset($stats[$codigo]))
+		{
+			$stats[$codigo] = array('manipulado'=>0,'numFacManipulado'=>0,'franqueo'=>0,'numFacturasCorreos'=>0);
+		}
+		$stats[$codigo]['franqueo'] += $f['neto'];
+		$stats[$codigo]['numFacturasCorreos']++;
+	}
+
+	$resultado = array();
+	foreach ($stats as $codigo => $s)
+	{
+		$resultado[] = array(
+			'codigo_saldo' => $codigo,
+			'nombre_empresa' => isset($nombresPorCliente[$codigo]) ? $nombresPorCliente[$codigo] : '',
+			'manipulado' => $s['manipulado'],
+			'numFacManipulado' => $s['numFacManipulado'],
+			'franqueo' => $s['franqueo'],
+			'numFacturasCorreos' => $s['numFacturasCorreos'],
+			'mediaManipulado' => $s['numFacManipulado']>0 ? $s['manipulado']/$s['numFacManipulado'] : 0,
+			'mediaFranqueo' => $s['numFacturasCorreos']>0 ? $s['franqueo']/$s['numFacturasCorreos'] : 0
+		);
+	}
+
+	usort($resultado, function($a,$b) use ($campoOrden,$dirOrden) {
+		if ($a[$campoOrden] == $b[$campoOrden]) return 0;
+		$comparacion = ($a[$campoOrden] < $b[$campoOrden]) ? -1 : 1;
+		return ($dirOrden == 'DESC') ? -$comparacion : $comparacion;
+	});
 	
 	
 	
@@ -59,8 +126,8 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 
 /** Error reporting */
 error_reporting(E_ALL);
-ini_set('display_errors', TRUE);
-ini_set('display_startup_errors', TRUE);
+ini_set('display_errors', FALSE);
+ini_set('display_startup_errors', FALSE);
 date_default_timezone_set('Europe/London');
 
 if (PHP_SAPI == 'cli')
@@ -124,8 +191,10 @@ $objPHPExcel->getActiveSheet()->setTitle('Simple');
 // Set active sheet index to the first sheet, so Excel opens this as the first sheet
 $objPHPExcel->setActiveSheetIndex(0);
 
-$nombreArchivo = 'Estadisticas'.date('d/m/Y').'.xls';
-	
+$nombreArchivo = 'Estadisticas'.date('d-m-Y').'.xlsx';
+
+ob_end_clean();
+
 // Redirect output to a client’s web browser (Excel2007)
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');
