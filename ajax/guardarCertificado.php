@@ -8,13 +8,17 @@ if(isset($_POST["accion"])&$_POST["accion"]=="guardarCertificado")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 		
 	
-	$idCliente=$_POST["idCliente"];
-	$unidad=$_POST["unidad"];
-	$idProducto=$_POST["producto"];
-	$fecha=$_POST["fecha"];
-	
-		
-	echo guardarCertificado($conexion,$idCliente,$unidad,$idProducto, $fecha);
+	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = insertarCertificadosGrabados($conn, $bbddSql, $datos);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 	
 	
 	

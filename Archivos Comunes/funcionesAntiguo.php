@@ -12411,7 +12411,7 @@ function recogerDatosFacturasMensuales($datosBBDD,$fechaInicio,$fechaFin,$fechaF
 		on  t1.tipo = t2.tipos
 		inner join [".$datosBBDD->bbddBBDD."].[dbo].[tarifasProductos] as t3
 		on t2.idTarifasProducto = t3.id
-		where (t3.clave='B' or t3.clave='G' or t3.clave='D' or t3.clave='H' or t3.clave='NOTP') and (t1.fecha>='".$fechaInicio."' and t1.fecha<='".$fechaFin."' and (t1.ot not like 'OT%')) and t1.comprobado=1
+		where (t3.clave='B' or t3.clave='G' or t3.clave='D' or t3.clave='H' or t3.clave='NOTP') and (t1.fecha>='".$fechaInicio."' and t1.fecha<'".$fechaFin."' and (t1.ot not like 'OT%')) and t1.comprobado=1
 		group by t1.idCliente
 	) as t2
 	on t1.codigo = t2.idCliente
@@ -12420,7 +12420,7 @@ function recogerDatosFacturasMensuales($datosBBDD,$fechaInicio,$fechaFin,$fechaF
 	(
 		select t1.idCliente, sum(unidades) as envios from  [".$datosBBDD->bbddBBDD."].[dbo].[franqueoTipos".$anioSeleccionado."] as t1 
 		
-		where  (t1.fecha>='".$fechaInicio."' and t1.fecha<='".$fechaFin."' and (t1.ot not like 'OT%')) and t1.comprobado=1
+		where  (t1.fecha>='".$fechaInicio."' and t1.fecha<'".$fechaFin."' and (t1.ot not like 'OT%')) and t1.comprobado=1
 		group by t1.idCliente
 	) as t3
 	on t1.codigo = t3.idCliente
@@ -12429,7 +12429,7 @@ function recogerDatosFacturasMensuales($datosBBDD,$fechaInicio,$fechaFin,$fechaF
 	(
 		select idCliente, 'tieneConceptos' as conceptos 
 		from [".$datosBBDD->bbddBBDD."].[dbo].[facturasEspecialesTemporal]
-		where (UPPER([ordenTrabajo]) ='CD' or UPPER([ordenTrabajo]) ='BUROFAX' or UPPER([ordenTrabajo]) ='RECOGIDAS' or UPPER([ordenTrabajo]) ='CROTALES' or UPPER([ordenTrabajo]) ='FACTURAS' or UPPER([ordenTrabajo]) ='OTROS CONCEPTOS') and fechaFacturacion>='".$fechaInicio."' and fechaFacturacion<='".$fechaFin."'
+		where (UPPER([ordenTrabajo]) ='CD' or UPPER([ordenTrabajo]) ='BUROFAX' or UPPER([ordenTrabajo]) ='RECOGIDAS' or UPPER([ordenTrabajo]) ='CROTALES' or UPPER([ordenTrabajo]) ='FACTURAS' or UPPER([ordenTrabajo]) ='OTROS CONCEPTOS') and fechaFacturacion>='".$fechaInicio."' and fechaFacturacion<'".$fechaFin."'
 		group by idCliente
 	) as t4
 	on t1.codigo = t4.idCliente

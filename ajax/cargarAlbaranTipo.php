@@ -1,17 +1,11 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarListadoEmpleado")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarAlbaranTipo")
 {
 	$ruta = '../';
-	//require($ruta.$rutaCabecera);
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-		
-	
-	
-	
-	
-	
+
 	$campos=isset($_POST["campos"])?json_decode($_POST["campos"], true):array();
 	$order=isset($_POST["order"])?json_decode($_POST["order"], true):array();
 
@@ -19,12 +13,11 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarListadoEmpleado")
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];
 
-	$res = cargarEmpleados($conn, $bbddSql, $campos, $order);
+	$res = cargarAlbaranTipo($conn, $bbddSql, $campos, $order);
 
 	sqlsrv_close($conn);
 
 	echo json_encode($res);
-		
 }
 
 ?>

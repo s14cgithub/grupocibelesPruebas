@@ -161,14 +161,9 @@ echo ("</html>");
 
 
 
-	idInputListado = "listadoEmpleado";
 	cargarListadoEmpleado();
-	idInputListado = "listadoTipoAlbaran";
 	cargarListadoTipoAlabaran();
-	idInputListado = "listadoNombreFranqueo";
 	cargarListadoNombreFranqueo();
-	idInputListado = "";
-	//cargarAlbaranes();
 	buscarFactura();
 	document.getElementById("button-up").addEventListener("click", scrollUp);
 </script>

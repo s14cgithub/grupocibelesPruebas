@@ -11,7 +11,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="anadirFactura")
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];
 
-	if (mostrarSePuedeImprimir($conn, $bbddSql) == 1)
+	if (mostrarSePuedeFacturar($conn, $bbddSql) == 1)
 	{
 		$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
 
@@ -49,38 +49,42 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="anadirFactura")
 			$resCliente = cargarClientes($conn, $bbddSql, $camposCliente, ['codigo' => $datos['idCodigoCliente']], [], [], ['tabla4']);
 		}
 
-		if (!empty($resCliente['datos'])) {
-			$cliente = $resCliente['datos'][0];
-			$datos['dirPost_nombreEmpresa'] = $cliente['nombre_empresa'];
-			$datos['dirPost_direccion'] = $cliente['direccion'];
-			$datos['dirPost_cp'] = $cliente['codigo_postal'];
-			$datos['dirPost_poblacion'] = $cliente['localidad'];
-			$datos['dirPost_provincia'] = $cliente['provincia'];
-			$datos['dirPost_pais'] = $cliente['pais'];
-			$datos['dirPost_codigoPais'] = $cliente['codigoPais'];
-			$datos['dirPost_Nif'] = $cliente['nif'];
-			$datos['dirPost_pais'] = $cliente['nombrePais'];
-
-			if ($cliente['envio_domicilio']=="" && $cliente['envio_cp']=="" && $cliente['envio_poblacion']=="" && $cliente['envio_provincia']=="") {
-				$datos['dirEnv_nombreEmpresa'] = $cliente['nombre_empresa'];
-				$datos['dirEnv_direccion'] = $cliente['direccion'];
-				$datos['dirEnv_cp'] = $cliente['codigo_postal'];
-				$datos['dirEnv_poblacion'] = $cliente['localidad'];
-				$datos['dirEnv_provincia'] = $cliente['provincia'];
-				$datos['dirEnv_pais'] = $cliente['nombrePais'];
-				$datos['dirEnv_att'] = '';
-			} else {
-				$datos['dirEnv_nombreEmpresa'] = $cliente['envio_nombre'];
-				$datos['dirEnv_direccion'] = $cliente['envio_domicilio'];
-				$datos['dirEnv_cp'] = $cliente['envio_cp'];
-				$datos['dirEnv_poblacion'] = $cliente['envio_poblacion'];
-				$datos['dirEnv_provincia'] = $cliente['envio_provincia'];
-				$datos['dirEnv_pais'] = $cliente['envio_pais'];
-				$datos['dirEnv_att'] = $cliente['envio_att'];
-			}
-
-			$datos['retener'] = $cliente['retener'];
+		if (empty($resCliente['datos'])) {
+			sqlsrv_close($conn);
+			echo json_encode(array('error' => 'No se ha encontrado el cliente para generar la factura', 'ok' => false));
+			exit;
 		}
+
+		$cliente = $resCliente['datos'][0];
+		$datos['dirPost_nombreEmpresa'] = $cliente['nombre_empresa'];
+		$datos['dirPost_direccion'] = $cliente['direccion'];
+		$datos['dirPost_cp'] = $cliente['codigo_postal'];
+		$datos['dirPost_poblacion'] = $cliente['localidad'];
+		$datos['dirPost_provincia'] = $cliente['provincia'];
+		$datos['dirPost_pais'] = $cliente['pais'];
+		$datos['dirPost_codigoPais'] = $cliente['codigoPais'];
+		$datos['dirPost_Nif'] = $cliente['nif'];
+		$datos['dirPost_pais'] = $cliente['nombrePais'];
+
+		if ($cliente['envio_domicilio']=="" && $cliente['envio_cp']=="" && $cliente['envio_poblacion']=="" && $cliente['envio_provincia']=="") {
+			$datos['dirEnv_nombreEmpresa'] = $cliente['nombre_empresa'];
+			$datos['dirEnv_direccion'] = $cliente['direccion'];
+			$datos['dirEnv_cp'] = $cliente['codigo_postal'];
+			$datos['dirEnv_poblacion'] = $cliente['localidad'];
+			$datos['dirEnv_provincia'] = $cliente['provincia'];
+			$datos['dirEnv_pais'] = $cliente['nombrePais'];
+			$datos['dirEnv_att'] = '';
+		} else {
+			$datos['dirEnv_nombreEmpresa'] = $cliente['envio_nombre'];
+			$datos['dirEnv_direccion'] = $cliente['envio_domicilio'];
+			$datos['dirEnv_cp'] = $cliente['envio_cp'];
+			$datos['dirEnv_poblacion'] = $cliente['envio_poblacion'];
+			$datos['dirEnv_provincia'] = $cliente['envio_provincia'];
+			$datos['dirEnv_pais'] = $cliente['envio_pais'];
+			$datos['dirEnv_att'] = $cliente['envio_att'];
+		}
+
+		$datos['retener'] = $cliente['retener'];
 
 		if ($clayma)
 		{

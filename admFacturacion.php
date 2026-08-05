@@ -143,7 +143,7 @@ if ($_SESSION["certAlbGastAdicional"]==1 || $_SESSION["certAlbGastAdicional"]==2
 <button type="button" class="btn btn-info" onClick="location.href = \'certGrabar.php\'">GRABAR CERTIFICADOS</button>
 <button type="button" class="btn btn-info" onClick="location.href = \'recibosGrabar.php\'">GRABAR RECOGIDAS Y ENTREGAS</button>
 <button type="button" class="btn btn-info" onClick="location.href = \'facturasEspeciales.php\'">GASTOS ADICIONALES</button>
-<button type="button" class="btn btn-info" onClick="location.href = \'facturasEspecialesAfacturas.php\'">CREAR FACTURAS</button>
+<button type="button" class="btn btn-info" onClick="location.href = \'facturasEspecialesAfacturas.php\'">CREAR FACTURAS MENSUALES</button>
 <!--<button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirFacMensualCdModal" data-whatever="@mdo">IMPRIMIR FAC MENSUALES</button>-->';
 }
 

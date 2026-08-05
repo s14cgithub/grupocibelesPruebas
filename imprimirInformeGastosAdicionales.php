@@ -19,11 +19,34 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 	
 	
 	
-	$idCliente = $_POST["imprimirIdCliente"];	
-	$fechaInicio = $_POST["imprimirFechaInicio"];	
-	$fechaFin = $_POST["imprimirFechaFin"];	
-	
-	$datosCertificados = verFacturasEspecialesInforme($conexion,$idCliente,$fechaInicio,$fechaFin);
+	$filtros = isset($_POST["imprimirFiltros"]) ? json_decode($_POST["imprimirFiltros"], true) : array();
+	$filtrosOperadores = isset($_POST["imprimirFiltrosOperadores"]) ? json_decode($_POST["imprimirFiltrosOperadores"], true) : array();
+	$order = isset($_POST["imprimirOrder"]) ? json_decode($_POST["imprimirOrder"], true) : array();
+
+	$fechaInicio = "";
+	$fechaFin = "";
+
+	foreach ($filtrosOperadores as $f)
+	{
+		if ($f['campo1']=='fechaFacturacion' && $f['operador']=='>=')
+		{
+			$fechaInicio = $f['valor'];
+		}
+		if ($f['campo1']=='fechaFacturacion' && $f['operador']=='<=')
+		{
+			$fechaFin = $f['valor'];
+		}
+	}
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = ['subcliente','concepto','fechaFacturacion','precioUnitario','unidadesSumatorio','totalSumatorio'];
+	$group = ['idCliente','subcliente','concepto','precioUnitario','fechaFacturacion'];
+
+	$resConsulta = cargarFacturasEspeciales($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, $group, $order);
+	$datosCertificados = $resConsulta['datos'];
 	
 	
 	
@@ -145,28 +168,28 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirInforme
 		}
 		$margen = $margenInicial;
 	
-		//echo $datosCertificados[$contador]["fecha"]["date"];
+		//echo $datosCertificados[$contador]["fechaFacturacion"]["date"];
 		$altura += 10;
 		$pdf->SetFont('Arial','',10);
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(20,0,$datosCertificados[$contador]["fecha"]->format('d/m/Y'),0,1,'R',false);
+		$pdf->Cell(20,0,$datosCertificados[$contador]["fechaFacturacion"]->format('d/m/Y'),0,1,'R',false);
 		
 		
 		$margen+=30;
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(10,0,$datosCertificados[$contador]["unidades"],0,1,'R',false);
+		$pdf->Cell(10,0,$datosCertificados[$contador]["unidadesSumatorio"],0,1,'R',false);
 		$margen+=30;
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,utf8_decode($datosCertificados[$contador]["producto"]),0,1,'L',false);
+		$pdf->Cell(0,0,utf8_decode($datosCertificados[$contador]["concepto"]),0,1,'L',false);
 		$margen+=50;
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(30,0,number_format($datosCertificados[$contador]["importeUnitario"],4,',','.')." ".EURO,0,1,'R',false);
+		$pdf->Cell(30,0,number_format($datosCertificados[$contador]["precioUnitario"],4,',','.')." ".EURO,0,1,'R',false);
 		$margen = $margenInicial;
 		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,number_format($datosCertificados[$contador]["total"],2,',','.')." ".EURO,0,1,'R',false);
+		$pdf->Cell(0,0,number_format($datosCertificados[$contador]["totalSumatorio"],2,',','.')." ".EURO,0,1,'R',false);
 
-		//$total += $datosCertificados[$contador]["total"];
-		$total += round($datosCertificados[$contador]["total"],2);
+		//$total += $datosCertificados[$contador]["totalSumatorio"];
+		$total += round($datosCertificados[$contador]["totalSumatorio"],2);
 		//$total +=   floatval(number_format($datosCertificados[$contador]["total"],3,',','.'));
 		//echo "<br>".$total;
 		$contador++;

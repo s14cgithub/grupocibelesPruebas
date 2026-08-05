@@ -1,6 +1,6 @@
 <?php
 
-if(isset($_POST["accion"]) && $_POST["accion"]=="eliminarFacturasEspeciales")
+if(isset($_POST["accion"])&$_POST["accion"]=="eliminarCertificadosGrabados")
 {
 
 	session_start();
@@ -14,12 +14,14 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="eliminarFacturasEspeciales")
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];
 
-	$res = eliminarFacturasEspeciales($conn, $bbddSql, $filtros);
+	$res = eliminarCertificadosGrabados($conn, $bbddSql, $filtros);
 
 	sqlsrv_close($conn);
 
 	echo json_encode($res);
 
 }
+
+
 
 ?>

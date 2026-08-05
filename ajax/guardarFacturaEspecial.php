@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="guardarFacturaEspecial2")
+if(isset($_POST["accion"]) && $_POST["accion"]=="guardarFacturaEspecial2")
 {
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -8,17 +8,17 @@ if(isset($_POST["accion"])&$_POST["accion"]=="guardarFacturaEspecial2")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 		
 	
-	$idCliente=$_POST["idCliente"];
-	$ordenTrabajo=$_POST["ordenTrabajo"];
-	$fecha=$_POST["fecha"];
-	$concepto=$_POST["concepto"];
-	$unidades=$_POST["unidades"];
-	$importe=$_POST["importe"];
-	
-	
-	
-		
-	echo guardarFacturaEspecial($conexion,$idCliente,$ordenTrabajo,$fecha,$concepto,$unidades,$importe);
+	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = insertarFacturasEspeciales($conn, $bbddSql, $datos);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 	
 	
 	

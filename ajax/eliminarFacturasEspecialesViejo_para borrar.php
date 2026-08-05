@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="eliminarRegistro")
+if(isset($_POST["accion"])&$_POST["accion"]=="limpiarFacturasEspeciales2")
 {
 	
 	session_start(); 
@@ -9,11 +9,10 @@ if(isset($_POST["accion"])&$_POST["accion"]=="eliminarRegistro")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
 	
-	$id = $_POST["id"];
 	
 	
-	
-	eliminarRegistroEspecial($conexion,$id);
+		
+	echo eliminarFacturasEspeciales($conexion);
 	
 	
 	

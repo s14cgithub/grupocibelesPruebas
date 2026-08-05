@@ -30,6 +30,7 @@ require($ruta."Archivos Comunes/cabecera.php");
 				<!--<button class="btn btn-info" onClick="guardarFacturaEspecial()">Guardar</button>				-->
 				<!--<button class="btn btn-info" onClick="limpiarFacturasEspeciales()">Limpiar Datos</button>-->
 				<button type="button" class="btn btn-info" data-toggle="modal" data-target="#juntarCertRutModal" data-whatever="@mdo"  id="botonJuntarCertRut" >Juntar Certificados, Rutas y gastos adicionales</button>
+				<button class="btn btn-info" onClick="previsualizarFacturasMensuales()">Previsualizar Facturas</button>
 				<button class="btn btn-info" onClick="crearFacturasMensuales()">Crear Facturas</button>
 				
 			</td>
@@ -64,8 +65,8 @@ require($ruta."Archivos Comunes/cabecera.php");
 			  
             <label for="recipient-name" class="col-form-label">Elegir Año:</label>
             <select id="anioModal" class="form-control">
-				<option value="2026">2026</option>	
-				<option value="2025" selected>2025</option>	
+				<option value="2026" selected>2026</option>	
+				<option value="2025">2025</option>	
 				<option value="2024">2024</option>
 				<option value="2023">2023</option>
 			</select>
@@ -112,6 +113,17 @@ require($ruta."Archivos Comunes/cabecera.php");
 </div>
 
 
+<form id="formPrevisualizarFacturasMensuales" method="post" target="_blank" action="imprimirFacturasMensualesPrevisualizar.php">
+	<input type="hidden" id="previsualizar_fechaInicio" name="fechaInicio" value=""></input>
+	<input type="hidden" id="previsualizar_fechaFin" name="fechaFin" value=""></input>
+	<input type="hidden" id="previsualizar_fechaFac" name="fechaFac" value=""></input>
+	<input type="hidden" id="previsualizarAccion" name="previsualizarAccion" value="previsualizarFacturasMensuales"></input>
+</form>
+
+<div class="button-up" id="button-up">
+	<i class="fas fa-chevron-up"></i>
+</div>
+
 
 <?php
 
@@ -129,5 +141,6 @@ echo ("</html>");
 
 <script language="javascript">
 	cargarFacturasEspecialesTemporal();
+	document.getElementById("button-up").addEventListener("click", scrollUp);
 </script>
 

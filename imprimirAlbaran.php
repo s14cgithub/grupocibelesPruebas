@@ -28,7 +28,14 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirAlbaran")
 	$fecha=$_POST["imprimirAlbaran_fecha"];	
 	
 	
-	$datosClientes = mirarDatosEmpresaPorCodigo($conexion,$cliente);
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resClientes = cargarClientes($conn, $bbddSql, ['nombre_empresa','nif_subcliente','direccion','codigo_postal','localidad','provincia'], ['codigo' => $cliente], [], []);
+	$datosClientes = $resClientes['datos'];
+
+	sqlsrv_close($conn);
 	
 	
 	

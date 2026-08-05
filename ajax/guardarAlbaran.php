@@ -9,19 +9,17 @@ if(isset($_POST["accion"])&$_POST["accion"]=="guardarAlbaran")
 		
 	
 	
-	$idEmpleado=$_POST["idEmpleado"];
-	$idTipoAlbaran=$_POST["idTipoAlbaran"];
-	$idCliente=$_POST["idCliente"];
-	$fecha=$_POST["fecha"];
-	$cantidad=$_POST["cantidad"];
-	$importe=$_POST["importe"];
-	$descripcion=$_POST["descripcion"];
-	
-	//$fecha = DateTime($fecha);
-	//$fecha2 = $fecha->format('Y-m-d H:i:s');
-	
-	$fecha2=	str_replace("T", " ",$fecha);
-	echo guardarAlbaran($conexion,$idEmpleado,$idTipoAlbaran,$idCliente,$fecha2,$cantidad,$importe,$descripcion);
+	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = insertarAlbaran($conn, $bbddSql, $datos);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 	
 	
 	

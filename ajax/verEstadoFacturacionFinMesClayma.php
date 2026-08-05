@@ -14,7 +14,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="verEstadoFacturacionFinMes")
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];
 
-	if (mostrarSePuedeImprimir($conn, $bbddSql) == 1)
+	if (mostrarSePuedeFacturar($conn, $bbddSql) == 1)
 	{
 		$fechaActual = date("Y-m-d");
 		$anioSeleccionado = date('Y');

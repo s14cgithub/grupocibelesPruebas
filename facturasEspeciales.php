@@ -173,9 +173,9 @@ require($ruta."Archivos Comunes/cabecera.php");
 </div> 
 
 <form id="formImprimirGastosAdicionales"  method="post"  target="_blank" action="imprimirInformeGastosAdicionales.php">
-	<input type="hidden" id="imprimirIdCliente" name="imprimirIdCliente" value=""></input>
-	<input type="hidden" id="imprimirFechaInicio" name="imprimirFechaInicio" value=""></input>
-	<input type="hidden" id="imprimirFechaFin" name="imprimirFechaFin" value=""></input>
+	<input type="hidden" id="imprimirFiltros" name="imprimirFiltros" value=""></input>
+	<input type="hidden" id="imprimirFiltrosOperadores" name="imprimirFiltrosOperadores" value=""></input>
+	<input type="hidden" id="imprimirOrder" name="imprimirOrder" value=""></input>
 	
 	<input type="hidden" id="imprimirAccion" name="imprimirAccion" value="imprimirInformeGastosAdicionales"></input>	
 </form>
@@ -197,14 +197,9 @@ echo ("</html>");
 
 <script language="javascript">
 	
-	idInputListado="nombreCliente";
 	cargarListadoNombreFranqueo();
-	idInputListado="";
-	
-	idInputListado = 'clienteModal';
-	cargarListadoNombreFranqueo();
-	idInputListado="";
-	
+	cargarClienteModal();
+
 	
 	cargarFacturasEspeciales();
 </script>

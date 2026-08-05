@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarFacturasEspeciales")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarFacturasEspeciales")
 {
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -8,17 +8,20 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarFacturasEspeciales")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 		
 	
-	$albaranes=cargarFacturasEspeciales($conexion);
-	
-	if (count($albaranes)<=0)
-	{
-		echo json_encode("");
-		//echo ("Error2: No hay subprocesos para mostrar: ");
-	}
-	else
-	{
-		echo json_encode($albaranes);
-	}
+	$campos=isset($_POST["campos"])?json_decode($_POST["campos"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
+	$order=isset($_POST["order"])?json_decode($_POST["order"], true):array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = cargarFacturasEspeciales($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, [], $order);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 		
 }
 
