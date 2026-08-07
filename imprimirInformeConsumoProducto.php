@@ -20,10 +20,15 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirInforme")
 	
 	$fechaInicio = $_POST["fechaInicioConsumoProductoModal"];	
 	$fechaFin = $_POST["fechaFinConsumoProductoModal"];	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resConsumoProductos = cargarConsumoPorProductosFranqueo($conn, $bbddSql, $fechaInicio, $fechaFin);
+	$datos = $resConsumoProductos['datos'];
 	
-	
-	$datos = verConsumoPorProductosFranqueo($conexion, $fechaInicio, $fechaFin);
-	
+
 	
 	
 	$pdf = new cabeceraFactura('P','mm','A4');
@@ -223,8 +228,17 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirInforme")
 	if ($_SESSION["permiso_estimacionFranqueo"]==2)
 	{
 		$anio =  date("Y", strtotime($fechaFin));
-		$resultado = cargarDatosGenericosFranqueo($conexion," where anio = ".$anio);
-		$resultado2 = verDiasFranqueados ($conexion, " where fecha >= '".date("d-m-Y", strtotime($fechaInicio))."' and fecha <= '".date("d-m-Y", strtotime($fechaFin))."' and comprobado=1", $anio);
+
+		$resDatosGenericos = cargarDatosGenericosFranqueo($conn, $bbddSql, ['objetivoFranqueo','tantoPorcientoObjetivo','diasHabiles'], ['anio' => $anio]);
+		$resultado = $resDatosGenericos['datos'];
+
+		$filtrosDiasFranqueados = ['comprobado' => 1];
+		$filtrosOperadoresDiasFranqueados = [
+			['campo1' => 'fecha', 'valor' => date("Y-m-d", strtotime($fechaInicio)), 'operador' => '>='],
+			['campo1' => 'fecha', 'valor' => date("Y-m-d", strtotime($fechaFin)), 'operador' => '<=']
+		];
+		$resDiasFranqueados = cargarFranqueoTipos($conn, $bbddSql, ['diasFranqueados'], [], $filtrosDiasFranqueados, $filtrosOperadoresDiasFranqueados, [], [], $anio);
+		$resultado2 = $resDiasFranqueados['datos'];
 
 		$objetivo = $resultado[0]["objetivoFranqueo"];
 		$tantoPorciento = $resultado[0]["tantoPorcientoObjetivo"];

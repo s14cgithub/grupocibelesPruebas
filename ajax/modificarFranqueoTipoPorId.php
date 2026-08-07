@@ -14,7 +14,8 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="modificarFranqueoTipo")
 	$id = $datos["id"];	
 	$tipo = $datos["tipo"];
 	$unidades = $datos["unidades"];
-	$importe = $datos["importe"];	
+	$importe = $datos["importe"];
+	$importeSinIva = $datos["importeSinIva"];
 	$ot = $datos["ot"];
 	$otSidi = $datos["otSidi"];
 	$fecha = $datos["fecha"];
@@ -98,7 +99,8 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="modificarFranqueoTipo")
 	$datos3 = [
 		'tipo' => $tipo1,
 		'unidades' => $unidades,
-		'importe' => $importe
+		'importe' => $importe,
+		'importeSinIva' => $importeSinIva
 	];			
 
 	$filtros3 = [

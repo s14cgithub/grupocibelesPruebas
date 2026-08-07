@@ -4806,7 +4806,9 @@ function cargarFranqueoTipos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fi
         'id' => 't1.id',
 		'unidades' => 't1.unidades',
 		'importe' => 't1.importe',
+		'importeSinIva' => 't1.importeSinIva',
 		'tarifa' => 't3.precioNeto + t3.iva as tarifa',
+		'tarifaSinIva' => 't3.precioNeto as tarifaSinIva',
 		'idTarifa' => 't3.id as idTarifa',
         'idCliente' => 't1.idCliente',
 		'fecha' => 't1.fecha',
@@ -4842,7 +4844,21 @@ function cargarFranqueoTipos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fi
         'producto_Padre_left' => 't10.producto',
         'idProductoPadre_left' => 't11.idProductoPadre',
         'tituloTarifasProducto2' => 't11.titulo',
-        'nombre_franqueo' => 't2.nombre_franqueo'
+        'nombre_franqueo' => 't2.nombre_franqueo',
+        'nombreEmpresa' => 't2.nombre_empresa as nombreEmpresa',
+        'subcliente' => 't2.subcliente',
+        'campana2' => 't12.campana2',
+        'descripcion' => 't3.descripcion',
+        'unidadesSuma' => 'sum(t1.unidades) as unidades',
+        'unitario' => 'sum(t1.importe)/sum(t1.unidades) as unitario',
+        'importeTotalSinIva' => 'sum(t1.importeSinIva) as importeTotalSinIva',
+        'unitarioSinIva' => 'sum(t1.importeSinIva)/sum(t1.unidades) as unitarioSinIva',
+        'diasFranqueados' => 'count(distinct(t1.fecha)) as diasFranqueados',
+        'codigo' => 't2.codigo',
+        'precioNeto' => 't3.precioNeto',
+        'descuentoPorCiento' => 't13.descuentoPorCiento',
+        'importeBonificacion' => 'sum(round(t3.precioNeto,2)*t1.unidades) as importe',
+        'bonificacion' => 'sum(round(t3.precioNeto,2)*t1.unidades) * t13.descuentoPorCiento/100 as bonificacion'
        
       
     );
@@ -4907,6 +4923,8 @@ function cargarFranqueoTipos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fi
         'tabla9' => "left join [".$bbddSql."].[dbo].[presupuestos] as t9 on t1.ot  like '%'+t9.presupuesto+'%' and t1.ot!=''",
         'tabla10' => "left join [".$bbddSql."].[dbo].[tarifasProductoPadre] as t10 on t10.id = t11.idProductoPadre",
         'tabla11' => "left join [".$bbddSql."].[dbo].[tarifasProductos] as t11 on t3.idTarifasProducto = t11.id",
+        'tabla12' => "left join [".$bbddSql."].[dbo].[presupuestos] as t12 on t12.presupuesto = substring(t1.ot,3,7)",
+        'tabla13' => "inner join [".$bbddSql."].[dbo].[descuentosFranqueo".$anio."] as t13 on t13.descripcion = t3.descripcion",
         ];
 
 
@@ -4932,6 +4950,10 @@ function cargarFranqueoTipos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fi
         $condicion[] = 't1.id = ?';
         $params[] = $filtros['id'];
     } 
+    if (isset($filtros['idCliente'])) {
+        $condicion[] = 't1.idCliente = ?';
+        $params[] = $filtros['idCliente'];
+    }
     if (isset($filtros['fecha'])) {
         $condicion[] = 't1.fecha = ?';
         $params[] = $filtros['fecha'];
@@ -4965,6 +4987,10 @@ function cargarFranqueoTipos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fi
         foreach ($filtros['claves'] as $clave) {
             $params[] = $clave;
         }
+    }
+    if (isset($filtros['codigo_saldo'])) {
+        $condicion[] = 't2.codigo_saldo = ?';
+        $params[] = $filtros['codigo_saldo'];
     }
 
 
@@ -5043,7 +5069,16 @@ function cargarFranqueoTipos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fi
         'tipos' => 't1.tipo',
         'orden' => 't6.orden',
         'gramos' => 't3.gramos',
-        'titulo' => 't6.titulo'                   
+        'titulo' => 't6.titulo',
+        'nombre_empresa' => 't2.nombre_empresa',
+        'ot' => 't1.ot',
+        'descripcion' => 't3.descripcion',
+        'fecha' => 't1.fecha',
+        'subcliente' => 't2.subcliente',
+        'campana2' => 't12.campana2',
+        'codigo' => 't2.codigo',
+        'precioNeto' => 't3.precioNeto',
+        'descuentoPorCiento' => 't13.descuentoPorCiento'
     );
 
     $sqlGroup = '';
@@ -5076,7 +5111,13 @@ function cargarFranqueoTipos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fi
        'fecha' => 't1.fecha',
        'ot' => 't1.ot',
        'referencia' => 't1.referencia',
-       'aniosDistintos' => 'YEAR(t1.fecha)'
+       'aniosDistintos' => 'YEAR(t1.fecha)',
+       'codigo_saldo' => 't2.codigo_saldo',
+       'nombre_empresa' => 't2.nombre_empresa',
+       'descripcion' => 't3.descripcion',
+       'gramos' => 't3.gramos',
+       'subcliente' => 't2.subcliente',
+       'codigo' => 't2.codigo'
     );
 
     $sqlOrder = '';
@@ -5115,7 +5156,7 @@ function cargarFranqueoTipos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fi
 
     if ($resultado === false) {
             return array(
-            'error' => '"Cargar franqueo Tipo:<pre>" . print_r(sqlsrv_errors(), true) . "</pre>"',
+            'error' => "Cargar franqueo Tipo:<pre>" . print_r(sqlsrv_errors(), true) . "</pre>",
             'sql' => $consulta,
             'params' => $params
             );   
@@ -5135,6 +5176,234 @@ function cargarFranqueoTipos($conn_sis, $bbddSql, $campos, $joins, $filtros, $fi
     'sql' => $consulta,
      'params' => $params
     );
+}
+
+function cargarConsumoPorProductosFranqueo($conn_sis, $bbddSql, $fechaInicio, $fechaFin)
+{
+    $fechaInicio1 = date("Y-m-d", strtotime($fechaInicio));
+    $fechaFin1 = date("Y-m-d", strtotime($fechaFin));
+    $anioSeleccionado = date("Y", strtotime($fechaInicio));
+
+    $consulta = "
+    select * from (
+    SELECT t4.producto, sum(t1.unidades) as unidades, sum(t1.importe) as importe, sum(t1.unidades*t2.precioNeto) as sinIva, sum(t1.unidades*(t2.precioNeto+t2.iva)) as conIva, t4.retribucionCorreos
+    FROM [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+    inner join [".$bbddSql."].[dbo].[tarifasProductos] as t3 on t2.idTarifasProducto = t3.id
+    inner join [".$bbddSql."].[dbo].[tarifasProductoPadre] as t4 on t3.idProductoPadre = t4.id
+    where t1.fecha >= ? and t1.fecha <= ? and t1.comprobado = 1
+    group by t4.producto, t4.retribucionCorreos
+
+    union
+
+    SELECT ' Acuses', sum(t1.unidades) as unidades, sum(t1.importe) as importe, sum(t1.unidades*t2.precioNeto) as sinIva, sum(t1.unidades*(t2.precioNeto+t2.iva)) as conIva, 'CARTA' as retribucionCorreos
+    FROM [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+    where t1.fecha >= ? and t1.fecha <= ? and t2.idTarifasProducto is null and t2.tipos != '1'  and t1.comprobado = 1
+
+    union
+
+    SELECT ' Envios Especiales', sum(t1.unidades) as unidades, sum(t1.importe) as importe, sum(t1.importe/1.21) as sinIva, sum(t1.importe) as conIva, 'ENVIOS ESPECIALES' as retribucionCorreos
+    FROM [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+    where t1.fecha >= ? and t1.fecha <= ? and t2.idTarifasProducto is null and t2.tipos = '1'  and t1.comprobado = 1
+    ) as tabla order by retribucionCorreos, producto
+    ";
+
+    
+
+    $params = array($fechaInicio1, $fechaFin1, $fechaInicio1, $fechaFin1, $fechaInicio1, $fechaFin1);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarConsumoPorProductosFranqueo2($conn_sis, $bbddSql, $fechaInicio, $fechaFin)
+{
+    $fechaInicio1 = date("Y-m-d", strtotime($fechaInicio));
+    $fechaFin1 = date("Y-m-d", strtotime($fechaFin));
+    $anioSeleccionado = date("Y", strtotime($fechaInicio));
+
+    $consulta = "
+    select
+    t4.producto2, sum(t1.unidades) as unidades,
+    sum(((t8.precioNetoReal*t1.unidades))-(isnull(t5.descuentoTantoPorCiento,0)*t8.precioNetoReal*t1.unidades/100)) as sinIva
+    , sum( (((t8.precioIvaReal)*t1.unidades))-(isnull(t5.descuentoTantoPorCiento,0)*(t1.unidades*(t8.precioIvaReal))/100)) as conIva
+    ,t4.retribucionCorreos
+    , t7.sumaUnidades, t3.ordenInforme as orden
+
+    from [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+    inner join [".$bbddSql."].[dbo].[tarifasProductos] as t3 on t2.idTarifasProducto = t3.id
+    inner join [".$bbddSql."].[dbo].[tarifasProductoPadre] as t4 on t3.idProductoPadre = t4.id
+
+    inner join (SELECT tipos, case when iva>0 then (precioNeto+iva)/1.21
+    else precioNeto end as precioNetoReal, precioNeto + iva as precioIvaReal
+    FROM [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."]) as t8
+    on t8.tipos = t2.tipos
+    left join [".$bbddSql."].[dbo].[franqueoDescuentoCorreos] as t5
+    on t5.idTarifasProducto = t3.id and t5.idTarifasProductoPadre = t4.id and t1.idCliente = t5.idCliente
+
+    left join (
+    select t4.producto2, sum(unidades) as sumaUnidades from [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+    inner join [".$bbddSql."].[dbo].[tarifasProductos] as t3 on t2.idTarifasProducto = t3.id
+    inner join [".$bbddSql."].[dbo].[tarifasProductoPadre] as t4 on t3.idProductoPadre = t4.id
+    where t1.fecha >= ? and t1.fecha <= ? and t1.comprobado = 1
+    group by t4.producto2
+    ) as t7
+    on t7.producto2 = t4.producto2
+
+    where t1.fecha >= ? and t1.fecha <= ? and t1.comprobado = 1
+
+    group by t4.retribucionCorreos, t4.producto2, t7.sumaUnidades, t3.ordenInforme
+
+    union
+
+    SELECT ' Acuses' as producto, sum(t1.unidades) as unidades, sum(t1.unidades*t4.precioNetoReal) as sinIva, sum(t1.unidades*(t4.precioIvaReal)) as conIva, 'CARTA' as retribucionCorreos
+    ,t3.unidades as sumatorioUnidades, t2.destinoAcusesOrden as orden
+    FROM [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+    inner join (SELECT tipos, case when iva>0 then (precioNeto+iva)/1.21
+    else precioNeto end as precioNetoReal, precioNeto + iva as precioIvaReal
+    FROM [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."]) as t4
+    on t4.tipos = t2.tipos
+
+    left join (
+    SELECT 'acuses' as tipo, sum(t1.unidades) as unidades
+    FROM [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+    where t1.fecha >= ? and t1.fecha <= ? and t2.idTarifasProducto is null and t2.tipos != '1' and t2.descripcion like '%acuse%' and t1.comprobado = 1
+    ) as t3
+    on t3.tipo = 'acuses'
+
+    where t1.fecha >= ? and t1.fecha <= ? and t2.idTarifasProducto is null and t2.tipos != '1' and t2.descripcion like '%acuse%' and t1.comprobado = 1
+    group by t2.destinoAcuses, t3.unidades, t2.destinoAcusesOrden
+
+    union
+
+    SELECT ' PEE' as producto, sum(t1.unidades) as unidades, sum(t1.unidades*t4.precioNetoReal) as sinIva, sum(t1.unidades*(t4.precioIvaReal)) as conIva, 'CARTA' as retribucionCorreos
+    ,t3.unidades as sumatorioUnidades, t2.destinoAcusesOrden as orden
+    FROM [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+    inner join (SELECT tipos, case when iva>0 then (precioNeto+iva)/1.21
+    else precioNeto end as precioNetoReal, precioNeto + iva as precioIvaReal
+    FROM [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."]) as t4
+    on t4.tipos = t2.tipos
+
+    left join (
+    SELECT 'PEE' as tipo, sum(t1.unidades) as unidades
+    FROM [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+    where t1.fecha >= ? and t1.fecha <= ? and t2.idTarifasProducto is null and t2.tipos != '1' and t2.descripcion like '%PEE%' and t1.comprobado = 1
+    ) as t3
+    on t3.tipo = 'PEE'
+
+    where t1.fecha >= ? and t1.fecha <= ? and t2.idTarifasProducto is null and t2.tipos != '1' and t2.descripcion like '%PEE%' and t1.comprobado = 1
+    group by t2.destinoAcuses, t3.unidades, t2.destinoAcusesOrden
+
+    union
+
+    SELECT ' Envios Especiales', sum(t1.unidades) as unidades, sum(t1.importe/1.21) as sinIva, sum(t1.importe) as conIva, 'ENVIOS ESPECIALES' as retribucionCorreos, sum(t1.unidades) as sumaUnidades
+    , 1 as orden
+    FROM [".$bbddSql."].[dbo].[franqueoTipos] as t1
+    inner join [".$bbddSql."].[dbo].[tarifas".$anioSeleccionado."] as t2 on t1.tipo = t2.tipos
+
+    where t1.fecha >= ? and t1.fecha <= ? and t2.idTarifasProducto is null and t2.tipos = '1' and t1.comprobado = 1
+
+    order by retribucionCorreos, producto2, orden
+    ";
+
+    $params = array(
+        $fechaInicio1, $fechaFin1,
+        $fechaInicio1, $fechaFin1,
+        $fechaInicio1, $fechaFin1,
+        $fechaInicio1, $fechaFin1,
+        $fechaInicio1, $fechaFin1,
+        $fechaInicio1, $fechaFin1,
+        $fechaInicio1, $fechaFin1
+    );
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarDatosGenericosFranqueo($conn_sis, $bbddSql, $campos, $filtros)
+{
+    $camposPermitidos = array(
+        'objetivoFranqueo' => 't1.objetivoFranqueo',
+        'tantoPorcientoObjetivo' => 't1.tantoPorcientoObjetivo',
+        'diasHabiles' => 't1.diasHabiles',
+        'anio' => 't1.anio'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['anio'])) {
+        $condicion[] = 't1.anio = ?';
+        $params[] = $filtros['anio'];
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    $consulta = "SELECT $listaCampos FROM [".$bbddSql."].[dbo].[datosGenericosFranqueo] AS t1" . $sqlWhere;
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
 }
 
 function cargarDatosFacturasMensuales($conn_sis, $bbddSql, $campos, $fechaInicio, $fechaFin, $anioTarifas, $order)
@@ -12819,6 +13088,159 @@ function insertarProvisionDeFondo_movimientos($conn_sis, $bbddSql, $datos)
         'error' => '',
         'ok' => true,
         //'id' => $idInsertado,
+        'sql' => $consulta,
+        'params' => $params
+    );
+}
+
+function cargarProvisionDeFondo_movimientos($conn_sis, $bbddSql, $campos, $filtros, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'codigoCliente' => 't1.codigoCliente',
+        'fecha' => 't1.fecha',
+        'formaPago' => 't1.formaPago',
+        'importe' => 't1.importe',
+        'presupuesto' => 't1.presupuesto',
+        'fechaCuadre' => 't1.fechaCuadre',
+        'informacionCuadre' => 't1.informacionCuadre',
+        'saldoPostPF' => 't1.saldoPostPF',
+        'clayma' => 't1.clayma',
+        'sumaMovimientosSinFranqueo' => 'sum(t1.importe) as sumaMovimientosSinFranqueo'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array(
+            'error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array(
+            'error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['codigoCliente'])) {
+        $condicion[] = 't1.codigoCliente = ?';
+        $params[] = $filtros['codigoCliente'];
+    }
+    if (isset($filtros['presupuesto'])) {
+        $condicion[] = 't1.presupuesto = ?';
+        $params[] = $filtros['presupuesto'];
+    }
+    if (isset($filtros['presupuesto_no_vacio']) && $filtros['presupuesto_no_vacio'] == 1) {
+        $condicion[] = "t1.presupuesto != ''";
+    }
+    if (isset($filtros['formaPago_no_vacio']) && $filtros['formaPago_no_vacio'] == 1) {
+        $condicion[] = "t1.formaPago != ''";
+    }
+    if (isset($filtros['clayma'])) {
+        $condicion[] = 't1.clayma = ?';
+        $params[] = $filtros['clayma'];
+    }
+    if (isset($filtros['informacionCuadre'])) {
+        $condicion[] = 't1.informacionCuadre = ?';
+        $params[] = $filtros['informacionCuadre'];
+    }
+    if (isset($filtros['fechaMovimientoMax'], $filtros['codigoClienteMovimientoMax'])) {
+        $condicion[] = "t1.id IN (SELECT MAX(id) FROM [".$bbddSql."].[dbo].[provisionDeFondo_movimientos] WHERE fecha <= ? AND codigoCliente = ?)";
+        $params[] = $filtros['fechaMovimientoMax'];
+        $params[] = $filtros['codigoClienteMovimientoMax'];
+    }
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=');
+
+    $camposComparablesPermitidos = array(
+        'fecha' => 't1.fecha'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] =
+                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
+                     $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 't1.id',
+        'fecha' => 't1.fecha'
+    );
+
+    $sqlOrder = '';
+
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[provisionDeFondo_movimientos] AS t1
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array(
+            'error' => print_r(sqlsrv_errors(), true),
+            'sql' => $consulta,
+            'params' => $params
+        );
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array(
+        'error' => '',
+        'datos' => $result,
         'sql' => $consulta,
         'params' => $params
     );

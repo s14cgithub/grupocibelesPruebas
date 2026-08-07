@@ -25,20 +25,26 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFranque
 	$separarPorFechas = $_POST["imprimirOTSepararFechasinformeFranqueoModal"];
 	
 	$anioSeleccionado = $_POST["imprimirOTInformeAnioFranqueoModal"];
-	
-	
-	//$datosFranqueo = verConsumoFranqueoGrabadosPorOT($conexion,$OT);
-	
-	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$camposFranqueoInforme = ['subcliente','ot','descripcion','gramos','unitario','unidadesSuma','importeTotal','unitarioSinIva','importeTotalSinIva','campana2'];
+	$groupFranqueoInforme = ['subcliente','ot','descripcion','gramos','campana2'];
+
 	if ($separarPorFechas=="true")
 	{
-		$datosFranqueo = verConsumoFranqueoGrabadosPorOT($conexion,$OT,1,$anioSeleccionado);
+		$camposFranqueoInforme[] = 'fecha';
+		$groupFranqueoInforme[] = 'fecha';
 	}
-	else
-	{		
-		$datosFranqueo = verConsumoFranqueoGrabadosPorOT($conexion,$OT,0,$anioSeleccionado);
-		
-	}
+
+	$filtrosFranqueoInforme = ['comprobado' => 1];
+	$filtrosLikeFranqueoInforme = [['campo' => 'ot', 'valor' => $OT]];
+
+	$resFranqueoInforme = cargarFranqueoTipos($conn, $bbddSql, $camposFranqueoInforme, ['tabla2','tabla3','tabla12'], $filtrosFranqueoInforme, [], $groupFranqueoInforme, [], $anioSeleccionado, $filtrosLikeFranqueoInforme);
+
+	$datosFranqueo = $resFranqueoInforme['datos'];
 	
 	
 	

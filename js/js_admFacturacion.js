@@ -320,19 +320,183 @@ function leerArchivoCorreosComparar() //js_admFacturacion
 
 function cargarListadoClientesInformeFranqueo()
 {	
-	booleano=true;
-	cargarClientes('B','clienteInformeFranqueoModal');
-	cargarSubClientes('A','cliente2InformeFranqueoModal');
+	cargarClientesInformeFranqueo();
+	cargarSubClientesInformeFranqueo();
 	
 	$("#imprimirInformeFranqueoModal").modal('show');
 }
 
+function cargarClientesInformeFranqueo() //js_admFacturacion (antes cargarClientes('B','clienteInformeFranqueoModal') de js_global)
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = mostrarCargarClientesInformeFranqueo;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarClientesInformeFranqueo();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarClientesInformeFranqueo()
+{
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['nombre_empresa','codigo'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	
+
+	var filtrosOperadores = [{campo1: 'codigo_saldo', campo2: 'codigo', operador: '='}];
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var order = [{campo: 'nombre_empresa', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;
+}
+
+function mostrarCargarClientesInformeFranqueo()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			var contenido = '<option value="todos">todos</option>';
+
+			if (res.error=="" && res.datos)
+			{
+				for (var i=0; i<res.datos.length; i++)
+				{
+					contenido += '<option value="'+res.datos[i]["codigo"]+'">'+res.datos[i]["nombre_empresa"]+'</option>';
+				}
+			}
+
+			document.getElementById("clienteInformeFranqueoModal").innerHTML = contenido;
+
+			gestionSaldoSegunCliente();
+
+			peticionUnica1=null;
+		}
+	}
+}
+
+function cargarSubClientesInformeFranqueo() //js_admFacturacion (antes cargarSubClientes('A','cliente2InformeFranqueoModal') de js_global)
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = mostrarCargarSubClientesInformeFranqueo;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarSubClientesInformeFranqueo();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarSubClientesInformeFranqueo()
+{
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo','subcliente'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {activo: 1};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var order = [{campo: 'subcliente', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;
+}
+
+function mostrarCargarSubClientesInformeFranqueo()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			var contenido = '';
+
+			if (res.error=="" && res.datos)
+			{
+				for (var i=0; i<res.datos.length; i++)
+				{
+					contenido += '<option value="'+res.datos[i]["codigo"]+'">'+res.datos[i]["subcliente"]+'</option>';
+				}
+			}
+
+			document.getElementById("cliente2InformeFranqueoModal").innerHTML = contenido;
+
+			peticionUnica1=null;
+		}
+	}
+}
+
 function cargarListadoSubClientesInformeFranqueo()
 {
-	booleano=true;
-	cargarSubClientes('','clienteInformeFranqueoSubClientesModal');
+	cargarClientesInformeFranqueoSubCliente();
 	$("#imprimirInformeFranqueoSubClientesModal").modal('show');
 	
+}
+
+function cargarClientesInformeFranqueoSubCliente() //js_admFacturacion (antes cargarSubClientes('','clienteInformeFranqueoSubClientesModal') de js_global)
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = mostrarCargarClientesInformeFranqueoSubCliente;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarClientesInformeFranqueoSubCliente();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarClientesInformeFranqueoSubCliente()
+{
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo','subcliente'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [{campo: 'subcliente', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;
+}
+
+function mostrarCargarClientesInformeFranqueoSubCliente()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			var contenido = '<option value="todos">todos</option>';
+
+			if (res.error=="" && res.datos)
+			{
+				for (var i=0; i<res.datos.length; i++)
+				{
+					contenido += '<option value="'+res.datos[i]["codigo"]+'">'+res.datos[i]["subcliente"]+' - '+res.datos[i]["codigo"]+'</option>';
+				}
+			}
+
+			document.getElementById("clienteInformeFranqueoSubClientesModal").innerHTML = contenido;
+
+			peticionUnica1=null;
+		}
+	}
 }
 
 function botonFechaFinFacturacion1(estado1) //estado1=0: botonFechaFacMesAnterior | estado1=1:botonFechaFacMesActual
@@ -867,6 +1031,24 @@ function gestionActivarDetalle()
 	{
 		document.getElementById("groupSaldoDetalle").style.visibility = "hidden";
 	}
+}
+
+function gestionSaldoSegunCliente()
+{
+	if (document.getElementById("clienteInformeFranqueoModal").value == "todos")
+	{
+		document.getElementById("saldoFinInformeFranqueoModal").checked = false;
+		document.getElementById("saldoFinInformeFranqueoModal").disabled = true;
+		document.getElementById("saldoDetalleFacCoInformeFranqueoModal").checked = false;
+		document.getElementById("saldoDetalleFacCoInformeFranqueoModal").disabled = true;
+	}
+	else
+	{
+		document.getElementById("saldoFinInformeFranqueoModal").disabled = false;
+		document.getElementById("saldoDetalleFacCoInformeFranqueoModal").disabled = false;
+	}
+
+	gestionActivarDetalle();
 }
 
 

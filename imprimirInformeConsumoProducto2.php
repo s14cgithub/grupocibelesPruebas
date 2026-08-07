@@ -20,9 +20,13 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirInforme")
 	
 	$fechaInicio = $_POST["fechaInicioConsumoProductoModal2"];	
 	$fechaFin = $_POST["fechaFinConsumoProductoModal2"];	
-	
-	
-	$datos = verConsumoPorProductosFranqueo2($conexion, $fechaInicio, $fechaFin);
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resConsumoProductos2 = cargarConsumoPorProductosFranqueo2($conn, $bbddSql, $fechaInicio, $fechaFin);
+	$datos = $resConsumoProductos2['datos'];
 	
 	
 	
@@ -504,8 +508,17 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirInforme")
 	if ($_SESSION["permiso_estimacionFranqueo"]==2)
 	{
 		$anio =  date("Y", strtotime($fechaFin));
-		$resultado = cargarDatosGenericosFranqueo($conexion," where anio = ".$anio);
-		$resultado2 = verDiasFranqueados ($conexion, " where fecha >= '".date("d-m-Y", strtotime($fechaInicio))."' and fecha <= '".date("d-m-Y", strtotime($fechaFin))."' and comprobado=1", $anio);
+
+		$resDatosGenericos = cargarDatosGenericosFranqueo($conn, $bbddSql, ['objetivoFranqueo','tantoPorcientoObjetivo','diasHabiles'], ['anio' => $anio]);
+		$resultado = $resDatosGenericos['datos'];
+
+		$filtrosDiasFranqueados = ['comprobado' => 1];
+		$filtrosOperadoresDiasFranqueados = [
+			['campo1' => 'fecha', 'valor' => date("Y-m-d", strtotime($fechaInicio)), 'operador' => '>='],
+			['campo1' => 'fecha', 'valor' => date("Y-m-d", strtotime($fechaFin)), 'operador' => '<=']
+		];
+		$resDiasFranqueados = cargarFranqueoTipos($conn, $bbddSql, ['diasFranqueados'], [], $filtrosDiasFranqueados, $filtrosOperadoresDiasFranqueados, [], [], $anio);
+		$resultado2 = $resDiasFranqueados['datos'];
 
 		$objetivo = $resultado[0]["objetivoFranqueo"];
 		$tantoPorciento = $resultado[0]["tantoPorcientoObjetivo"];
@@ -537,7 +550,9 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirInforme")
 		$pdf->SetXY($margen,$altura);
 		//$pdf->Cell(25,0,"Probabilidad: ".number_format( $probabilidad ,2,',','.') .EURO,0,1,'R',false);
 
-		$pdf->Cell(25,0,"Objetivo: ".number_format( $resultado[0]["objetivoFranqueo"] ,2,',','.') ." ".EURO,0,1,'L',false);
+		$diferenciaPorciento1 = number_format(($media*$diasHabiles)*100/$resultado[0]["objetivoFranqueo"] ,2,',','.');
+		
+		$pdf->Cell(25,0,"Objetivo: ".number_format( $resultado[0]["objetivoFranqueo"] ,2,',','.') ." ".EURO . utf8_decode("          Estimación:  ").number_format($media*$diasHabiles ,2,',','.') ." ".EURO . " (".$diferenciaPorciento1."%)",0,1,'L',false);
 
 
 		$pdf->SetXY($margen+50,$altura);
@@ -545,34 +560,111 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirInforme")
 		$diferenciaPorciento = number_format( $objetivo2*100/$objetivo ,2,',','.');
 
 		
-		$pdf->Cell(0,0,"Media anual actual: ".number_format($media ,2,',','.')." ".EURO,0,1,'R',false);
+		$pdf->Cell(0,0,"Media periodo: ".number_format($media ,2,',','.')." ".EURO,0,1,'R',false);
 
+		///////////DIAS TRABAJADOS/////////////
 
-		
-		//$probabilidad = -1;
 		$altura += 8;
 		$pdf->SetXY($margen,$altura);
 
-		
-		
-		
-		if ($diasPorFranquear=="0")
-		{
-			$pdf->Cell(0,0,utf8_decode("Dias que Faltan: ").$diasPorFranquear." (".number_format( 0 ,2,',','.')." ".EURO.")",0,1,'R',false);
-		}
-		else
-		{
-			$pdf->Cell(0,0,utf8_decode("Dias que Faltan: ").$diasPorFranquear." (".number_format( ($objetivo - $importeTotalSinIva)/$diasPorFranquear ,2,',','.') ." ".EURO.")",0,1,'R',false);
-		}
-		
-		
-		
-		$pdf->Cell(0,0,"Resta para el ".$tantoPorciento."% (".number_format($objetivo,2,',','.') ." ".EURO."): ".number_format( $objetivo - $importeTotalSinIva ,2,',','.') ." ".EURO. " (".$diferenciaPorciento."%)",0,1,'L',false);
+		$pdf->Cell(0,0,"Dias Habiles: ".$diasHabiles,0,1,'L',false);
+		$pdf->Cell(0,0,"Dias Franqueados: ".$diasFranqueados,0,1,'C',false);
+		$pdf->Cell(0,0,"Dias que Faltan: ".$diasPorFranquear,0,1,'R',false);
+		///////////////////////
 
 
-	
-		$altura +=8;
+		//////80%/////////
+		$altura += 8;
 		$pdf->SetXY($margen,$altura);
+		$objetivo80 = $resultado[0]["objetivoFranqueo"] * 80/100;
+		$objetivo80_2 = $objetivo80 - $importeTotalSinIva;
+		$diferenciaPorciento80 = number_format( $objetivo80_2*100/$objetivo80 ,2,',','.');
+		$probabilidad80 = $estimacionFranqueo -$objetivo80_2;
+		$pdf->Cell(0,0,"Resta para el 80% (".number_format($objetivo80,2,',','.') ." ".EURO."): ".number_format( $objetivo80 - $importeTotalSinIva ,2,',','.') ." ".EURO. " (".$diferenciaPorciento80."%) "."(".number_format( ($objetivo80_2)/$diasPorFranquear ,2,',','.') ." ".EURO.")",0,1,'L',false);
+		
+		if ($probabilidad80>0)
+		{
+			$pdf->SetTextColor(colorVerdeR,colorVerdeG,colorVerdeB);
+		}
+		if ($probabilidad80<0)
+		{
+			$pdf->SetTextColor(colorRojoR,colorRojoG,colorRojoB);
+		}
+		
+		$pdf->Cell(0,0,utf8_decode("Estimación: ").number_format( $probabilidad80 ,2,',','.')." ".EURO,0,1,'R',false);
+		$pdf->SetTextColor(0,0,0);
+		
+		///////////////////////
+
+		//////90%/////////
+		$altura += 8;
+		$pdf->SetXY($margen,$altura);
+		$objetivo90 = $resultado[0]["objetivoFranqueo"] * 90/100;
+		$objetivo90_2 = $objetivo90 - $importeTotalSinIva;
+		$diferenciaPorciento90 = number_format( $objetivo90_2*100/$objetivo90 ,2,',','.');
+		$probabilidad90 = $estimacionFranqueo -$objetivo90_2;
+		$pdf->Cell(0,0,"Resta para el 90% (".number_format($objetivo90,2,',','.') ." ".EURO."): ".number_format( $objetivo90_2 ,2,',','.') ." ".EURO. " (".$diferenciaPorciento90."%) "."(".number_format( ($objetivo90_2)/$diasPorFranquear ,2,',','.') ." ".EURO.")",0,1,'L',false);
+		
+		if ($probabilidad90>0)
+		{
+			$pdf->SetTextColor(colorVerdeR,colorVerdeG,colorVerdeB);
+		}
+		if ($probabilidad90<0)
+		{
+			$pdf->SetTextColor(colorRojoR,colorRojoG,colorRojoB);
+		}
+		
+		$pdf->Cell(0,0,utf8_decode("Estimación: ").number_format( $probabilidad90 ,2,',','.')." ".EURO,0,1,'R',false);
+		$pdf->SetTextColor(0,0,0);
+		
+		///////////////////////
+
+		//////95%/////////
+		$altura += 8;
+		$pdf->SetXY($margen,$altura);
+		$objetivo95 = $resultado[0]["objetivoFranqueo"] * 95/100;
+		$objetivo95_2 = $objetivo95 - $importeTotalSinIva;
+		$diferenciaPorciento95 = number_format( $objetivo95_2*100/$objetivo95 ,2,',','.');
+		$probabilidad95 = $estimacionFranqueo -$objetivo95_2;
+		$pdf->Cell(0,0,"Resta para el 95% (".number_format($objetivo95,2,',','.') ." ".EURO."): ".number_format( $objetivo95_2 ,2,',','.') ." ".EURO. " (".$diferenciaPorciento95."%) "."(".number_format( ($objetivo95_2)/$diasPorFranquear ,2,',','.') ." ".EURO.")",0,1,'L',false);
+		
+		if ($probabilidad95>0)
+		{
+			$pdf->SetTextColor(colorVerdeR,colorVerdeG,colorVerdeB);
+		}
+		if ($probabilidad95<0)
+		{
+			$pdf->SetTextColor(colorRojoR,colorRojoG,colorRojoB);
+		}
+		
+		$pdf->Cell(0,0,utf8_decode("Estimación: ").number_format( $probabilidad95 ,2,',','.')." ".EURO,0,1,'R',false);
+		$pdf->SetTextColor(0,0,0);
+		
+		///////////////////////
+
+		//////100%/////////
+		$altura += 8;
+		$pdf->SetXY($margen,$altura);
+		$objetivo100 = $resultado[0]["objetivoFranqueo"] * 100/100;
+		$objetivo100_2 = $objetivo100 - $importeTotalSinIva;
+		$diferenciaPorciento100 = number_format( $objetivo100_2*100/$objetivo100 ,2,',','.');
+		$probabilidad100 = $estimacionFranqueo -$objetivo100_2;
+		$pdf->Cell(0,0,"Resta para el 100% (".number_format($objetivo100,2,',','.') ." ".EURO."): ".number_format( $objetivo100_2 ,2,',','.') ." ".EURO. " (".$diferenciaPorciento100."%) "."(".number_format( ($objetivo100_2)/$diasPorFranquear ,2,',','.') ." ".EURO.")",0,1,'L',false);
+		
+		if ($probabilidad100>0)
+		{
+			$pdf->SetTextColor(colorVerdeR,colorVerdeG,colorVerdeB);
+		}
+		if ($probabilidad100<0)
+		{
+			$pdf->SetTextColor(colorRojoR,colorRojoG,colorRojoB);
+		}
+		
+		$pdf->Cell(0,0,utf8_decode("Estimación: ").number_format( $probabilidad100 ,2,',','.')." ".EURO,0,1,'R',false);
+		$pdf->SetTextColor(0,0,0);
+		
+		
+		/*
 		if ($diasPorFranquear=="0")
 		{
 			$pdf->Cell(0,0,utf8_decode("Dias que Faltan: ").$diasPorFranquear." (".number_format( 0 ,2,',','.')." ".EURO.")",0,1,'R',false);
@@ -581,29 +673,8 @@ if(isset($_POST["imprimirAccion"])&&$_POST["imprimirAccion"]=="imprimirInforme")
 		{
 			$pdf->Cell(0,0,utf8_decode("Dias que Faltan: ").$diasPorFranquear." (".number_format( ( $resultado[0]["objetivoFranqueo"] - $importeTotalSinIva)/$diasPorFranquear ,2,',','.') ." ".EURO.")",0,1,'R',false);
 		}
+*/
 
-
-		$diferencia100=number_format(($resultado[0]["objetivoFranqueo"] - $importeTotalSinIva)*100/$resultado[0]["objetivoFranqueo"] ,2,',','.');
-
-
-		
-
-		$pdf->SetXY($margen,$altura);
-		$pdf->Cell(0,0,"Resta para el 100% (".number_format( $resultado[0]["objetivoFranqueo"]  ,2,',','.') ." ".EURO."): ".number_format( $resultado[0]["objetivoFranqueo"] - $importeTotalSinIva ,2,',','.') ." ".EURO. " (".$diferencia100."%)",0,1,'L',false);
-		$altura +=8;
-		$pdf->SetXY($margen,$altura);
-
-		if ($probabilidad>0)
-		{
-			$pdf->SetTextColor(colorVerdeR,colorVerdeG,colorVerdeB);
-		}
-		if ($probabilidad<0)
-		{
-			$pdf->SetTextColor(colorRojoR,colorRojoG,colorRojoB);
-		}
-
-
-		$pdf->Cell(0,0,utf8_decode("Estimación: ").number_format( $probabilidad ,2,',','.')." ".EURO,0,1,'R',false);
 	}
 	
 	

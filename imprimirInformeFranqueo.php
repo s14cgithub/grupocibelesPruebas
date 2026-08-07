@@ -28,23 +28,63 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFranque
 	$separarPorFechas = $_POST["imprimirPorFechasInformeFranqueoModal"];
 	$saldoYdetalleCorreos = $_POST["imprimirCorreosDetalleModal"];
 	$ot = $_POST["imprimirOtInformeFranqueoModal1"];
-	
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$fechaInicio1 = date("Y-m-d", strtotime($fechaInicio));
+	$fechaFin1 = date("Y-m-d", strtotime($fechaFin));
+	$anioTarifasInformeFranqueo = date("Y", strtotime($fechaInicio));
+
+	$camposFranqueoInforme = ['nombreEmpresa','ot','descripcion','gramos','unitario','unidadesSuma','importeTotal','importeTotalSinIva','unitarioSinIva','codigo_saldo'];
+	$groupFranqueoInforme = ['nombre_empresa','ot','descripcion','gramos','codigo_saldo'];
+
+	$filtrosFranqueoInforme = ['comprobado' => 1];
+	if ($idCliente != "todos")
+	{
+		$filtrosFranqueoInforme['codigo_saldo'] = $idCliente;
+	}
+
+	$filtrosOperadoresFranqueoInforme = [
+		['campo1' => 'fecha', 'valor' => $fechaInicio1, 'operador' => '>='],
+		['campo1' => 'fecha', 'valor' => $fechaFin1, 'operador' => '<=']
+	];
+
+	$filtrosLikeFranqueoInforme = [];
+	if ($ot !== '')
+	{
+		$filtrosLikeFranqueoInforme[] = ['campo' => 'ot', 'valor' => $ot];
+	}
+
 	$ordenPorCodigoSaldo=0;
 	if ($separarPorFechas=="true")
 	{	
-		$datosFranqueo = verConsumoFranqueoGrabadosPorClienteYfechas($conexion,$idCliente,$fechaInicio,$fechaFin,1,'',$ordenPorCodigoSaldo,$ot);
+		$camposFranqueoInforme[] = 'fecha';
+		$groupFranqueoInforme[] = 'fecha';
 	}
 	else
 	{
-		//echo verConsumoFranqueoGrabadosPorClienteYfechas($conexion,$idCliente,$fechaInicio,$fechaFin,'');;
-		
 		if ($_SESSION["idEmpleado"]== 11)
 		{
 			$ordenPorCodigoSaldo=1;
 			
 		}
-		$datosFranqueo = verConsumoFranqueoGrabadosPorClienteYfechas($conexion,$idCliente,$fechaInicio,$fechaFin,'','',$ordenPorCodigoSaldo,$ot);
 	}
+
+	$orderFranqueoInforme = [];
+	if ($ordenPorCodigoSaldo==1)
+	{
+		$orderFranqueoInforme[] = ['campo' => 'codigo_saldo', 'dir' => 'ASC'];
+	}
+	$orderFranqueoInforme[] = ['campo' => 'nombre_empresa', 'dir' => 'ASC'];
+	$orderFranqueoInforme[] = ['campo' => 'ot', 'dir' => 'ASC'];
+	$orderFranqueoInforme[] = ['campo' => 'descripcion', 'dir' => 'ASC'];
+	$orderFranqueoInforme[] = ['campo' => 'gramos', 'dir' => 'ASC'];
+
+	$resFranqueoInforme = cargarFranqueoTipos($conn, $bbddSql, $camposFranqueoInforme, ['tabla2','tabla3'], $filtrosFranqueoInforme, $filtrosOperadoresFranqueoInforme, $groupFranqueoInforme, $orderFranqueoInforme, $anioTarifasInformeFranqueo, $filtrosLikeFranqueoInforme);
+
+	$datosFranqueo = $resFranqueoInforme['datos'];
 	
 	
 	//echo count($datosFranqueo[0]["nombreEmpresa"]);
@@ -533,18 +573,18 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFranque
 				$margen = $margenInicial;
 				$pdf->SetXY($margen,$altura);
 
-				$pdf->Cell(0,0,number_format($datosFranqueo[$contador]["importeTotalSinIva2"],2,',','.')." ".EURO,0,1,'R',false);
+				$pdf->Cell(0,0,number_format($datosFranqueo[$contador]["importeTotalSinIva"],2,',','.')." ".EURO,0,1,'R',false);
 
 
 				$margen = $margenInicial;
 
 
 				$unidadesExtension += $datosFranqueo[$contador]["unidades"];
-				$totalExtension += $datosFranqueo[$contador]["importeTotalSinIva2"];
+				$totalExtension += $datosFranqueo[$contador]["importeTotalSinIva"];
 
 				$unidadesTotal += $datosFranqueo[$contador]["unidades"];
-				$totalTotal += $datosFranqueo[$contador]["importeTotalSinIva2"];
-				$importeTotalFranqueo += $datosFranqueo[$contador]["importeTotalSinIva2"];
+				$totalTotal += $datosFranqueo[$contador]["importeTotalSinIva"];
+				$importeTotalFranqueo += $datosFranqueo[$contador]["importeTotalSinIva"];
 			}
 			else
 			{
@@ -648,9 +688,22 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFranque
 			
 			////////////////////////////////////////////////////////////////////////////////////////////////////
 			
+			$filtrosSaldoSinFranqueoInforme = ['codigoCliente' => $idCliente, 'presupuesto_no_vacio' => 1, 'formaPago_no_vacio' => 1];
+			$filtrosOperadoresSaldoSinFranqueoInforme = [
+				['campo1' => 'fecha', 'valor' => $fechaInicio1, 'operador' => '>='],
+				['campo1' => 'fecha', 'valor' => $fechaFin1, 'operador' => '<=']
+			];
+			$resSumatorioSaldoSinFranqueo = cargarProvisionDeFondo_movimientos($conn, $bbddSql, ['sumaMovimientosSinFranqueo'], $filtrosSaldoSinFranqueoInforme, $filtrosOperadoresSaldoSinFranqueoInforme, []);
+			$sumatorioSaldoSinFranqueo = $resSumatorioSaldoSinFranqueo['datos'];
+
 			if ($saldoYdetalleCorreos=="true")
 			{
-				$datosFacturasCorreos = verMovimientosSaldoSinFranqueoUnCliente($conexion, $fechaInicio, $fechaFin,$idCliente);
+				$camposFacturasCorreosInforme = ['presupuesto','fecha','importe'];
+				$orderFacturasCorreosInforme = [['campo' => 'id', 'dir' => 'ASC']];
+
+				$resFacturasCorreosInforme = cargarProvisionDeFondo_movimientos($conn, $bbddSql, $camposFacturasCorreosInforme, $filtrosSaldoSinFranqueoInforme, $filtrosOperadoresSaldoSinFranqueoInforme, $orderFacturasCorreosInforme);
+				$datosFacturasCorreos = $resFacturasCorreosInforme['datos'];
+
 				$contador=0;
 				$altura += 5;
 
@@ -671,8 +724,6 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFranque
 					$contador++;
 				}
 
-				$sumatorioSaldoSinFranqueo = verSumatorioMovimientosSaldoSinFranqueo($conexion, $fechaInicio, $fechaFin,$idCliente);
-
 				$altura += 10;
 				$margen = 60;
 				$pdf->SetFont('Arial','B',10);
@@ -688,14 +739,19 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFranque
 			$fechaInicio1 = date("Y-m-d", strtotime($fechaInicio));
 			
 			$saldoAnterior = 0.00;
-			//$datosSaldo = verHistoricoSaldo($conexion, date("d-m-Y",strtotime($fechaInicio."- 1 days")),$datosFranqueo[count($datosFranqueo)-1]["codigo_saldo"]);
-			$datosSaldo = verHistoricoSaldo($conexion, date("Y-m-d",strtotime($fechaInicio1."- 1 days")),$datosFranqueo[count($datosFranqueo)-1]["codigo_saldo"]);
+			$fechaHistoricoSaldo = date("Y-m-d", strtotime($fechaInicio1."- 1 days"));
+			$codigoClienteHistoricoSaldo = $datosFranqueo[count($datosFranqueo)-1]["codigo_saldo"];
+
+			$filtrosHistoricoSaldo = ['fechaMovimientoMax' => $fechaHistoricoSaldo, 'codigoClienteMovimientoMax' => $codigoClienteHistoricoSaldo];
+			$resHistoricoSaldo = cargarProvisionDeFondo_movimientos($conn, $bbddSql, ['saldoPostPF'], $filtrosHistoricoSaldo, [], []);
+			$datosSaldo = $resHistoricoSaldo['datos'];
 
 
 
 			if (count($datosSaldo)<=0)
 			{
-				$datosSaldo = mirarDatosEmpresaPorCodigo($conexion,$datosFranqueo[count($datosFranqueo)-1]["codigo_saldo"]);
+				$resDatosSaldoCliente = cargarClientes($conn, $bbddSql, ['importePF'], ['codigo' => $codigoClienteHistoricoSaldo], [], []);
+				$datosSaldo = $resDatosSaldoCliente['datos'];
 				$saldoAnterior = $datosSaldo[0]["importePF"];
 			}
 			else
@@ -742,8 +798,17 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFranque
 
 			//SEGUNDA COLUMNA
 
-			$sumatorioSaldos = verSumatorioMovimientosSaldo($conexion, $fechaInicio, $fechaFin,$idCliente); //con ajuste de saldo
-			$saldoAnteriorYajustesSaldo=$saldoAnterior+$sumatorioSaldos[0]["sumaMovimientos"];
+			
+			$filtrosSumatorioSaldos = ['codigoCliente' => $idCliente, 'informacionCuadre' => 'Ajuste de Saldo'];
+			$filtrosOperadoresSumatorioSaldos = [
+				['campo1' => 'fecha', 'valor' => $fechaInicio1, 'operador' => '>='],
+				['campo1' => 'fecha', 'valor' => $fechaFin1, 'operador' => '<=']
+			];
+			$resSumatorioSaldos = cargarProvisionDeFondo_movimientos($conn, $bbddSql, ['sumaMovimientosSinFranqueo'], $filtrosSumatorioSaldos, $filtrosOperadoresSumatorioSaldos, []);//con ajuste de saldo
+			//echo json_encode($resSumatorioSaldos);
+			//exit;
+			$sumatorioSaldos = $resSumatorioSaldos['datos'];
+			$saldoAnteriorYajustesSaldo=$saldoAnterior+$sumatorioSaldos[0]["sumaMovimientosSinFranqueo"];//saldo anterior
 			$altura -= 15;
 			$margen = 80;
 			$pdf->SetFont('Arial','',10);
@@ -757,7 +822,6 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirFranque
 			$altura += 5;			
 			$pdf->SetXY($margen,$altura);
 
-			$sumatorioSaldoSinFranqueo = verSumatorioMovimientosSaldoSinFranqueo($conexion, $fechaInicio, $fechaFin,$idCliente);
 			$pdf->Cell(50,0,number_format($sumatorioSaldoSinFranqueo[0]["sumaMovimientosSinFranqueo"],2,',','.')." ".EURO,0,1,'R',false); //esto esta bien
 			
 			

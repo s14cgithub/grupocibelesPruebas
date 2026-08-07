@@ -57,8 +57,36 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="Bonificaciones"
 		
 		//insertarTitulos($pdf,$altura,$margenInicial);
 		insertarTitulo1($pdf,$altura,$margenInicial);
-		
-		$datos = verBonificacionesFranqueo($conexion,$fechaInicio, $fechaFin,$codigoCliente); 
+
+		$conn1 = conectarSQL($conexion);
+		$conn = $conn1['conn'];
+		$bbddSql = $conn1['bbdd'];
+
+		$fechaInicio1 = date("Y-m-d", strtotime($fechaInicio));
+		$fechaFin1 = date("Y-m-d", strtotime($fechaFin));
+		$anioTarifasBonificaciones = date("Y", strtotime($fechaInicio));
+
+		$camposBonificaciones = ['nombre_empresa','subcliente','codigo_saldo','codigo','descripcion','descuentoPorCiento','importeBonificacion','bonificacion','gramos','precioNeto','unidadesSuma'];
+		$groupBonificaciones = ['nombre_empresa','subcliente','codigo_saldo','codigo','descripcion','descuentoPorCiento','gramos','precioNeto'];
+
+		$filtrosBonificaciones = ['comprobado' => 1, 'codigo_saldo' => $codigoCliente];
+		$filtrosOperadoresBonificaciones = [
+			['campo1' => 'fecha', 'valor' => $fechaInicio1, 'operador' => '>='],
+			['campo1' => 'fecha', 'valor' => $fechaFin1, 'operador' => '<=']
+		];
+
+		$orderBonificaciones = [
+			['campo' => 'descripcion', 'dir' => 'ASC'],
+			['campo' => 'nombre_empresa', 'dir' => 'ASC'],
+			['campo' => 'subcliente', 'dir' => 'ASC'],
+			['campo' => 'codigo_saldo', 'dir' => 'ASC'],
+			['campo' => 'codigo', 'dir' => 'ASC'],
+			['campo' => 'gramos', 'dir' => 'ASC']
+		];
+
+		$resBonificaciones = cargarFranqueoTipos($conn, $bbddSql, $camposBonificaciones, ['tabla2','tabla3','tabla13'], $filtrosBonificaciones, $filtrosOperadoresBonificaciones, $groupBonificaciones, $orderBonificaciones, $anioTarifasBonificaciones);
+
+		$datos = $resBonificaciones['datos']; 
 		//echo "<br>".$datos."<br>";		
 		//echo "<br>".count($datos)."<br>";
 		

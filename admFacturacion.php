@@ -160,14 +160,14 @@ if ($_SESSION["admInformes"]==1 || $_SESSION["admInformes"]==2)
 {
 	echo '<br><br>
 <h3>INFORMES FRANQUEO</h3>
-<button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirInformeCibelesCorreosDiferencias" data-whatever="@mdo">Cibeles VS Correos</button>
+<!--<button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirInformeCibelesCorreosDiferencias" data-whatever="@mdo">Cibeles VS Correos</button>-->
 <button type="button" class="btn btn-info" onClick="cargarListadoClientesInformeFranqueo()">Cliente</button>
 <button type="button" class="btn btn-info" onClick="cargarListadoSubClientesInformeFranqueo()">SubCliente</button>
 <button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirInformeFranqueoOTModal" data-whatever="@mdo">OT</button>
 <button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirInformeFranqueoConsumoPorProducto" data-whatever="@mdo">Consumo por Productos 1 - Produccion</button>
 <button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirInformeFranqueoConsumoPorProducto2" data-whatever="@mdo">Consumo por Productos 2 -  Raul</button>
 <button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirInformeFranqueoBonificacionGial" data-whatever="@mdo">Bonificaciones Gial</button>
-<button type="button" class="btn btn-info" onClick="cargarListadoClientesInformeFranqueoExtension()">VISALIA</button>
+<!--<button type="button" class="btn btn-info" onClick="cargarListadoClientesInformeFranqueoExtension()">VISALIA</button>-->
 
 ';
 	
@@ -236,7 +236,7 @@ if ($_SESSION["admInformes"]==1 || $_SESSION["admInformes"]==2)
         		<form>					
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Clientes:</label>
-						<select id="clienteInformeFranqueoModal" class="form-control"></select>
+						<select id="clienteInformeFranqueoModal" class="form-control" onchange="gestionSaldoSegunCliente()"></select>
           			</div>	
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Fecha Inicio:</label>
@@ -356,8 +356,8 @@ if ($_SESSION["admInformes"]==1 || $_SESSION["admInformes"]==2)
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Año:</label>
 						<select id="otInformeFranqueoOTModal" class="form-control">
-							<option value="2026">2026</option>
-							<option value="2025" selected>2025</option>	
+							<option value="2026 selected">2026</option>
+							<option value="2025">2025</option>	
 							<option value="2024">2024</option>
 							<option value="2023">2023</option>
 							<option value="2022">2022</option>

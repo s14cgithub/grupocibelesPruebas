@@ -1,5 +1,10 @@
 <?php
 
+ob_start();
+error_reporting(E_ALL);
+ini_set('display_errors', FALSE);
+ini_set('display_startup_errors', FALSE);
+
 //require("../../../../comprobarSesion.php");
 
 if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
@@ -25,7 +30,44 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 
 	
 	
-	$resultado=  verConsumoFranqueoGrabadosPorClienteYfechasExtension($conexion,$idCliente,$fechaInicio,$fechaFin,$extension,$ot);
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$fechaInicio1 = date("Y-m-d", strtotime($fechaInicio));
+	$fechaFin1 = date("Y-m-d", strtotime($fechaFin));
+	$anioTarifasInformeFranqueo = date("Y", strtotime($fechaInicio));
+
+	$camposFranqueoInforme = ['nombreEmpresa','ot','descripcion','gramos','unitario','unidadesSuma','importeTotal','unitarioSinIva','importeTotalSinIva'];
+	$groupFranqueoInforme = ['nombre_empresa','ot','descripcion','gramos'];
+
+	$filtrosFranqueoInforme = ['comprobado' => 1, 'idCliente' => $idCliente];
+
+	$filtrosOperadoresFranqueoInforme = [
+		['campo1' => 'fecha', 'valor' => $fechaInicio1, 'operador' => '>='],
+		['campo1' => 'fecha', 'valor' => $fechaFin1, 'operador' => '<=']
+	];
+
+	$filtrosLikeFranqueoInforme = [];
+	if ($extension !== '')
+	{
+		$filtrosLikeFranqueoInforme[] = ['campo' => 'ot', 'valor' => $extension];
+	}
+	if ($ot !== '')
+	{
+		$filtrosLikeFranqueoInforme[] = ['campo' => 'ot', 'valor' => $ot];
+	}
+
+	$orderFranqueoInforme = [
+		['campo' => 'nombre_empresa', 'dir' => 'ASC'],
+		['campo' => 'ot', 'dir' => 'ASC'],
+		['campo' => 'descripcion', 'dir' => 'ASC'],
+		['campo' => 'gramos', 'dir' => 'ASC']
+	];
+
+	$resFranqueoInforme = cargarFranqueoTipos($conn, $bbddSql, $camposFranqueoInforme, ['tabla2','tabla3'], $filtrosFranqueoInforme, $filtrosOperadoresFranqueoInforme, $groupFranqueoInforme, $orderFranqueoInforme, $anioTarifasInformeFranqueo, $filtrosLikeFranqueoInforme);
+
+	$resultado = $resFranqueoInforme['datos'];
 		
 	
 	
@@ -61,9 +103,6 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
  */
 
 /** Error reporting */
-error_reporting(E_ALL);
-ini_set('display_errors', TRUE);
-ini_set('display_startup_errors', TRUE);
 date_default_timezone_set('Europe/London');
 
 if (PHP_SAPI == 'cli')
@@ -123,7 +162,7 @@ while($contador-2 < count($resultado))
             ->setCellValue('C'.$contador, $resultado[$contador-2]["gramos"])
 			->setCellValue('D'.$contador, $resultado[$contador-2]["unitarioSinIva"])
 			->setCellValue('E'.$contador, $resultado[$contador-2]["unidades"])
-			->setCellValue('F'.$contador, $resultado[$contador-2]["importeTotalSinIva2"]);
+			->setCellValue('F'.$contador, $resultado[$contador-2]["importeTotalSinIva"]);
 	}
 
 	
@@ -154,6 +193,7 @@ $objPHPExcel->setActiveSheetIndex(0);
 	
 	
 // Redirect output to a client’s web browser (Excel2007)
+ob_end_clean();
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 header('Content-Disposition: attachment;filename="'.$nombreArchivo.'"');
 header('Cache-Control: max-age=0');

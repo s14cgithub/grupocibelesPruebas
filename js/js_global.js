@@ -1035,6 +1035,7 @@ function mostrarCargarClientesA()
 	}						
 }
 */
+/*
 function cargarSubClientes(condicion="",destino="")	//js_global			
 {	
 	idInputListado = destino;
@@ -1093,11 +1094,6 @@ function mostrarCargarSubClientes()
 					}
 
 					var contador = 0;
-					
-					/*if (idInputListado == 'buscarCliente')
-					{
-						contenido += '  <option value="0">Todos</option>';	
-					}*/
 
 					while  (contador<datos.length)
 					{
@@ -1115,6 +1111,7 @@ function mostrarCargarSubClientes()
 		}
 	}						
 }
+*/
 
 function cargarSubClientes2(campos,condicion="",destino="")	//js_global			
 {	

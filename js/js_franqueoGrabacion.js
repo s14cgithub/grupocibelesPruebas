@@ -1156,7 +1156,9 @@ function consultaCargarDatosFranqueoTipoPorReferencia(referencia)
 		'id',
 		'unidades',
 		'importe',
+		'importeSinIva',
 		'tarifa',
+		'tarifaSinIva',
 		'idTarifa',
 		'idCliente',
 		'fecha',
@@ -1212,7 +1214,9 @@ function mostrarCargarDatosFranqueoTipoPorReferencia()
 				contenido += '<td align="center">Tipo</td>	';
 				contenido += '<td align="center">Unidades</td>';
 				contenido += '<td align="center">Importe</td>';
+				contenido += '<td align="center" style="display:none"></td>';
 				contenido += '<td align="center">Tarifa</td>';
+				contenido += '<td align="center" style="display:none"></td>';
 				contenido += '<td align="center"></td>';
 				contenido += '<td align="center"></td>';
 				contenido += '</tr>';
@@ -1241,12 +1245,26 @@ function mostrarCargarDatosFranqueoTipoPorReferencia()
 
 					contenido += '<td><input type="number" id="'+datos[contador]["id"]+'_importe" name="'+datos[contador]["id"]+'_importe" style="width: 100%;" value="'+importe+'" readonly></input></td>';
 					
+					var importeSinIva = String(datos[contador]["importeSinIva"]);
+					if (importeSinIva.substring(0, 1) == ".") {
+						importeSinIva = "0" + importeSinIva;
+					}
+
+					contenido += '<td style="display:none"><input type="number" id="'+datos[contador]["id"]+'_importeSinIva" name="'+datos[contador]["id"]+'_importeSinIva" style="width: 100%;" value="'+importeSinIva+'" readonly></input></td>';
+					
 					var tarifa = String(datos[contador]["tarifa"]);
 					if (tarifa.substring(0, 1) == ".") {
 						tarifa = "0" + tarifa;
 					}					
 
 					contenido += '<td><input type="number" id="'+datos[contador]["id"]+'_tarifa" name="'+datos[contador]["id"]+'_tarifa" style="width: 100%;" value="'+tarifa+'" readonly></input></td>';
+					
+					var tarifaSinIva = String(datos[contador]["tarifaSinIva"]);
+					if (tarifaSinIva.substring(0, 1) == ".") {
+						tarifaSinIva = "0" + tarifaSinIva;
+					}
+
+					contenido += '<td style="display:none"><input type="number" id="'+datos[contador]["id"]+'_tarifaSinIva" name="'+datos[contador]["id"]+'_tarifaSinIva" style="width: 100%;" value="'+tarifaSinIva+'" readonly></input></td>';
 					
 					if (!permisosSoloLectura)
 					{
@@ -1478,6 +1496,7 @@ function consultaModificarFranqueoTipo(idInput)
 		tipo: 	sel.options[sel.selectedIndex].text,
 		unidades: document.getElementById(idInput+"_unidades").value,
 		importe: document.getElementById(idInput+"_importe").value,
+		importeSinIva: document.getElementById(idInput+"_importeSinIva").value,
 		ot: document.getElementById("otModal").value, //genericos
 		otSidi: document.getElementById("otSidiModal").value,
 		fecha: document.getElementById("fechaModal").value,
@@ -1530,6 +1549,17 @@ function recalcularImporteFranqueoTipo(idTipo)//js_franqueoGrabacion
 	}
 	
 	document.getElementById(idTipo+"_importe").value = Number(total2).toFixed(2);
+
+	var totalSinIva=0;
+	totalSinIva = unidades * Number(document.getElementById(idTipo+"_tarifaSinIva").value);
+	
+	var total2SinIva = String(totalSinIva);
+
+	if (total2SinIva.substring(0, 1) == ".") {
+		total2SinIva = "0" + total2SinIva;
+	}
+	
+	document.getElementById(idTipo+"_importeSinIva").value = Number(total2SinIva).toFixed(2);
 	
 	recalcularImporteTotalFranqueoTipo();
 	
@@ -1567,7 +1597,8 @@ function consultaModificarTarifaAlCambiarTipo(idInput)
 	var consulta = "accion=cargarTarifasFranqueo";
 
 	var campos = [
-		'importe_cantidadIndicada'
+		'importe_cantidadIndicada',
+		'importeSinIva_cantidadIndicada'
 	];
 
 	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
@@ -1627,6 +1658,14 @@ function mostrarModificarTarifaAlCambiarTipo()
 						}
 						
 						document.getElementById(valorNumero+"_tarifa").value = importe;
+
+						var importeSinIva = String(datos[0]["importeSinIva"]);
+						if (importeSinIva.substring(0, 1) == ".") {
+							importeSinIva = "0" + importeSinIva;
+						}
+
+						document.getElementById(valorNumero+"_tarifaSinIva").value = importeSinIva;
+
 						recalcularImporteFranqueoTipo(valorNumero);
 						valorNumero=0;
 						
