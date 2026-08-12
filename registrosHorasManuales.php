@@ -12,9 +12,6 @@ require($ruta."Archivos Comunes/cabecera.php");
 //require($ruta."Archivos Comunes/constantes.php");
 //$_SESSION["idEmpleado"];	
 
-$tiposProceso = cargarTipoDeProceso($conexion);
-$numero = count($tiposProceso);
-
 ?>
 <table align="center" border="0"  class="">
 	
@@ -102,14 +99,6 @@ $numero = count($tiposProceso);
 							<tr>
 							<hr>
 								<td>Tipo de Proceso: <select id="tipoProceso"  onChange="cargarSubprocesos();">
-
-								<?php 
-								for ($i = 0; $i < $numero; $i++)
-								{		
-									echo '<option value="'.$tiposProceso[$i]["id"].'">'.$tiposProceso[$i]["tipoProceso"].'</option>';
-								}
-								?>
-
 								</select></td>
 
 								<td>Proceso: <select id="procesoNombre"></select></td>
@@ -179,13 +168,6 @@ echo ("</html>");
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Tipo de Proceso:</label>
 						<select id="tipoProcesoModal" class="form-control"   onChange="cargarSubprocesos2();">
-						<?php 
-								for ($i = 0; $i < $numero; $i++)
-								{		
-									echo '<option value="'.$tiposProceso[$i]["id"].'">'.$tiposProceso[$i]["tipoProceso"].'</option>';
-								}
-						?>
-
 						</select>
           			</div>	
 					<div class="form-group">
@@ -226,13 +208,6 @@ echo ("</html>");
 							<td><label for="" class="" style="color:black;">Tipo de Proceso:</label></td>
 
 							<td><select id="tipoProcesoModal2" class=""   onChange="cargarSubprocesos2();">
-								<?php 
-										for ($i = 0; $i < $numero; $i++)
-										{		
-											echo '<option value="'.$tiposProceso[$i]["id"].'">'.$tiposProceso[$i]["tipoProceso"].'</option>';
-										}
-								?>
-
 							</select></td>
 						</tr>
 						<tr>
@@ -304,11 +279,14 @@ echo ("</html>");
 	cargarGramaje("RN_Gramaje");
 	cargarOrigen("RN_Origen");
 
+	cargarTiposProceso('tipoProceso');
+	cargarTiposProceso('tipoProcesoModal2');
+
 	cargarSubprocesos();
-	cargarClientes('A','clientes');
+	cargarClientes('clientes');
 
 	cargarSubprocesos2();
-	cargarClientes('A','clienteModal2');
+	cargarClientes('clienteModal2');
 
 
 	cargarImpresoras("impresoraModal2");

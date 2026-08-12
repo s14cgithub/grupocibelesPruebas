@@ -17,7 +17,7 @@ require($ruta."Archivos Comunes/cabecera.php");
 	
 	<tr>
 		<td>
-			<table border ="0" align="center">
+			<table id="buscador" border ="0" align="center">
 				<tr>
 					<td align="center">
 						<span style="margin-left: 100px">
@@ -69,7 +69,7 @@ require($ruta."Archivos Comunes/cabecera.php");
 						echo '<tr>
 					<td>
 						<hr>
-						<table style="text-align: center">
+						<table id="insertarNuevoRegistroManual" style="text-align: center">
 							<tr>
 								<td align="center">Empleado</td>
 								<td align="center">Proceso</td>							

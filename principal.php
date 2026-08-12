@@ -31,6 +31,68 @@ require($ruta."Archivos Comunes/cabecera.php");
 
 <?php
 
+	//PDA_GESTION
+	if ($_SESSION["permiso_pdaGestion"]==1 || $_SESSION["permiso_pdaGestion"] == 2)
+	{
+		echo ('<br><br>');	
+		echo ('<h4>PDA - Horas Realizadas</h4>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'pda_gestion.php\'">REGISTROS PDA</button>');	
+		//echo ('<button type="button" class="btn btn-info" onClick="location.href = \'registrosHorasManuales.php\'">REGISTROS INFORMATICA</button>');
+		//echo ('<button type="button" class="btn btn-info" onClick="location.href = \'registrosHorasManualesGF.php\'">REGISTROS G.F.</button>');	
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'registrosHorasManuales_Comprobacion.php\'">COMPROBAR REG. MANUALES</button>');	
+	}
+	else if($_SESSION["permiso_registrosHorasManuales"]==1 || $_SESSION["permiso_registrosHorasManuales"] == 2)
+	{
+		echo ('<br><br>');	
+		echo ('<h4>PDA - Horas Realizadas</h4>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'registrosHorasManualesGF.php\'">REGISTROS G.F.</button>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'registrosHorasManuales.php\'">REGISTROS INFORMATICA</button>');	
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'registrosHorasManualesAlmacen.php\'">REGISTROS ALMACEN</button>');	
+		
+	}
+	else if ( $_SESSION["permiso_registrosHorasManuales_Comprobacion"]==2)
+	{
+		echo ('<br><br>');	
+		echo ('<h4>PDA - Horas Realizadas</h4>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'registrosHorasManuales_Comprobacion.php\'">COMPROBAR INFORMATICA</button>');
+	}
+
+	//INFORMES PRODUCCION
+	if ($_SESSION["permiso_InformesProduccion"]==1 || $_SESSION["permiso_InformesProduccion"] == 2)
+	{
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'informesProduccion.php\'">Informes de Producción</button>');		
+	}
+
+	
+	//PRESUPUESTOS
+	if ($_SESSION["permiso_presupuestos"]==1 || $_SESSION["permiso_presupuestos"] == 2)
+	{
+		echo ('<br><br>');	
+		echo ('<h4>PRESUPUESTOS</h4>');	
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'presupuestos.php\'">Presupuestos</button>');		
+	}
+
+	//COMPRAS A TERCEROS
+	if ($_SESSION["permiso_comprasAterceros"]==1 || $_SESSION["permiso_comprasAterceros"] == 2 || $_SESSION["permiso_proveedores"]==1 || $_SESSION["permiso_proveedores"] == 2)	
+	{
+		echo ('<br><br>');	
+		echo ('<h4>Compras a Terceros</h4>');
+		if($_SESSION["permiso_proveedores"]==1 || $_SESSION["permiso_proveedores"] == 2)
+		{
+			echo ('<button type="button" class="btn btn-info" onClick="location.href = \'proveedores_listado.php\'">Proveedores</button>');
+		}				
+		if ($_SESSION["permiso_comprasAterceros"]==1 || $_SESSION["permiso_comprasAterceros"] == 2)
+		{
+			echo ('<button type="button" class="btn btn-info" onClick="location.href = \'comprasTercerosListado.php\'">Compras a Terceros</button>');
+			//echo ('<button type="button" class="btn btn-info" onClick="location.href = \'comprasTercerosListadoAntiguo.php\'">Antiguos</button>');
+		}
+		
+		if ($_SESSION["permiso_administracion_contabilidad"] == 1 || $_SESSION["permiso_administracion_contabilidad"] == 2)
+		{
+			echo '<button type="button" class="btn btn-info" onClick="location.href = \'comprasTercerosContabilidad.php\'">GESTION</button>';
+		}
+	}
+
 	//OT - ADMINISTRACION
 	if ($_SESSION["permiso_administracion"]==1 || $_SESSION["permiso_administracion"] == 2)
 	{
@@ -48,13 +110,6 @@ require($ruta."Archivos Comunes/cabecera.php");
 			echo '<button type="button" class="btn btn-info" onClick="location.href = \'admFacturacion.php\'">FACTURACION</button>';
 		}
 		
-	}
-	//PRESUPUESTOS
-	if ($_SESSION["permiso_presupuestos"]==1 || $_SESSION["permiso_presupuestos"] == 2)
-	{
-		echo ('<br><br>');	
-		echo ('<h4>PRESUPUESTOS</h4>');	
-		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'presupuestos.php\'">Presupuestos</button>');		
 	}
 
 	//MATERIALES

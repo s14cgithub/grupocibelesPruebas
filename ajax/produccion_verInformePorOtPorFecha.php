@@ -1,41 +1,26 @@
-<?php 
+<?php
 
-
-
-
-if(isset($_POST["accion"])&$_POST["accion"]=="verInformePorDia")
+if(isset($_POST["accion"]) && $_POST["accion"]=="verInformePorDia")
 {
 	$ruta = '../';
-	
+
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-		
-	
-	
-	$fechaAbuscar = $_POST["fecha"];
-	$fechaAbuscarFin = $_POST["fechaFin"];
-	
-	
-	
-	
-	
-	$registros = cargarOtPorFechas($conexion,$fechaAbuscar,$fechaAbuscarFin);
-		
-	//echo $registros[0]["nombreEmpleado"];
-	if (count($registros)<=0)
-	{
-		echo json_encode("");
-	}
-	else
-	{
 
-		echo json_encode($registros);
-	}
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
+
+	$fechaInicio = isset($filtros["fechaInicio"]) ? $filtros["fechaInicio"] : '';
+	$fechaFin = isset($filtros["fechaFin"]) ? $filtros["fechaFin"] : '';
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = cargarOtPorFechas($conn, $bbddSql, $fechaInicio, $fechaFin);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 }
-
-
-
-
-
 
 ?>

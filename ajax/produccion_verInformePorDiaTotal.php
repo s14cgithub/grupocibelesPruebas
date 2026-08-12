@@ -24,21 +24,46 @@ if(isset($_POST["accion"])&$_POST["accion"]=="verInformePorDia")
 	//$CantidadDiasHabiles = Evalua(DiasHabiles('19-10-2010','28-12-2010'));
 	//$CantidadDiasHabiles = Evalua(DiasHabiles($newDate,$newDateFin));
 	$CantidadDiasHabiles = Evalua();
-	
-	//die ("Error: ".$CantidadDiasHabiles);
-	
-	$registros = cargarHorasTotalEmpleadosTotal($conexion,$fechaAbuscar,$fechaAbuscarFin,$CantidadDiasHabiles);
-		
-	//echo $registros[0]["nombreEmpleado"];
-	if (count($registros)<=0)
-	{
-		echo json_encode("");
-	}
-	else
-	{
 
-		echo json_encode($registros);
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = cargarEmpleados(
+		$conn, $bbddSql,
+		['jornadaHoras','horasRealizadas'],
+		['activo' => 1, 'pdaOManuales' => 1, 'rangoRegistroHoras' => ['inicio' => $fechaAbuscar, 'fin' => $fechaAbuscarFin]],
+		array(),
+		array(),
+		['tabla_login','tabla_permisos','tabla_registroHorasRango'],
+		['nombre','apellidos','id']
+	);
+
+	//el total es la suma de lo que se ve por empleado (cada uno redondeado a 2 decimales); se redondea el total para quitar el ruido de coma flotante
+	if ($res['error'] == '')
+	{
+		$totalARealizar = 0;
+		$totalRealizadas = 0;
+		foreach ($res['datos'] as $fila)
+		{
+			$totalARealizar += $fila['jornadaHoras'] * $CantidadDiasHabiles;
+			$totalRealizadas += $fila['horasRealizadas'];
+		}
+
+		$totalRealizadas = round($totalRealizadas, 2);
+		$diferencia = round($totalARealizar - $totalRealizadas, 2);
+		$res['datos'] = array(array(
+			'horasARealizar1'   => $totalARealizar,
+			'horasRealizadas1'  => $totalRealizadas,
+			'diferencia1'       => $diferencia,
+			'segundosDiferencia'=> ($totalRealizadas - $totalARealizar) * 3600,
+			'diasDiferencia'    => ($totalRealizadas - $totalARealizar)
+		));
 	}
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 }
 
 

@@ -1,145 +1,42 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarRegistrosHoras")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarRegistrosHoras")
 {
 	$ruta = '../';
-	//require($ruta.$rutaCabecera);
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-		
-	session_start(); 
-	
-	
-	$otBuscar=$_POST["ot"];
 
-	$empleadoAbuscar = $_SESSION["idEmpleado"];
-	
-	$fechaInicio=$_POST["fechaInicio"];
-	$fechaFin=$_POST["fechaFin"];
-	$orden=$_POST["orden"];
-	$desc=$_POST["desc"];
-	//$meses = $_POST["meses"];
-	$meses = 7; //dias
-	if ($desc=="false")
+	session_start();
+
+	$campos=isset($_POST["campos"])?json_decode($_POST["campos"], true):array();
+	$joins=isset($_POST["joins"])?json_decode($_POST["joins"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
+	$group=isset($_POST["group"])?json_decode($_POST["group"], true):array();
+	$order=isset($_POST["order"])?json_decode($_POST["order"], true):array();
+
+	//el JS marca con "@sesion" el filtro que debe usar el idEmpleado logueado; el valor se coge de la sesion, nunca del cliente
+	if (is_array($filtros))
 	{
-		$desc = "asc";
-	}
-	else
-		$desc = "desc";
-	
-	
-
-	$fecha = "";
-	
-
-	if ($meses>0 && $fechaInicio=="")
-	{
-		$meses = $meses-2;
-		$fechaActual = date('d-m-Y');
-				
-		//$fechaInicio_1 = date("Y-m-01",strtotime($fechaActual."- ".$meses." month")); 
-		$fechaInicio_1 = date("Y-m-d",strtotime($fechaActual."- ".$meses." days")); 
-
-		if($fechaInicio!="" &&  $fechaInicio_1>$fechaInicio)
-		{			
-			$fechaInicio=$fechaInicio_1;
-		}
-		else if($fechaInicio=="")
+		foreach ($filtros as $clave => $valor)
 		{
-			$fechaInicio=$fechaInicio_1;
+			if ($valor === "@sesion")
+			{
+				$filtros[$clave] = $_SESSION["idEmpleado"];
+				break;
+			}
 		}
-		//echo "<br>".$fechaInicio_1."<br>";
-		//$fecha = " fecha >='".$fechaInicio."'";
 	}
 
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 
-	$condicion="";
-	/////////////////////////////////////////////////////
-	if ($otBuscar != "" )
-	{
-		$condicion = "where t1.".registroHora_columnaCodigoBarras." like '%-".$otBuscar."'";
-	}
-	
-	if ($empleadoAbuscar!="" and $condicion=="")
-	{
-		$condicion = "where t1.".registroHora_columnaIdEmpleado. " = ".$empleadoAbuscar;
-	}
-	else if ($empleadoAbuscar!="")
-	{
-		$condicion = $condicion." and t1.".registroHora_columnaIdEmpleado. " = '".$empleadoAbuscar."'";
-	}
-	
-	$fechaInicio1;
-	if ($fechaInicio!="")//la fecha viene con formato 'yyyy-mm-dd' y hay que convertirlo en 'dd-mm-yyy'
-	{
-		$fechaInicio1 = date("d-m-Y", strtotime($fechaInicio));
-	}
-	
-	$fechaFin1;
-	if ($fechaFin!="")//la fecha viene con formato 'yyyy-mm-dd' y hay que convertirlo en 'dd-mm-yyy'
-	{
-		$fechaFin1 = date("d-m-Y", strtotime($fechaFin));
-	}
-	
-	if ($fechaInicio!="" and $fechaFin!="" and $condicion=="") 
-	{
-		$condicion = "where t1.".registroHora_columnaHoraInicio. " >= '".$fechaInicio1."' and t1.".registroHora_columnaHoraInicio. " < '".date("d-m-Y",strtotime($fechaFin1."+ 1 days"))."'";
-	}
-	else if ($fechaInicio!="" and $fechaFin!="")
-	{
-		$condicion = $condicion." and t1.".registroHora_columnaHoraInicio. " >= '".$fechaInicio1."' and t1.".registroHora_columnaHoraInicio. " < '".date("d-m-Y",strtotime($fechaFin1."+ 1 days"))."'";
-	}
-	else if ($fechaInicio!="" and $condicion=="") 
-	{		
-		$condicion = "where t1.".registroHora_columnaHoraInicio. " >= '".$fechaInicio1."'";
-	}
-	else if ($fechaInicio!="" )
-	{
-		$condicion  = $condicion." and t1.".registroHora_columnaHoraInicio. " >= '".$fechaInicio1."'";
-	}
+	$res = cargarRegistrosHoras($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order, $group);
 
-	if ($condicion!="")
-	{
-		$condicion  = $condicion. " and idGFSubconjunto2 is not null";
-	}
-	else
-	{
-		$condicion = " where idGFSubconjunto2 is not null ";
-	}
+	sqlsrv_close($conn);
 
-	/*if ($meses>0)
-	{
-		$meses = $meses-1;
-		$fechaActual = date('d-m-Y');
-		$fechaInicio = date("01-m-Y",strtotime($fechaActual."- ".$meses." month")); 
-		$fecha = " fecha >='".$fechaInicio."'";
-	}*/
-
-
-	$condicion = $condicion. " order by ".$orden. " ".$desc;
-
-
-	/////////////////////////////////////////////////////
-	
-
-
-
-	
-	
-
-	
-	$registros = cargarRegistrosHoraInformatica($conexion,$condicion);
-	
-	if (count($registros)<=0)
-	{
-		echo json_encode("");
-		//echo ("Error2: No hay subprocesos para mostrar: ");
-	}
-	else
-	{
-		echo json_encode($registros);
-	}
-		
+	echo json_encode($res);
 }
 
 ?>

@@ -8,28 +8,16 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarConcepto")
 	require($ruta."Archivos Comunes/codigoInclude.php");
 		
 	
+	$campos=isset($_POST["campos"])?json_decode($_POST["campos"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
+	$order=isset($_POST["order"])?json_decode($_POST["order"], true):array();
+
 	$conn1 = conectarSQL($conexion);
 
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];
 
-	$campos = [
-		'id',
-		'nombreConcepto'		
-	];
-
-	$filtros = [
-			//'cliente' => 'EMPRESA SL'
-		];
-
-	$filtrosOperadores = [
-			//'cliente' => 'EMPRESA SL'
-		];
-
-	$order = [			
-			['campo' => 'nombreConcepto', 'dir' => 'ASC']
-		];
-	
 	$Conceptos = cargarConceptosGF($conn,$bbddSql, $campos, $filtros,$filtrosOperadores, $order);
 	
 	sqlsrv_close($conn);

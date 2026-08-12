@@ -10,15 +10,17 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarSubProcesos")
 	
 
 	$campos=isset($_POST["campos"])?json_decode($_POST["campos"], true):array();
+	$joins=isset($_POST["joins"])?json_decode($_POST["joins"], true):array();
 	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();	
-	$order=isset($_POST["order"])?$_POST["order"]:array();
+	$filtrosOperadores=isset($_POST["filtrosOperadores"])?json_decode($_POST["filtrosOperadores"], true):array();
+	$order=isset($_POST["order"])?json_decode($_POST["order"], true):array();
 
 	$conn1 = conectarSQL($conexion);
 
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];	
 	
-	$subProcesos = cargarProcesoBBDD($conn,$bbddSql, $campos, $filtros, $order);
+	$subProcesos = cargarProcesoBBDD($conn,$bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order);
 	//echo $cargarClientes['sql'];
 	sqlsrv_close($conn);
 	

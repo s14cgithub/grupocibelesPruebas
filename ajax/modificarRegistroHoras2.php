@@ -1,32 +1,23 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="modificarRegistro")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarRegistroHoras")
 {
-	session_start(); 
-	$ruta = '../';	
+	$ruta = '../';
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-			
-	$idRegistro = $_POST["idRegistro"];
-	$idProceso = $_POST["idProceso"];
-	$idCliente = $_POST["idCliente"];	
-	
-	
-	$usuario = $_SESSION['usuario'];
-	$tabla = tabla_registroHora;
-	$descripcion = "modificacion";
-	
-	
-	$modificar = true;		
-	$datosAntiguos = "";		
-	$datosNuevos = "idProceso: ".$idProceso. "| idCliente: ".$idCliente;		
-	$columna = "procesos";		
 
-	insertarRegistro ($conexion, $usuario, $descripcion, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,'');		
+	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
+	$filtros=isset($_POST["filtros"])?json_decode($_POST["filtros"], true):array();
 
-	modificarRegistroHoraSinProceso($conexion,$idRegistro,$idProceso,$idCliente);
-	
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = modificarRegistroHoras($conn, $bbddSql, $datos, $filtros);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 }
-
 
 ?>

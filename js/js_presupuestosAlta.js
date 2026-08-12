@@ -265,7 +265,14 @@ function cargarGfTipoProceso(idInput)
 
 function consultaCargarGfTipoProceso()
 {	
-	var consulta = "accion=cargarConcepto";	
+	var consulta = "accion=cargarConcepto";
+
+	var campos = ['id','nombreConcepto'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [{campo: 'nombreConcepto', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 

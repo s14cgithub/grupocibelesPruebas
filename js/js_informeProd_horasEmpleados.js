@@ -85,9 +85,10 @@ function mostrarCargarInformePorDia()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
@@ -95,8 +96,7 @@ function mostrarCargarInformePorDia()
 				var contenido = '<thead class="thead-dark"><tr><th class="thead-dark">Empleado</th><th class="thead-dark">Tiempo A Realizar</th><th class="thead-dark">Tiempo Trabajado</th><th class="thead-dark">Diferencia</th></tr></thead>';
 				contenido += '<tbody>';
 				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
 				if (datos.length<=0)
 				{
@@ -191,17 +191,17 @@ function mostrarCargarInformePorDiaTotal()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
 				
 				var contenido = '';
 				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
 				if (datos.length<=0)
 				{
@@ -294,16 +294,16 @@ function mostrarCargarInformePorDiaDetalle()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
 				
 				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
 				var contenido = '';
 				if (datos.length>0)
@@ -412,7 +412,7 @@ function mostrarCargarInformePorDiaDetalle()
 function irAinformeOt(presupuesto)
 {
 	//window.location.href = "http://172.26.0.17:8080/gestionGrupocibeles/informeProd_ot.php?presupuesto="+presupuesto;
-	window.location.href = "./informeProd_ot.php?presupuesto="+presupuesto;
+	//window.location.href = "./informeProd_ot.php?presupuesto="+presupuesto;
 }
 
 /*function imprimirPersonalizado(id){

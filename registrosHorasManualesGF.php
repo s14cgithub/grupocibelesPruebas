@@ -12,9 +12,6 @@ require($ruta."Archivos Comunes/cabecera.php");
 //require($ruta."Archivos Comunes/constantes.php");
 //$_SESSION["idEmpleado"];	
 
-$tiposProceso = cargarTipoDeProceso($conexion);
-$numero = count($tiposProceso);
-
 ?>
 <table align="center" border="0"  class="">
 	
@@ -94,14 +91,6 @@ $numero = count($tiposProceso);
 							<tr>
 							<hr>
 								<td>Tipo de Proceso: <select id="tipoProceso"  onChange="cargarSubprocesos();">
-
-								<?php 
-								for ($i = 0; $i < $numero; $i++)
-								{		
-									echo '<option value="'.$tiposProceso[$i]["id"].'">'.$tiposProceso[$i]["tipoProceso"].'</option>';
-								}
-								?>
-
 								</select></td>
 
 								<td>Proceso: <select id="procesoNombre"></select></td>
@@ -171,13 +160,6 @@ echo ("</html>");
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Tipo de Proceso:</label>
 						<select id="tipoProcesoModal" class="form-control"   onChange="cargarSubprocesos2();">
-						<?php 
-								for ($i = 0; $i < $numero; $i++)
-								{		
-									echo '<option value="'.$tiposProceso[$i]["id"].'">'.$tiposProceso[$i]["tipoProceso"].'</option>';
-								}
-						?>
-
 						</select>
           			</div>	
 					<div class="form-group">
@@ -213,12 +195,14 @@ echo ("</html>");
 	cargarSubConcepto1("RN_subconcepto1");
 	//cargarSubConcepto2("RN_subconcepto2");
 
+	cargarTiposProceso('tipoProceso');
+	cargarTiposProceso('tipoProcesoModal');
 
 	cargarSubprocesos();
-	cargarClientes('A','clientes');
+	cargarClientes('clientes');
 
 	cargarSubprocesos2();
-	cargarClientes('A','clienteModal');
+	cargarClientes('clienteModal');
 
 
 	cargarRegistrosHoras();

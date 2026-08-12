@@ -1,29 +1,23 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="verInformePorOt")
+if(isset($_POST["accion"]) && $_POST["accion"]=="verInformePorOt")
 {
 	$ruta = '../';
-	
+
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-		
-	
-	
-	$ot = $_POST["ot"];
-	//echo $fechaAbuscar;
-	
-		$registros = cargarDatosInformeOtCostes($conexion,$ot);
-		
-	
-		if (count($registros)<=0)
-		{
-			echo json_encode("");
-		}
-		else
-		{
-					
-			echo json_encode($registros);
-		}
+
+	$ot = isset($_POST["ot"]) ? $_POST["ot"] : '';
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = cargarDatosInformeOtCostes($conn, $bbddSql, $ot);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 }
 
 ?>

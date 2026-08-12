@@ -73,9 +73,13 @@ function cargarInformePorDia2()
 
 function consultaCargarInformePorDia()
 {	
+	var filtros = {
+		fechaInicio: document.getElementById("buscarFecha").value,
+		fechaFin: document.getElementById("buscarFechaFin").value
+	};
+
 	var consulta = "accion=verInformePorDia";
-	consulta += "&fecha=" + document.getElementById("buscarFecha").value;
-	consulta += "&fechaFin=" + document.getElementById("buscarFechaFin").value;
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	return consulta;	
 }
 
@@ -85,18 +89,18 @@ function mostrarCargarInformePorDia()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{
-				
+			var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
+				{
+					alert(res.error);
+					return;
+				}
+
+				var datos = res.datos;
+
 				var contenido = '<thead class="thead-dark"><tr><th class="thead-dark">PRESUPUESTO</th><th class="thead-dark">MINUTOS TRABAJADOS</th><th class="thead-dark">FINALIZADO</th><th class="thead-dark">CANTIDAD TOTAL</th><th class="thead-dark">CANTIDAD REALIZADA</th><th class="thead-dark">ESTADO</th></tr></thead>';
 				contenido += '<tbody>';
-				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
 				
 				if (datos.length<=0)
 				{
@@ -134,7 +138,6 @@ function mostrarCargarInformePorDia()
 				
 				
 				
-			}
 			
 			peticionUnica1 = null;
 		}
@@ -157,9 +160,13 @@ function cargarInformePorDiaTotal()
 
 function consultaCargarInformePorDiaTotal()
 {	
+	var filtros = {
+		fechaInicio: document.getElementById("buscarFecha").value,
+		fechaFin: document.getElementById("buscarFechaFin").value
+	};
+
 	var consulta = "accion=verInformePorDia";
-	consulta += "&fecha=" + document.getElementById("buscarFecha").value;
-	consulta += "&fechaFin=" + document.getElementById("buscarFechaFin").value;
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	return consulta;	
 }
 
@@ -169,17 +176,17 @@ function mostrarCargarInformePorDiaTotal()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{
+			var contenido = '';
 				
-				var contenido = '';
-				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
+				{
+					alert(res.error);
+					return;
+				}
+
+				var datos = res.datos;
 				
 				if (datos.length<=0)
 				{
@@ -215,7 +222,6 @@ function mostrarCargarInformePorDiaTotal()
 				
 				
 				
-			}
 			
 			peticionUnica1 = null;
 		}
@@ -260,16 +266,15 @@ function mostrarCargarInformePorDiaDetalle()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{
-				
-				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+			var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
+				{
+					alert(res.error);
+					return;
+				}
+
+				var datos = res.datos;
 				
 				var contenido = '';
 				if (datos.length>0)
@@ -370,7 +375,6 @@ function mostrarCargarInformePorDiaDetalle()
 				
 				
 				
-			}
 		}
 	}						
 }
@@ -378,7 +382,7 @@ function mostrarCargarInformePorDiaDetalle()
 function irAinformeOt(presupuesto)
 {
 	//window.location.href = "http://172.26.0.17:8080/gestionGrupocibeles/informeProd_ot.php?presupuesto="+presupuesto;
-	window.location.href = "./informeProd_ot.php?presupuesto="+presupuesto;
+	//window.location.href = "./informeProd_ot.php?presupuesto="+presupuesto;
 }
 
 /*function imprimirPersonalizado(id){

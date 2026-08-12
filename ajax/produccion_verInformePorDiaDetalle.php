@@ -12,20 +12,16 @@ if(isset($_POST["accion"])&$_POST["accion"]=="verInformePorDiaDetalle")
 	$fechaAbuscar = $_POST["fecha"];
 	$fechaAbuscarFin = $_POST["fechaFin"];
 	$nombreEmpleado = $_POST["nombreEmpleado"];
-	//echo $fechaAbuscar;
-	
-		$registros = cargarHorasDetallesEmpleado($conexion,$fechaAbuscar,$fechaAbuscarFin,$nombreEmpleado);
-		
-	//echo $registros[0]["nombreEmpleado"];
-		if (count($registros)<=0)
-		{
-			echo json_encode("");
-		}
-		else
-		{
-					
-			echo json_encode($registros);
-		}
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = cargarHorasDetallesEmpleado($conn, $bbddSql, $fechaAbuscar, $fechaAbuscarFin, $nombreEmpleado);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 }
 
 ?>

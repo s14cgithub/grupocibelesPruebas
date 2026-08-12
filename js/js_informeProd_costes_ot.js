@@ -43,16 +43,17 @@ function mostrarCargarInformePorOt()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{
-				//alert(peticion7.responseText);				
+			//alert(peticion7.responseText);				
 				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
+				{
+					alert(res.error);
+					return;
+				}
+
+				var datos = res.datos;
 				
 				var contenido = '';
 				
@@ -274,7 +275,6 @@ function mostrarCargarInformePorOt()
 				
 				
 				
-			}
 		}
 	}						
 }
@@ -316,15 +316,15 @@ function mostrarCargarTotales()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{	
-				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+			var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
+				{
+					alert(res.error);
+					return;
+				}
+
+				var datos = res.datos;
 				
 				var contenido = '';
 				
@@ -547,7 +547,6 @@ function mostrarCargarTotales()
 				
 				
 				
-			}
 		}
 	}						
 }
@@ -636,15 +635,20 @@ function mostrarCargarDetallesCalculosInformatica()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{	
-				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+			var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
+				{
+					alert(res.error);
+					return;
+				}
+
+				var datos = res.datos;
+
+				if (!datos || datos.length <= 0)
+				{
+					return;
+				}
 				
 				var contenido = '';
 				
@@ -677,7 +681,6 @@ function mostrarCargarDetallesCalculosInformatica()
 				
 				
 				
-			}
 		}
 	}						
 }
@@ -718,15 +721,20 @@ function mostrarCargarDetallesCalculosPresupuestos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{	
-				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+			var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
+				{
+					alert(res.error);
+					return;
+				}
+
+				var datos = res.datos;
+
+				if (!datos || datos.length <= 0)
+				{
+					return;
+				}
 				
 				var contenido = '';
 				
@@ -772,7 +780,6 @@ function mostrarCargarDetallesCalculosPresupuestos()
 				
 				
 				
-			}
 		}
 	}						
 }
@@ -853,16 +860,15 @@ function mostrarCargarInformePorOtDetalle()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{
-				
-				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+			var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
+				{
+					alert(res.error);
+					return;
+				}
+
+				var datos = res.datos;
 				
 				var contenido = '';
 				if (datos.length>0)
@@ -909,7 +915,6 @@ function mostrarCargarInformePorOtDetalle()
 				
 				
 				
-			}
 		}
 	}						
 }
@@ -943,19 +948,18 @@ function mostrarVersiHayConversor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
-			{
-				alert(peticionUnica1.responseText);
-			}
-			else
-			{
-				
-				
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+			var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
+				{
+					alert(res.error);
+					return;
+				}
+
+				var datos = res.datos;
 				
 				var contenido = '';
-				if (datos.length>0)
+				if (datos.length>0 && datos[0]["valorConversor"] != null)
 				{
 					conversor = datos[0]["valorConversor"];
 				}
@@ -965,7 +969,6 @@ function mostrarVersiHayConversor()
 				}
 					
 				
-			}
 		}
 	}						
 }
@@ -978,7 +981,7 @@ function cargarListadoCampana()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarListadoCampana;
-		peticionUnica1.open("POST","ajax/mostrarPresupuestos3_Informe.php",false);
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarListadoCampana();
 		peticionUnica1.send(query_string);						
@@ -987,11 +990,21 @@ function cargarListadoCampana()
 
 function consultaCargarListadoCampana()
 {	
-	var consulta = "accion=mostrarPresupuesto";
-	consulta += "&meses=6";
-	consulta += "&orden=presupuesto";
-	
-	
+	var meses = 6;
+	var hoy = new Date();
+	var d = new Date(hoy.getFullYear(), hoy.getMonth() - (meses - 1), 1);
+	var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+	var fechaInicio = '01-' + mm + '-' + d.getFullYear();
+
+	var campos = ['presupuesto','campana'];
+	var filtrosOperadores = [{campo1:'fecha', operador:'>=', valor:fechaInicio}];
+	var order = [{campo:'presupuesto', dir:'ASC'}];
+
+	var consulta = "accion=cargarPresupuestos";
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 
@@ -1001,59 +1014,49 @@ function mostrarCargarListadoCampana()
 		{
 			if(peticionUnica1.status == 200)
 			{
-				if (peticionUnica1.responseText.substr(0,5)=="Error")
+				var res = JSON.parse(peticionUnica1.responseText);
+
+				if (res.error != "")
 				{
-					alert(peticionUnica1.responseText);
+					alert(res.error);
+					return;
 				}
-				else
-				{				
-					var datos = new Array;
-					
-					try 
+
+				var datos = res.datos;
+
+				if (datos && datos.length > 0)
 					{
-						datos = JSON.parse(peticionUnica1.responseText);
-					}
-					catch (error)
-					{
-						datos="";						
-					}
-					
-					if (datos != "")
-					{					
-						if (datos.length<=0)
-						{						
-						}
-						else
+						var contenido = "";
+						var contenido2 = "";
+						var contador = 0;
+
+
+						contenido += '<option value="2412135">2412135</option>';
+						contenido2 += '<option value="2412135">2412135</option>';
+						contenido += '<option value="2412233">2412233</option>';
+						contenido2 += '<option value="2412233">2412233</option>';
+
+						contenido += '<option value="2402115">2402115</option>';
+						contenido2 += '<option value="2402115">2402115</option>';
+
+						
+
+
+						while  (contador<datos.length)
 						{
-							
-							var contenido = "";
-							var contenido2 = "";
-							var contador = 0;
-	
+							contenido += '<option value="'+datos[contador]["presupuesto"]+'">'+datos[contador]["campana"]+'</option>';
+							contenido2 += '<option value="'+datos[contador]["presupuesto"]+'">'+datos[contador]["presupuesto"]+'</option>';
+							contador++;
+						}	
 
-							contenido += '<option value="2412135">2412135</option>';
-							contenido2 += '<option value="2412135">2412135</option>';
-							contenido += '<option value="2412233">2412233</option>';
-							contenido2 += '<option value="2412233">2412233</option>';
-							
-							
-							while  (contador<datos.length)
-							{
-								contenido += '<option value="'+datos[contador]["presupuesto"]+'">'+datos[contador]["campana"]+'</option>';
-								contenido2 += '<option value="'+datos[contador]["presupuesto"]+'">'+datos[contador]["presupuesto"]+'</option>';
-								contador++;
-							}	
-
-							document.getElementById("listadoCampana").innerHTML = contenido;
-							document.getElementById("buscarOt").innerHTML = contenido2;					
-						}
+						document.getElementById("listadoCampana").innerHTML = contenido;
+						document.getElementById("buscarOt").innerHTML = contenido2;					
 					}
 					else
 					{
 						document.getElementById("listadoCampana").innerHTML = "";
 						document.getElementById("buscarOt").innerHTML = "";
 					}
-				}
 				peticionUnica1=null;
 					
 			}

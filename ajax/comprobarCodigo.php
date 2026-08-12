@@ -1,6 +1,6 @@
 <?php 
 
-if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
+if(isset($_POST["accion"])&&$_POST["accion"]=="comprobarCodigo")
 { 
 	$ruta = '../';
 	//require($ruta.$rutaCabecera);
@@ -9,7 +9,11 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 		
 	
 	
-	$codigoBarras = $_POST["valor"];
+	$datos=isset($_POST["datos"])?json_decode($_POST["datos"], true):array();
+
+	$res = array('error' => '', 'datos' => array());
+
+	$codigoBarras = $datos["codigoBarras"];
 	$codigoBarras_id="";
 	$codigoBarras_presupuesto="";
 	
@@ -20,20 +24,33 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 	
 	if ($posicion===false)
 	{
-		echo ("Error1: No existe ese codigo: ".$codigoBarras);
+		$res['error'] = "Error1: No existe ese codigo: ".$codigoBarras;
 	}
 	else
 	{
 		
 		$codigoBarras_id = substr($codigoBarras,0,$posicion);
 		$codigoBarras_presupuesto = substr($codigoBarras,$posicion+1,$codigoBarras_longitud-$posicion);
+
+		$conn1 = conectarSQL($conexion);
+		$conn = $conn1['conn'];
+		$bbddSql = $conn1['bbdd'];
+
+		$camposTrabajo = ['cliente','campana','cantidadTrabajo','concepto','cantidadProceso','descripcion','notaCibeles','presupuestador','fechaCompromiso'];
+		$joinsTrabajo = ['tabla15','tabla16'];
+		$filtrosTrabajo = ['id' => $codigoBarras_id, 'presupuesto' => $codigoBarras_presupuesto];
+		$resTrabajo = cargarDetallesPresupuesto($conn, $bbddSql, $camposTrabajo, $joinsTrabajo, $filtrosTrabajo, array(), array());
+		$trabajo = $resTrabajo['datos'];
+		//echo $trabajo[0]["cliente"];		
 		
-		$trabajo=comprobarCodigo($conexion,$codigoBarras_id, $codigoBarras_presupuesto);
-		//echo $trabajo[0]["cliente"];
-		
-		if (count($trabajo)<=0)
+
+		if (!empty($resTrabajo['error']))
 		{
-			echo ("Error2: No existe ese codigo: ".$codigoBarras);
+			$res['error'] = "resTrabajo:".$resTrabajo['error'];
+		}
+		else if (count($trabajo)<=0)
+		{
+			$res['error'] = "Error2: No existe ese codigo: ".$codigoBarras;
 		}
 		else
 		{	
@@ -47,9 +64,20 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 			$idEmpleado = $_SESSION["idEmpleado"];
 			
 			//$registroTrabajo=verUltimoRegistroTrabajo($conexion, $idEmpleado);
-			$registroTrabajo = verSiHayProcesoAbiertoPorEmpleado($conexion, $idEmpleado);		
-			
-			
+			$camposReg = ['id','estado','codigoBarras'];
+			$joinsReg = ['tabla_presupuestos','tabla_presupuestosDetalle','tabla_procesos'];
+			$filtrosReg = ['idEmpleado' => $idEmpleado];
+			$filtrosOperadoresReg = [['campo1' => 'estado', 'valor' => estadoCerrado, 'operador' => '!=']];
+			$resReg = cargarRegistrosHoras($conn, $bbddSql, $camposReg, $joinsReg, $filtrosReg, $filtrosOperadoresReg, array());
+			$registroTrabajo = $resReg['datos'];
+
+			if (!empty($resReg['error']))
+			{
+				$res['error'] = "resReg: ".$resReg['error'];
+				$seguir = false;
+			}
+
+
 			$iniciarTrabajo=false;			
 			
 			if (count($registroTrabajo)<=0)
@@ -65,7 +93,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 			else if ($registroTrabajo[0]["codigoBarras"] != $codigoBarras)
 			{ //echo "entra2";
 				//die ("Error3:".$idEmpleado);
-				echo ("Error3: primero hay que cerrar el proceso: ".$registroTrabajo[0]["codigoBarras"]);		
+				$res['error'] = "Error3: primero hay que cerrar el proceso: ".$registroTrabajo[0]["codigoBarras"];
 				$seguir = false;
 			}
 			
@@ -79,19 +107,33 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 					
 					/*DATOS ORIGINALES*/
 					
-					insertarRegistroTrabajoInicio($conexion,$codigoBarras,$idEmpleado,$fechaActual,modoPDA);
+					$resInsertarRegistros = insertarRegistroHoras($conn, $bbddSql, ['idEmpleado' => $idEmpleado, 'codigoBarras' => $codigoBarras, 'horaInicio' => $fechaActual, 'estado' => estadoAbierto, 'cantidad' => 0, 'observaciones' => '', 'modo' => modoPDA]);
 
 					
-					$registroTrabajo2=verUltimoRegistroTrabajo($conexion, $idEmpleado);
-					$idUltimoTrabajo2 = $registroTrabajo2[0]["id"];
-					//echo $idUltimoTrabajo2;
-					insertarUsuarioRegistroTrabajo($conexion,$idUltimoTrabajo2);
+					
+					$resReg2 = cargarRegistrosHoras($conn, $bbddSql, ['id'], [], ['maxIdPorEmpleado' => $idEmpleado], [], array());
+					$registroTrabajo2 = $resReg2['datos'];
+					if (!empty($resReg2['error']))
+					{
+						$res['error'] = "resReg2:".$resReg2['error'];
+					}
+					$idUltimoTrabajo2 = (count($registroTrabajo2)>0) ? $registroTrabajo2[0]["id"] : 0;
+									
+					$resEmpleado = cargarEmpleados($conn, $bbddSql, ['nombre','apellidos'], ['id' => $idEmpleado], array(), array());
+					if (count($resEmpleado['datos'])>0)
+					{
+						$nombreEmpleado = $resEmpleado['datos'][0]["nombre"]." ".$resEmpleado['datos'][0]["apellidos"];
+						modificarRegistroHoras($conn, $bbddSql, ['nombreEmpleado' => $nombreEmpleado], ['id' => $idUltimoTrabajo2]);
+					}
 
-
+					
 					/*FIN DATOS ORIGINALES*/
 
 						
-					$resultadoMultiUsuario = verMultiUsuarioPorIdUsuario($conexion, $idEmpleado);
+					$resMU = cargarRegistroHoras_multiusuario($conn, $bbddSql, ['idEmpleadoDistinct'], [], ['idUsuario' => $idEmpleado], []);
+					$resultadoMultiUsuario = $resMU['datos'];
+
+					
 
 					$contadorMultiUsuario = 0;
 					while ($contadorMultiUsuario<count($resultadoMultiUsuario))
@@ -99,30 +141,41 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 						//echo "entra5".count($resultadoMultiUsuario);
 						
 						$idEmpleadoMultiUsuario = $resultadoMultiUsuario[$contadorMultiUsuario]["idEmpleado"];
-						insertarRegistroTrabajoInicio($conexion,$codigoBarras,$idEmpleadoMultiUsuario,$fechaActual,modoPDA);
-						$registroTrabajoMultiUsuario=verUltimoRegistroTrabajo($conexion, $idEmpleadoMultiUsuario);
-						$idUltimoTrabajoMultiUsuario = $registroTrabajoMultiUsuario[0]["id"];
-						insertarUsuarioRegistroTrabajo($conexion,$idUltimoTrabajoMultiUsuario);
+						insertarRegistroHoras($conn, $bbddSql, ['idEmpleado' => $idEmpleadoMultiUsuario, 'codigoBarras' => $codigoBarras, 'horaInicio' => $fechaActual, 'estado' => estadoAbierto, 'cantidad' => 0, 'observaciones' => '', 'modo' => modoPDA]);
+						$resRegMulti = cargarRegistrosHoras($conn, $bbddSql, ['id'], [], ['maxIdPorEmpleado' => $idEmpleadoMultiUsuario], [], array());
+						$registroTrabajoMultiUsuario = $resRegMulti['datos'];
+						if (count($registroTrabajoMultiUsuario)>0)
+						{
+							$idUltimoTrabajoMultiUsuario = $registroTrabajoMultiUsuario[0]["id"];
+							$resEmpleadoMulti = cargarEmpleados($conn, $bbddSql, ['nombre','apellidos'], ['id' => $idEmpleadoMultiUsuario], array(), array());
+							if (count($resEmpleadoMulti['datos'])>0)
+							{
+								$nombreEmpleadoMulti = $resEmpleadoMulti['datos'][0]["nombre"]." ".$resEmpleadoMulti['datos'][0]["apellidos"];
+								modificarRegistroHoras($conn, $bbddSql, ['nombreEmpleado' => $nombreEmpleadoMulti], ['id' => $idUltimoTrabajoMultiUsuario]);
+							}
+						}
 
 						$contadorMultiUsuario++;
 					}
 
 
 
-					echo json_encode($trabajo);
+					$res['datos'] = $trabajo;
 				}
 				else //se cierra el trabajo
 				{
 
 
-					$resultadoSiEstaAbierto = verMultiUsuarioPorIdEmpleado($conexion, $idEmpleado);
+					$resSiAbierto = cargarRegistroHoras_multiusuario($conn, $bbddSql, ['empleadoInicio'], ['tabla_empleadoInicio'], ['idEmpleado' => $idEmpleado], []);
+					$resultadoSiEstaAbierto = $resSiAbierto['datos'];
 					if (count($resultadoSiEstaAbierto)>0)
 					{
-						echo "Error: Tiene un proceso abierto. El proceso a sido abierto por ". $resultadoSiEstaAbierto[0]["empleadoInicio"]. ". El proceso tiene que ser cerrado por ". $resultadoSiEstaAbierto[0]["empleadoInicio"];
+						$res['error'] = "Error: Tiene un proceso abierto. El proceso a sido abierto por ". $resultadoSiEstaAbierto[0]["empleadoInicio"]. ". El proceso tiene que ser cerrado por ". $resultadoSiEstaAbierto[0]["empleadoInicio"];
 					}
 					else
 					{
-						$resultadoMultiUsuarioCierre =  verMultiUsuarioPorIdUsuario($conexion, $idEmpleado);
+						$resMUCierre = cargarRegistroHoras_multiusuario($conn, $bbddSql, ['idEmpleadoDistinct'], [], ['idUsuario' => $idEmpleado], []);
+						$resultadoMultiUsuarioCierre = $resMUCierre['datos'];
 						$cantidadEmpleados = count($resultadoMultiUsuarioCierre) + 1;
 						
 	
@@ -131,7 +184,7 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 						/*******DATOS ORIGINALES */
 						$idUltimoTrabajo = $registroTrabajo[0]["id"];
 	
-						$cantidad=$_POST["cantidad"];
+						$cantidad=$datos["cantidad"];
 						if ($cantidad == "")
 						{
 							$cantidad =0;
@@ -143,15 +196,14 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 						}
 	
 						
-						$notas = $_POST["notas"];;
+						$notas = $datos["notas"];
 	
-						$iniciarTrabajo=true;									
 						$fechaActual = date('d/m/Y H:i:s');
 	
 						
 						//insertarFinTrabajo($conexion,$codigoBarras,$idEmpleado,$fechaActual,"pda",$idUltimoTrabajo,$cantidad,$notas);
 						
-						insertarFinTrabajo($conexion,$codigoBarras,$idEmpleado,$fechaActual,"pda",$idUltimoTrabajo,$cantidad,$notas);
+						modificarRegistroHoras($conn, $bbddSql, ['horaFin' => $fechaActual, 'modo' => 'pda', 'cantidad' => $cantidad, 'observaciones' => $notas, 'estado' => estadoCerrado], ['id' => $idUltimoTrabajo, 'idEmpleado' => $idEmpleado, 'codigoBarras' => $codigoBarras]);
 	
 	
 	
@@ -162,19 +214,27 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 						{ 
 	
 							$idEmpleadoMultiUsuario = $resultadoMultiUsuarioCierre[$contadorMultiUsuario]["idEmpleado"];
-							$registroTrabajoCierre = verSiHayProcesoAbiertoPorEmpleado($conexion, $idEmpleadoMultiUsuario);
-							$idUltimoTrabajoCierre = $registroTrabajoCierre[0]["id"];
-							insertarFinTrabajo($conexion,$codigoBarras,$idEmpleadoMultiUsuario,$fechaActual,"pda",$idUltimoTrabajoCierre,$cantidad,$notas);
+							$camposCierre = ['id'];
+							$joinsCierre = ['tabla_presupuestos','tabla_presupuestosDetalle','tabla_procesos'];
+							$filtrosCierre = ['idEmpleado' => $idEmpleadoMultiUsuario];
+							$filtrosOperadoresCierre = [['campo1' => 'estado', 'valor' => estadoCerrado, 'operador' => '!=']];
+							$resRegCierre = cargarRegistrosHoras($conn, $bbddSql, $camposCierre, $joinsCierre, $filtrosCierre, $filtrosOperadoresCierre, array());
+							$registroTrabajoCierre = $resRegCierre['datos'];
+							if (count($registroTrabajoCierre)>0)
+							{
+								$idUltimoTrabajoCierre = $registroTrabajoCierre[0]["id"];
+								modificarRegistroHoras($conn, $bbddSql, ['horaFin' => $fechaActual, 'modo' => 'pda', 'cantidad' => $cantidad, 'observaciones' => $notas, 'estado' => estadoCerrado], ['id' => $idUltimoTrabajoCierre, 'idEmpleado' => $idEmpleadoMultiUsuario, 'codigoBarras' => $codigoBarras]);
+							}
 						
 	
 							$contadorMultiUsuario++;
 						}
 	
-						quitarMultiUsuarioPorIdUsuario($conexion, $idEmpleado);
+						eliminarRegistroHoras_multiusuario($conn, $bbddSql, ['idUsuario' => $idEmpleado]);
 	
 	
 	
-						echo json_encode("");
+						//proceso cerrado: $res['datos'] queda vacio
 					}
 
 
@@ -216,6 +276,8 @@ if(isset($_POST["accion"])&$_POST["accion"]=="comprobarCodigo")
 					{
 						echo "no entra";
 					}*/
+
+	echo json_encode($res);
 	
 	//echo ("\nid: ".$codigoBarras_id);
 	//echo ("\npresupuesto: ".$codigoBarras_presupuesto);

@@ -3,6 +3,127 @@ var idInputListado = null;
 var condicion = null;
 
 
+function cargarTiposProceso(idSelect)
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = function() { mostrarCargarTiposProceso(idSelect); };
+		peticionUnica1.open("POST","ajax/cargarTiposProceso.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarTiposProceso();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarTiposProceso()
+{
+	var consulta = "accion=cargarTiposProceso";
+
+	var campos = ['id','tipoProceso'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	return consulta;
+}
+
+function mostrarCargarTiposProceso(idSelect)
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var datos = new Array;
+
+			try
+			{
+				datos = JSON.parse(peticionUnica1.responseText);
+			}
+			catch (error)
+			{
+				datos="";
+			}
+
+			var contenido = "";
+			var contador = 0;
+			while (contador < datos.length)
+			{
+				contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["tipoProceso"]+'</option>';
+				contador++;
+			}
+
+			document.getElementById(idSelect).innerHTML = contenido;
+			peticionUnica1=null;
+		}
+	}
+}
+
+
+function cargarClientes(destino) //cargarClientes de js_global.js esta comentada; version local
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = function() { mostrarCargarClientes(destino); };
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarClientes();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarClientes()
+{	
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo_saldo','nombre_empresa'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { activo: 1 };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var filtrosOperadores = [{ campo1: 'codigo_saldo', campo2: 'codigo', operador: '=' }];
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var order = [{ campo: 'nombre_empresa', dir: 'ASC' }];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;	
+}
+
+function mostrarCargarClientes(destino)
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{
+				var datos = res.datos;
+				var contenido = "";
+				var contador = 0;
+
+				while (contador<datos.length)
+				{
+					contenido += '<option value="'+datos[contador]["codigo_saldo"]+'">'+datos[contador]["nombre_empresa"]+' - '+datos[contador]["codigo_saldo"]+'</option>';
+					contador++;
+				}
+
+				document.getElementById(destino).innerHTML = contenido;
+			}
+			peticionUnica1=null;
+		}
+	}
+}
+
+
 function cargarConcepto(idInput) //js_pdaGestion
 {	
 	idInputListado = idInput;
@@ -20,7 +141,14 @@ function cargarConcepto(idInput) //js_pdaGestion
 
 function consultaCargarConcepto()
 {	
-	var consulta = "accion=cargarConcepto";	
+	var consulta = "accion=cargarConcepto";
+
+	var campos = ['id','nombreConcepto'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var order = [{campo: 'nombreConcepto', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 
@@ -30,23 +158,14 @@ function mostrarCargarConcepto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";				
 				
@@ -85,20 +204,24 @@ function cargarSubConcepto1(idInput) //js_pdaGestion
 function consultaCargarSubConcepto1()
 {	
 	var consulta = "accion=cargarConcepto";
-	
 
+	var campos = ['id','nombreSubconcepto'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var idConcepto;
 	var arrayCampo = idInputListado.split("_");
 	if (arrayCampo[0]=="RN")
 	{
-		consulta += "&idConcepto=" + document.getElementById("RN_concepto").value;
-		
+		idConcepto = document.getElementById("RN_concepto").value;
 	}
 	else 
 	{		
-		consulta += "&idConcepto=" + document.getElementById(arrayCampo[0] + "_concepto").value;
+		idConcepto = document.getElementById(arrayCampo[0] + "_concepto").value;
 	}
 	arrayCampo = null;	
 
+	var filtros = {idConcepto: idConcepto};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 
 	return consulta;	
 }
@@ -109,23 +232,14 @@ function mostrarCargarSubConcepto1()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";				
 				
@@ -176,23 +290,25 @@ function cargarSubConcepto2(idInput) //js_pdaGestion
 
 function consultaCargarSubConcepto2()
 {	
-	var consulta = "accion=cargarConcepto";	
-		 
-	
+	var consulta = "accion=cargarConcepto";
+
+	var campos = ['id','nombreSubconcepto2'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var idSubconcepto1;
 	var arrayCampo = idInputListado.split("_");
 	if (arrayCampo[0]=="RN")
 	{
-		consulta += "&idSubConcepto1=" + document.getElementById("RN_subconcepto1").value;
-		
+		idSubconcepto1 = document.getElementById("RN_subconcepto1").value;
 	}
 	else 
 	{		
-		consulta += "&idSubConcepto1=" + document.getElementById(arrayCampo[0] + "_subconcepto1").value;
+		idSubconcepto1 = document.getElementById(arrayCampo[0] + "_subconcepto1").value;
 	}
 	arrayCampo = null;	
 
-
-
+	var filtros = {idSubconcepto1: idSubconcepto1};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 
 	return consulta;	
 }
@@ -203,23 +319,14 @@ function mostrarCargarSubConcepto2()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";				
-					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";				
 				
@@ -394,12 +501,18 @@ function mostrarVerUltimoRegistroTrabajo()
 
 function comprobarCodigoProceso(codigo) //js_pdaGestion
 {	
+	if (codigo.indexOf("-") < 0)
+	{
+		booleano = false;
+		return;
+	}
+
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarComprobarCodigoProceso;
-		peticionUnica1.open("POST","ajax/comprobarCodigoProceso.php",false);
+		peticionUnica1.open("POST","ajax/cargarDetallesPresupuesto.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaComprobarCodigoProceso(codigo);
 		peticionUnica1.send(query_string);
@@ -408,8 +521,16 @@ function comprobarCodigoProceso(codigo) //js_pdaGestion
 
 function consultaComprobarCodigoProceso(codigo)
 {	
-	var consulta = "accion=comprobarCodigoProceso";	
-	consulta += "&codigo="+codigo;
+	var consulta = "accion=cargarDetalles";
+
+	var partes = codigo.split("-");
+
+	var campos = ['id'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {id: partes[0], presupuesto: partes[1]};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -419,13 +540,15 @@ function mostrarComprobarCodigoProceso()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
+				booleano = false;
 			}
 			else
 			{				
-				booleano = peticionUnica1.responseText;
+				booleano = (res.datos.length > 0);
 			}//else
 			peticionUnica1=null;			
 		}//if
@@ -440,7 +563,7 @@ function insertarRegistroHoraManual() //js_pdaGestion
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarInsertarRegistroHoraManual;
-		peticionUnica1.open("POST","ajax/insertarRegistroHoraManualGF.php",false);
+		peticionUnica1.open("POST","ajax/insertarRegistroHoraManual.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaInsertarRegistroHoraManual();
 		peticionUnica1.send(query_string);
@@ -449,21 +572,32 @@ function insertarRegistroHoraManual() //js_pdaGestion
 
 function consultaInsertarRegistroHoraManual()
 {	
-	var consulta = "accion=insertarRegistroHoraManual";	
-	//consulta += "&idEmpleado=" + document.getElementById("RN_empleado").value;
-	consulta += "&proceso=" + document.getElementById("RN_proceso").value;
-	consulta += "&fechaInicio=" + document.getElementById("RN_fechaInicio").value;
-	consulta += "&fechaFin=" + document.getElementById("RN_fechaFin").value;
-	consulta += "&cantidad=" + document.getElementById("RN_cantidad").value;
-	consulta += "&observaciones=" + document.getElementById("RN_observaciones").value;
+	var consulta = "accion=insertarRegistroHoraManual";
 
-	consulta += "&idSubConcepto2=" + document.getElementById("RN_subconcepto2").value;
+	var fechaSQL = function(dt) { var p = dt.split("T"); var f = p[0].split("-"); return f[2]+"/"+f[1]+"/"+f[0]+" "+p[1]+":00"; };
 
+	var proceso = document.getElementById("RN_proceso").value;
 
-	consulta += "&sinProceso_idProceso=" + document.getElementById("procesoNombre").value;
-	consulta += "&sinProceso_idCliente=" + document.getElementById("clientes").value;	
-	
-	
+	var datos = {
+		codigoBarras: (proceso != "") ? proceso : "0-9999999",
+		horaInicio: fechaSQL(document.getElementById("RN_fechaInicio").value),
+		horaFin: fechaSQL(document.getElementById("RN_fechaFin").value),
+		estado: "cerrado",
+		cantidad: document.getElementById("RN_cantidad").value,
+		observaciones: document.getElementById("RN_observaciones").value,
+		modo: "manual",
+		idGFSubconjunto2: document.getElementById("RN_subconcepto2").value
+	};
+
+	//si no hay proceso (registro manual sin OT) se guardan el proceso y cliente elegidos a mano
+	if (proceso == "")
+	{
+		datos["sinProceso_idConcepto"] = document.getElementById("procesoNombre").value;
+		datos["sinProceso_idCliente"] = document.getElementById("clientes").value;
+	}
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
 	return consulta;	
 }
 
@@ -473,13 +607,14 @@ function mostrarInsertarRegistroHoraManual()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{	
-				alert(peticionUnica1.responseText);
+				alert("Registro Insertado");
 				cargarRegistrosHoras() ;
 			}
 			peticionUnica1=null;
@@ -496,7 +631,7 @@ function cargarRegistrosHoras()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarRegistrosHoras;
-		peticionUnica1.open("POST","ajax/cargarRegistrosHoraGF.php",false);
+		peticionUnica1.open("POST","ajax/cargarRegistrosHoras.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarRegistrosHoras();
 		peticionUnica1.send(query_string);
@@ -505,16 +640,41 @@ function cargarRegistrosHoras()
 
 function consultaCargarRegistrosHoras()
 {	
-	var consulta = "accion=cargarRegistrosHoras";	
-	
-	consulta +="&ot="+document.getElementById("buscarOtValor").value;	
-	consulta += "&fechaInicio="+document.getElementById("buscarFechaInicio").value;
-	consulta += "&fechaFin="+document.getElementById("buscarFechaFin").value;
-	consulta += "&orden="+document.getElementById("orden").value;
-	consulta += "&desc="+document.getElementById("ordenDesc").checked;
-	
-	
-	
+	var consulta = "accion=cargarRegistrosHoras";
+
+	var campos = ['id','gfTipoProceso','gfProceso','gfDescripcion','sinProceso_idConcepto','sinProceso_idTipoProceso','sinProceso_idCliente','codigoBarras','horaInicio','horaFin','cantidad','observaciones','idGFConcepto','idGFSubconcepto1','idGFSubconjunto2'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = ['tabla_gfDetalle','tabla_gfProcesosTipos','tabla_gfProcesos','tabla_gfProcesoSin','tabla_gfSub2','tabla_gfSub1','tabla_gfConcepto'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {idEmpleado: "@sesion", idGFSubconjunto2NotNull: true};
+	var ot = document.getElementById("buscarOtValor").value;
+	if (ot != "")
+	{
+		filtros["otLike"] = ot;
+	}
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var dmy = function(s) { var p = s.split("-"); return p[2] + "-" + p[1] + "-" + p[0]; };
+	var filtrosOperadores = [];
+	var fi = document.getElementById("buscarFechaInicio").value;
+	var ff = document.getElementById("buscarFechaFin").value;
+	if (fi != "")
+	{
+		filtrosOperadores.push({campo1: 'horaInicio', valor: dmy(fi), operador: '>='});
+	}
+	if (ff != "")
+	{
+		var d = new Date(ff);
+		d.setDate(d.getDate() + 1);
+		var ff1 = d.getFullYear() + "-" + ('0'+(d.getMonth()+1)).slice(-2) + "-" + ('0'+d.getDate()).slice(-2);
+		filtrosOperadores.push({campo1: 'horaInicio', valor: dmy(ff1), operador: '<'});
+	}
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var order = [{campo: document.getElementById("orden").value, dir: document.getElementById("ordenDesc").checked ? 'DESC' : 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 
 	return consulta;	
 }
@@ -525,22 +685,14 @@ function mostrarCargarRegistrosHoras()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";
 
@@ -719,27 +871,30 @@ function modificarRegistroTrabajo(id) //js_pdaGestion
 
 function consultaModificarRegistroTrabajo(id)
 {	
-	var consulta = "accion=modificarRegistro";	
-	consulta += "&id=" + id;
-	consulta += "&codigoBarras=" + document.getElementById(id+"_codigoBarras").value;
-	consulta += "&fechaInicio=" + document.getElementById(id+"_fechaInicio").value;
-	consulta += "&horaInicio=informatica";	
-	consulta += "&fechaFin=" + document.getElementById(id+"_fechaFin").value;
-	consulta += "&horaFin=informatica";
+	var consulta = "accion=modificarRegistroHoras";
 
-	consulta += "&idSubConcepto2=" + document.getElementById(id+"_subconcepto2").value;
-	
-	try 
+	var fechaSQL = function(dt) { var p = dt.split("T"); var f = p[0].split("-"); return f[2]+"/"+f[1]+"/"+f[0]+" "+p[1]+":00"; };
+
+	var datos = {
+		horaInicio: fechaSQL(document.getElementById(id+"_fechaInicio").value),
+		horaFin: fechaSQL(document.getElementById(id+"_fechaFin").value),
+		cantidad: document.getElementById(id+"_cantidad").value,
+		observaciones: document.getElementById(id+"_observaciones").value,
+		idGFSubconjunto2: document.getElementById(id+"_subconcepto2").value
+	};
+
+	//solo se cambia el codigoBarras si el usuario ha puesto uno (los manuales lo dejan vacio)
+	var codigoBarras = document.getElementById(id+"_codigoBarras").value;
+	if (codigoBarras != "")
 	{
-		consulta += "&cantidad=" + document.getElementById(id+"_cantidad").value;
-		consulta += "&observaciones=" + document.getElementById(id+"_observaciones").value;
-		consulta +="&modificarModo=false";
+		datos["codigoBarras"] = codigoBarras;
 	}
-	catch (error) 
-	{
-		
-	}
-	
+
+	var filtros = {id: id};
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -749,9 +904,10 @@ function mostrarModificarRegistroTrabajo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
@@ -794,9 +950,11 @@ function eliminarRegistroTrabajo2(id)//js_pdaGestion
 
 function consultaEliminarRegistroTrabajo3(id)
 {	
-	var consulta = "accion=eliminarRegistro";	
-	consulta += "&id=" + id;
-	
+	var consulta = "accion=eliminarRegistroHoras";
+
+	var filtros = {id: id};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -806,9 +964,10 @@ function mostrarEliminarRegistroTrabajo3()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
@@ -837,10 +996,14 @@ function cargarSubprocesos()//js_presupeustosAlta
 
 function consultaCargarSubProcesos()
 {	
-	var consulta = "accion=cargarSubProcesos";	
-	consulta += "&idTipoProceso=" + document.getElementById("tipoProceso").value;
-	consulta += "&idDepartamento=4";
-	
+	var consulta = "accion=cargarSubProcesos";
+
+	var campos = ['id','proceso','descripcion'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {idTipoProceso: document.getElementById("tipoProceso").value, idDepartamento: 4};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -850,59 +1013,35 @@ function mostrarCargarSubProcesos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
+				document.getElementById("procesoNombre").innerHTML = "";
 			}
 			else
 			{				
-				var datos = new Array;
-				
-				try 
+				var datos = res.datos;
+
+				var contenido = "";
+				var contador = 0;
+
+				while  (contador<datos.length)
 				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-					document.getElementById("procesoNombre").innerHTML = "";
-				}
-				
-				if (datos != "")
-				{
-					
-					if (datos.length<=0)
+						
+					if (datos[contador]["descripcion"]==null || datos[contador]["descripcion"]=="" || datos[contador]["descripcion"]== "null")
 					{
-						//alert("No hay ningun registro");
-						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
+						contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+'</option>';
 					}
 					else
-					{							
-						var contenido = "";
-						var contador = 0;
-
-						while  (contador<datos.length)
-						{
-								
-							if (datos[contador]["descripcion"]==null || datos[contador]["descripcion"]=="" || datos[contador]["descripcion"]== "null")
-							{
-								contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+'</option>';
-							}
-							else
-							{
-								contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+ " --- " + datos[contador]["descripcion"]+'</option>';	
-							}
-
-							contador++;
-						}
-							
-						document.getElementById("procesoNombre").innerHTML = contenido;						
+					{
+						contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+ " --- " + datos[contador]["descripcion"]+'</option>';	
 					}
+
+					contador++;
 				}
-				else
-				{
-					document.getElementById("procesoNombre").innerHTML = "";
-				}
+					
+				document.getElementById("procesoNombre").innerHTML = contenido;						
 			}
 			peticionUnica1=null;
 		}
@@ -926,9 +1065,13 @@ function cargarSubprocesos2()//js_presupeustosAlta
 
 function consultaCargarSubProcesos2()
 {	
-	var consulta = "accion=cargarSubProcesos";	
-	consulta += "&idTipoProceso=" + document.getElementById("tipoProcesoModal").value;
-	consulta += "&idDepartamento=1";
+	var consulta = "accion=cargarSubProcesos";
+
+	var campos = ['id','proceso','descripcion'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {idTipoProceso: document.getElementById("tipoProcesoModal").value, idDepartamento: 1};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -939,59 +1082,35 @@ function mostrarCargarSubProcesos2()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
+				document.getElementById("procesoModal").innerHTML = "";
 			}
 			else
 			{				
-				var datos = new Array;
-				
-				try 
+				var datos = res.datos;
+
+				var contenido = "";
+				var contador = 0;
+
+				while  (contador<datos.length)
 				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-					document.getElementById("procesoModal").innerHTML = "";
-				}
-				
-				if (datos != "")
-				{
-					
-					if (datos.length<=0)
+						
+					if (datos[contador]["descripcion"]==null || datos[contador]["descripcion"]=="" || datos[contador]["descripcion"]== "null")
 					{
-						//alert("No hay ningun registro");
-						//contenido += '<tr><td>No hay registros</td><td>No hay registros</td></tr>';
+						contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+'</option>';
 					}
 					else
-					{							
-						var contenido = "";
-						var contador = 0;
-
-						while  (contador<datos.length)
-						{
-								
-							if (datos[contador]["descripcion"]==null || datos[contador]["descripcion"]=="" || datos[contador]["descripcion"]== "null")
-							{
-								contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+'</option>';
-							}
-							else
-							{
-								contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+ " --- " + datos[contador]["descripcion"]+'</option>';	
-							}
-
-							contador++;
-						}
-							
-						document.getElementById("procesoModal").innerHTML = contenido;						
+					{
+						contenido += '  <option value="'+datos[contador]["id"]+'">'+datos[contador]["proceso"]+ " --- " + datos[contador]["descripcion"]+'</option>';	
 					}
+
+					contador++;
 				}
-				else
-				{
-					document.getElementById("procesoModal").innerHTML = "";
-				}
+					
+				document.getElementById("procesoModal").innerHTML = contenido;						
 			}
 			peticionUnica1=null;
 		}
@@ -1018,10 +1137,13 @@ function cambiarProcesoSinIndicar() //js_pdaGestion
 
 function consultaCambiarProcesoSinIndicar(id)
 {	
-	var consulta = "accion=modificarRegistro";	
-	consulta += "&idRegistro=" + id;
-	consulta += "&idProceso=" + document.getElementById("procesoModal").value;
-	consulta += "&idCliente=" + document.getElementById("clienteModal").value;
+	var consulta = "accion=modificarRegistroHoras";
+
+	var datos = {sinProceso_idConcepto: document.getElementById("procesoModal").value, sinProceso_idCliente: document.getElementById("clienteModal").value};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {id: id};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 		
 	return consulta;
 }
@@ -1032,9 +1154,10 @@ function mostrarCambiarProcesoSinIndicar()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{

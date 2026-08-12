@@ -27,7 +27,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="borrarTipoPapel")
 	$filtrosOperadores2=array();	
 	$order2=array();
 
-	$registrosHoras = cargarRegistrosHoraInformatica($conn, $bbddSql, $campos2, $joins2, $filtros2, $filtrosOperadores2, $order2);
+	$registrosHoras = cargarRegistrosHoras($conn, $bbddSql, $campos2, $joins2, $filtros2, $filtrosOperadores2, $order2);
 
 	if (count($registrosHoras["datos"])>0)
 	{

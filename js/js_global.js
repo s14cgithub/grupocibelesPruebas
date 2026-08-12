@@ -3510,6 +3510,8 @@ function scrollUp()
 var buttonUp = document.getElementById("button-up");
 
 window.onscroll = function(){
+	if (!buttonUp) return;
+
 	var scroll = document.documentElement.scrollTop || document.body.scrollTop;
 	
 	if (scroll > 500)

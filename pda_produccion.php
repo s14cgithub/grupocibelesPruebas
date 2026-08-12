@@ -270,7 +270,7 @@ require($ruta."Archivos Comunes/cabecera.php");
 			document.getElementById("cabeceraBotonAtras").style.visibility = "hidden";
 			document.getElementById("cabeceraBotonAtras").style.display = "none";
 			
-			cargarEmpleadosPDA("empleadosModal");
+			cargarEmpleadosPDA();
 			
 			//cargarListadoMultiUsuario();
 			

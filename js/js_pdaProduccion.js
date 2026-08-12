@@ -119,7 +119,7 @@ function verHistorialDelDia() //js_pdaProduccion
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerHistorialDelDia;
-		peticionUnica1.open("POST","ajax/cargarRegistrosHoraEmpleado.php",false);
+		peticionUnica1.open("POST","ajax/cargarRegistrosHoras.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerHistorialDelDia();
 		peticionUnica1.send(query_string);
@@ -128,7 +128,28 @@ function verHistorialDelDia() //js_pdaProduccion
 
 function consultaVerHistorialDelDia()
 {	
-	var consulta = "accion=verHistorialDelDia";	
+	var consulta = "accion=cargarRegistrosHoras";
+
+	var campos = ['id','codigoBarras','nombreEmpleado','horaInicio','horaFin','cantidad','observaciones','estado','horas','horasTotal'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {idEmpleado: "@sesion"};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var hoy = new Date();
+	var manana = new Date();
+	manana.setDate(manana.getDate() + 1);
+	var dmy = function(d) { return ('0'+d.getDate()).slice(-2) + '-' + ('0'+(d.getMonth()+1)).slice(-2) + '-' + d.getFullYear(); };
+
+	var filtrosOperadores = [
+		{campo1: 'horaInicio', valor: dmy(hoy), operador: '>='},
+		{campo1: 'horaInicio', valor: dmy(manana), operador: '<'}
+	];
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var group = ['id','codigoBarras','nombreEmpleado','horaInicio','horaFin','cantidad','observaciones','estado'];
+	consulta += "&group=" + encodeURIComponent(JSON.stringify(group));
+
 	return consulta;	
 }
 
@@ -138,22 +159,14 @@ function mostrarVerHistorialDelDia()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";
 				//contenido += '<table>';
@@ -255,10 +268,14 @@ function comprobarCodigo(valor) //js_pdaProduccion
 function consultaComprobarCodigo(valor)
 {	
 	var consulta = "accion=comprobarCodigo";
-	consulta += "&valor="+valor;
-	consulta += "&notas="+document.getElementById("pda_observaciones").value;
-	consulta += "&cantidad="+document.getElementById("pda_cantidadRealizada").value;
-	
+
+	var datos = {
+		codigoBarras: valor,
+		notas: document.getElementById("pda_observaciones").value,
+		cantidad: document.getElementById("pda_cantidadRealizada").value
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
 	return consulta;	
 }
 
@@ -270,9 +287,10 @@ function mostrarComprobarCodigo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{				
-				document.getElementById("pda_estado").innerHTML = peticionUnica1.responseText;
+				document.getElementById("pda_estado").innerHTML = res.error;
 				document.getElementById("pda_estado").style.color = "red";
 				document.getElementById("pda_estado").style.textAlign = "center";
 				document.getElementById("pda_estado").style.fontWeight = "900";
@@ -281,16 +299,7 @@ function mostrarComprobarCodigo()
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
+				var datos = res.datos;
 				
 				if (datos != "")
 				{	
@@ -298,15 +307,15 @@ function mostrarComprobarCodigo()
 					document.getElementById("pda_cliente").innerHTML = datos[0]["cliente"];
 					document.getElementById("pda_campana").innerHTML = datos[0]["campana"];
 					document.getElementById("pda_cantidadTrabajo").innerHTML = datos[0]["cantidad trabajo"];
-					document.getElementById("pda_presupuestador").innerHTML = datos[0]["pda_presupuestador"];				
+					document.getElementById("pda_presupuestador").innerHTML = datos[0]["presupuestador"];				
 					//document.getElementById("pda_fechaCompromiso").innerHTML = datos[0]["fe-compromiso"]["date"].substring(0,10);
 					
-					if (datos[0]["fe-compromiso"] != null)
+					if (datos[0]["fechaCompromiso"] != null)
 					{
-						if (datos[0]["fe-compromiso"] != '' && datos[0]["fe-compromiso"] !== true)
+						if (datos[0]["fechaCompromiso"] != '' && datos[0]["fechaCompromiso"] !== true)
 						{
-
-							document.getElementById("pda_fechaCompromiso").innerHTML = datos[0]["fe-compromiso"]["date"].substring(0,10);
+							var fc = datos[0]["fechaCompromiso"]["date"].substring(0,10).split("-");
+							document.getElementById("pda_fechaCompromiso").innerHTML = fc[2] + "-" + fc[1] + "-" + fc[0];
 						}
 					}					
 					else 
@@ -376,7 +385,7 @@ function verHoraInicio() //js_pdaProduccion
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerHoraInicio;
-		peticionUnica1.open("POST","ajax/verHoraInicio.php",false);
+		peticionUnica1.open("POST","ajax/cargarRegistrosHoras.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerHoraInicio();
 		peticionUnica1.send(query_string);						
@@ -385,7 +394,17 @@ function verHoraInicio() //js_pdaProduccion
 
 function consultaVerHoraInicio(valor)
 {	
-	var consulta = "accion=verHoraInicio";		
+	var consulta = "accion=cargarRegistrosHoras";
+
+	var campos = ['id','codigoBarras','estado','horarioInicio','horarioFin','horaInicio','horaFin'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = ['tabla_empleados'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {maxIdPorEmpleado: "@sesion"};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -395,15 +414,14 @@ function mostrarVerHoraInicio()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
-				
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				var espacio = datos[0]["horaInicio"]["date"].lastIndexOf(' ');
 				var punto = datos[0]["horaInicio"]["date"].lastIndexOf('.');
 				
@@ -428,7 +446,7 @@ function verSiHayProcesoAbierto()
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarVerSiHayProcesoAbierto;
-		peticionUnica1.open("POST","ajax/verEmpleadoProcesoAbierto.php",false);
+		peticionUnica1.open("POST","ajax/cargarRegistrosHoras.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaVerSiHayProcesoAbierto();
 		peticionUnica1.send(query_string);						
@@ -437,7 +455,20 @@ function verSiHayProcesoAbierto()
 
 function consultaVerSiHayProcesoAbierto()
 {	
-	var consulta = "accion=verSiHayProcesoAbierto";		
+	var consulta = "accion=cargarRegistrosHoras";
+
+	var campos = ['todos','cliente','campana','cantidadTrabajo','comercialPresupuesto','fechaCompromiso','concepto','cantidadProceso','descripcion','notaCibeles','presupuesto','presupuestador','comercial'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = ['tabla_presupuestos','tabla_presupuestosDetalle','tabla_procesos','tabla_presupuestadores','tabla_clientesUnion','tabla_comerciales'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {idEmpleado: "@sesion"};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var filtrosOperadores = [{campo1: 'estado', valor: 'cerrado', operador: '!='}];
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
 	return consulta;	
 }
 
@@ -447,7 +478,8 @@ function mostrarVerSiHayProcesoAbierto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{				
 				//document.getElementById("pda_estado").innerHTML = peticionUnica1.responseText;
 				//document.getElementById("pda_estado").style.color = "red";
@@ -459,16 +491,7 @@ function mostrarVerSiHayProcesoAbierto()
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
+				var datos = res.datos;
 				
 				if (datos != "")
 				{			
@@ -578,15 +601,14 @@ function mostrarVerSiHayProcesoAbierto()
 
 
 
-function cargarEmpleadosPDA(idInput) 
+function cargarEmpleadosPDA() 
 {	
-	idInputListado = idInput;
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarCargarEmpleadosPDA;
-		peticionUnica1.open("POST","ajax/cargarEmpleadosPDA.php",false);
+		peticionUnica1.open("POST","ajax/cargarListadoEmpleado.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaCargarEmpleadosPDA();
 		peticionUnica1.send(query_string);
@@ -595,7 +617,20 @@ function cargarEmpleadosPDA(idInput)
 
 function consultaCargarEmpleadosPDA()
 {	
-	var consulta = "accion=cargarEmpleadosPDA";	
+	var consulta = "accion=cargarListadoEmpleado";
+
+	var campos = ['idEmpleado','nombre','apellidos'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {pda_o_registrosManuales: 1};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var joins = ['tabla_login','tabla_permisos'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var order = [{campo: 'nombre', dir: 'ASC'}, {campo: 'apellidos', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 
@@ -605,34 +640,17 @@ function mostrarCargarEmpleadosPDA()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-					
-					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";
-				
-				if (idInputListado=="buscarEmpleado")
-				{
-					contenido += '<option value="">Todos</option>';
-				}
-				
-				
-				
 				
 				var contador = 0;				
 				while  (contador<datos.length)
@@ -642,8 +660,7 @@ function mostrarCargarEmpleadosPDA()
 					contador++;	
 				}
 				
-				document.getElementById(idInputListado).innerHTML = contenido;
-				idInputListado="";
+				document.getElementById("empleadosModal").innerHTML = contenido;
 						
 			}
 			peticionUnica1=null;			
@@ -662,7 +679,7 @@ function anadirMultiUsuario(event)
 	if(peticionUnica1)
 	{
 		peticionUnica1.onreadystatechange = mostrarAnadirMultiUsuario;		
-		peticionUnica1.open("POST","ajax/anadirMultiUsuario.php",false);
+		peticionUnica1.open("POST","ajax/insertarRegistroHorasMultiUsuario.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		let query_string1 = consultaAnadirMultiUsuario();
 		peticionUnica1.send(query_string1);
@@ -682,25 +699,15 @@ function mostrarAnadirMultiUsuario()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			var datos = new Array;
-				
-			try 
-			{
-				datos = JSON.parse(peticionUnica1.responseText);
-			}
-			catch (error)
-			{
-				datos="";				
-			}
-
-			if (peticionUnica1.responseText.substr(0,6)=="Error1" || peticionUnica1.responseText.substr(0,6)=="Error2")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error.substr(0,6)=="Error1" || res.error.substr(0,6)=="Error2")
 			{			
-				document.getElementById("errorMultiusuarioProcesoAbierto").innerHTML='<font style="color:red">' + peticionUnica1.responseText + '</font>';
+				document.getElementById("errorMultiusuarioProcesoAbierto").innerHTML='<font style="color:red">' + res.error + '</font>';
 			}
-			else if (peticionUnica1.responseText.substr(0,5)=="Error")
+			else if (res.error != "")
 			{
 				document.getElementById("errorMultiusuarioProcesoAbierto").innerHTML="";
-				alert(peticionUnica1.responseText);				
+				alert(res.error);				
 			}
 			else
 			{
@@ -835,7 +842,7 @@ function quitarMultiUsuario(idMultiEmpleado)
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarQuitarMultiUsuario;
-		peticionUnica1.open("POST","ajax/quitarMultiUsuario.php",false);
+		peticionUnica1.open("POST","ajax/eliminarRegistroHorasMultiusuario.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaQuitarMultiUsuario(idMultiEmpleado);
 		peticionUnica1.send(query_string);
@@ -844,8 +851,11 @@ function quitarMultiUsuario(idMultiEmpleado)
 
 function consultaQuitarMultiUsuario(idMultiEmpleado)
 {	
-	var consulta = "accion=quitarMultiUsuario";	
-	consulta += "&idMultiEmpleado=" + idMultiEmpleado;
+	var consulta = "accion=eliminarRegistroHorasMultiusuario";
+
+	var filtros = {idEmpleado: idMultiEmpleado};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -855,27 +865,14 @@ function mostrarQuitarMultiUsuario()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-					
-					
-				}
-				
 				cargarListadoMultiUsuario();
-						
 			}
 			peticionUnica1=null;			
 		}

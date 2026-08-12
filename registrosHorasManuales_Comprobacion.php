@@ -12,9 +12,6 @@ require($ruta."Archivos Comunes/cabecera.php");
 //require($ruta."Archivos Comunes/constantes.php");
 //$_SESSION["idEmpleado"];	
 
-$tiposProceso = cargarTipoDeProceso($conexion);
-$numero = count($tiposProceso);
-
 ?>
 <table align="center" border="0"  class="">
 	
@@ -113,13 +110,6 @@ echo ("</html>");
 					<div class="form-group">
             			<label for="recipient-name" class="col-form-label">Tipo de Proceso:</label>
 						<select id="tipoProcesoModal" class="form-control"   onChange="cargarSubprocesos2();">
-						<?php 
-								for ($i = 0; $i < $numero; $i++)
-								{		
-									echo '<option value="'.$tiposProceso[$i]["id"].'">'.$tiposProceso[$i]["tipoProceso"].'</option>';
-								}
-						?>
-
 						</select>
           			</div>	
 					<div class="form-group">
@@ -158,6 +148,8 @@ echo ("</html>");
 		}
 	?>
 
+
+	cargarTiposProceso();
 
 	buscarRegistros();	
 

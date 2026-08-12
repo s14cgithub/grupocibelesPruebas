@@ -1,4 +1,3 @@
-
 <?php
 
 function reemplazarSimbolos($texto)
@@ -278,6 +277,7 @@ function cargarPermisos($conn_sis, $bbddSql, $campos, $filtros, $filtrosOperador
         'clientes' => 't1.clientes',
         'pdaGestion' => 't1.pdaGestion',
         'pda_registrosHorasManuales' => 't1.pda_registrosHorasManuales',
+        'pda_registrosHorasManuales_Comprobacion' => 't1.pda_registrosHorasManuales_Comprobacion',
         'informesProduccion' => 't1.informesProduccion',
         'pdaAdjunto' => 't1.pdaAdjunto',
         'presupuestos' => 't1.presupuestos',
@@ -2970,7 +2970,13 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
         'gfTipoProceso' => 't14.[nombreConcepto] as gfTipoProceso',
         'gfMaterial' => 't13.[nombreSubconcepto] as gfMaterial',
         'gfConcepto' => 't12.[nombreSubconcepto2] as gfConcepto',
-        'gfCoste' => 't12.[coste] as gfCoste'
+        'gfCoste' => 't12.[coste] as gfCoste',
+        'cliente' => 't15.cliente',
+        'campana' => 't15.campana',
+        'cantidadTrabajo' => "t15.cantidad as 'cantidad trabajo'",
+        'cantidadProceso' => "t1.unidades as 'cantidad proceso'",
+        'presupuestador' => 't16.nombre as presupuestador',
+        'fechaCompromiso' => 't15.fechaCompromiso'
      
     );
 
@@ -2987,6 +2993,8 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
     //t12: L_gf_subconcepto2
     //t13: L_gf_subconcepto1
     //t14: L_gf_concepto
+    //t15: presupuestos (padre)
+    //t16: presupuestadores
 
     if (!is_array($campos) || empty($campos)) {
         return array(
@@ -3023,7 +3031,9 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
 		'tabla11' => "left join [".$bbddSql."].[dbo].[L_papelTamanio] as t11 on t11.id = t1.idPapelTamanioFinal",
 		'tabla12' => "left join [".$bbddSql."].[dbo].[L_gf_subconcepto2] as t12 on t12.id = t1.idGFConcepto",
 		'tabla13' => "left join [".$bbddSql."].[dbo].[L_gf_subconcepto1] as t13 on t12.idSubconcepto1 = t13.id",
-		'tabla14' => "left join [".$bbddSql."].[dbo].[L_gf_concepto] as t14 on t13.idConcepto = t14.id"	
+		'tabla14' => "left join [".$bbddSql."].[dbo].[L_gf_concepto] as t14 on t13.idConcepto = t14.id",
+		'tabla15' => "inner join [".$bbddSql."].[dbo].[presupuestos] as t15 on t15.presupuesto = t1.presupuesto",
+		'tabla16' => "left join [".$bbddSql."].[dbo].[presupuestadores] as t16 on t16.id = t15.idComercial"
         ];
 
     $sqlJoins = '';
@@ -3047,6 +3057,10 @@ function cargarDetallesPresupuesto($conn_sis, $bbddSql, $campos, $joins, $filtro
     if (isset($filtros['presupuesto'])) {
         $condicion[] = 't1.presupuesto = ?';
         $params[] = $filtros['presupuesto'];
+    }
+    if (isset($filtros['idDepartamento'])) {
+        $condicion[] = 't1.idDepartamento = ?';
+        $params[] = $filtros['idDepartamento'];
     }
     if (isset($filtros['tamano_id'])) {
         $condicion[] = 't6.id = ?';
@@ -9352,6 +9366,158 @@ function cargarTipoDeProceso($conn_sis, $bbddSql, $campos, $filtros, $order)
     return $result;
 }
 
+function cargarImpresoras($conn_sis, $bbddSql, $campos, $filtros, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'impresoras' => 't1.impresoras'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => 'campos vacios');
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => 'camposSql vacios');
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    $camposOrdenPermitidos = array(
+        'impresoras' => 't1.impresoras'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    $consulta = "SELECT $listaCampos FROM [".$bbddSql."].[dbo].[L_impresoras] AS t1 $sqlWhere $sqlOrder";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarOrigenPapel($conn_sis, $bbddSql, $campos, $filtros, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'origen' => 't1.origen'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => 'campos vacios');
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => 'camposSql vacios');
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    $camposOrdenPermitidos = array(
+        'origen' => 't1.origen'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    $consulta = "SELECT $listaCampos FROM [".$bbddSql."].[dbo].[L_papelOrigen] AS t1 $sqlWhere $sqlOrder";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
 function cargarTamaniosPapel($conn_sis, $bbddSql, $campos, $filtros,$filtrosOperadores, $order)
 {
 
@@ -10533,186 +10699,6 @@ function cargarSubConceptos2GF($conn_sis, $bbddSql, $campos, $filtros,$filtrosOp
     );
 }
 
-
-function cargarRegistrosHoraInformatica($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
-{
-    $camposPermitidos = array(
-        'id' => 't1.id'           
-    );
-
-    //t2: presupuestadores
-    
-
-    if (!is_array($campos) || empty($campos)) {
-        return array(
-            'error' => "campos vacios");
-    }
-
-    $camposSQL = array();
-
-    foreach ($campos as $campo) {
-        if (isset($camposPermitidos[$campo])) {
-            $camposSQL[] = $camposPermitidos[$campo];
-        }
-    }
-
-    if (empty($camposSQL)) {
-        return array(
-            'error' => "campos SQL vacios");
-    }
-
-    $listaCampos = implode(', ', $camposSQL);
-
-    //JOINS
-
-    $joinsPermitidos = [
-        //'tabla2' => "left join [".$bbddSql."].[dbo].[presupuestos detalle] as t2 on t2.id = SUBSTRING(t1.codigoBarras,1,len(t1.codigoBarras)-8)",
-        //'tabla3' => "left join [".$bbddSql."].[dbo].[procesosTipos] as t3 on t3.id = t2.idTipo",
-        //'tabla4' => "left join [".$bbddSql."].[dbo].[procesos] as t4 on t4.id = t2.idConcepto",
-        //'tabla5' => "left join [".$bbddSql."].[dbo].[procesos] as t5 on t5.id = t1.sinProceso_idConcepto",
-        //'tabla6' => "left join [".$bbddSql."].[dbo].[L_gf_subconcepto2] as t6 on t6.id = t1.idGFSubconjunto2",
-        //'tabla7' => "left join [".$bbddSql."].[dbo].[L_gf_subconcepto1] as t7 on t6.idSubconcepto1 = t7.id",
-        //'tabla8' => "left join [".$bbddSql."].[dbo].[L_gf_concepto] as t8 on t7.idConcepto = t8.id",
-        //'tabla9' => "left join [".$bbddSql."].[dbo].[L_impresoras] as t9 on t1.idImpresoras = t9.id",
-        //'tabla10' => "left join [".$bbddSql."].[dbo].[L_papelTamanio] as t10 on t1.idPapelTamano = t10.id",
-        //'tabla11' => "left join [".$bbddSql."].[dbo].[L_papelTipo] as t11 on t1.idPapelTipo = t11.id",
-        //'tabla12' => "left join [".$bbddSql."].[dbo].[L_papelAcabado] as t12 on t1.idPapelAcabado = t12.id",
-        //'tabla13' => "left join [".$bbddSql."].[dbo].[L_papelGramaje] as t13 on t1.idPapelGramaje = t13.id",
-        //'tabla14' => "left join [".$bbddSql."].[dbo].[L_papelOrigen] as t14 on t1.idPapelOrigen = t14.id",
-
-    ];
-
-    $sqlJoins = '';
-
-    if (is_array($joins) && !empty($joins)) {
-        foreach ($joins as $j) {
-            if (isset($joinsPermitidos[$j])) {
-                $sqlJoins .= " " . $joinsPermitidos[$j];
-            }
-        }
-    }
-    
-    // ---------- FILTROS ----------
-    $condicion = array();
-    $params = array();    
-
-    if (isset($filtros['idPapelTamano'])) {
-        $condicion[] = 't1.idPapelTamano = ?';
-        $params[] = $filtros['idPapelTamano'];
-    }
-    if (isset($filtros['idPapelTipo'])) {
-        $condicion[] = 't1.idPapelTipo = ?';
-        $params[] = $filtros['idPapelTipo'];
-    }
-    if (isset($filtros['idPapelAcabado'])) {
-        $condicion[] = 't1.idPapelAcabado = ?';
-        $params[] = $filtros['idPapelAcabado'];
-    }
-    if (isset($filtros['idPapelGramaje'])) {
-        $condicion[] = 't1.idPapelGramaje = ?';
-        $params[] = $filtros['idPapelGramaje'];
-    }
-
-    $operadoresPermitidos = array('=');
-
-    $camposComparablesPermitidos = array(
-    //'presupuestoNoMensual' => 'SUBSTRING(t1.presupuesto, LEN(t1.presupuesto) - 2, 3)'
-    //'codigo' => 't1.codigo'    
-    );
-         
-
-    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
-        foreach ($filtrosOperadores as $f) {
-
-            // campo vs campo
-            if (
-                isset($f['campo1'], $f['campo2'], $f['operador']) &&
-                isset($camposComparablesPermitidos[$f['campo1']]) &&
-                isset($camposComparablesPermitidos[$f['campo2']]) &&
-                in_array($f['operador'], $operadoresPermitidos)
-            ) {
-                $condicion[] =
-                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
-                    $f['operador'] . ' ' .
-                    $camposComparablesPermitidos[$f['campo2']];
-            }
-
-            // campo vs valor
-            else if (
-                isset($f['campo1'], $f['valor'], $f['operador']) &&
-                isset($camposComparablesPermitidos[$f['campo1']]) &&
-                in_array($f['operador'], $operadoresPermitidos)
-            ) {
-                $condicion[] =
-                    $camposComparablesPermitidos[$f['campo1']] . ' ' .
-                     $f['operador'] . ' ?';
-                $params[] = $f['valor'];
-            }
-        }
-    }
-
-    $sqlWhere = '';
-    if (!empty($condicion)) {
-        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
-    }
-
-    // ---------- ORDER BY ----------
-    $camposOrdenPermitidos = array(
-        //'nombre_empresa'     => 't1.nombre_empresa',
-        //'subcliente'     => 't1.subcliente'          
-    );
-
-    $sqlOrder = '';
-
-    if (!empty($order) && is_array($order)) {
-        $ordenes = array();
-
-        foreach ($order as $o) {
-            if (
-                isset($o['campo'], $o['dir']) &&
-                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
-                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
-            ) {
-                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
-            }
-        }
-
-        if (!empty($ordenes)) {
-            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
-        }
-    }
-
-    // ---------- SQL ----------
-    $consulta = "
-        SELECT $listaCampos
-        FROM [".$bbddSql."].[dbo].[registroHoras] AS t1
-        $sqlJoins        
-        $sqlWhere
-        $sqlOrder
-    ";
-
-    //echo $consulta;   
-
-    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
-
-    if ($resultado === false) {
-        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
-    }
-
-    $result = array();
-    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
-        $result[] = $fila;
-    }
-
-    sqlsrv_free_stmt($resultado);
-    
-    return array(
-    'error' => '',
-    'datos' => $result,
-    'sql' => $consulta,
-     'params' => $params
-    );
-}
 
 function cargarTamaniosConversorPapel($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
 {
@@ -19375,12 +19361,16 @@ function eliminarFacturasEspeciales($conn_sis, $bbddSql, $filtros)
     return array('error' => '', 'ok' => true, 'sql' => $consulta, 'params' => $params);
 }
 
-function cargarEmpleados($conn_sis, $bbddSql, $campos, $order)
+function cargarEmpleados($conn_sis, $bbddSql, $campos, $filtros, $filtrosOperadores, $order, $joins = array(), $group = array())
 {
     $camposPermitidos = array(
         'id' => 't1.id',
         'nombre' => 't1.nombre',
-        'apellidos' => 't1.apellidos'
+        'apellidos' => 't1.apellidos',
+        'idEmpleado' => 't2.idEmpleado',
+        'nombreEmpleado' => "concat(t1.nombre,' ',t1.apellidos) as nombreEmpleado",
+        'jornadaHoras' => "max(datepart(HOUR, t1.horasLaborales)) as jornadaHoras",
+        'horasRealizadas' => "cast((case when sum(datediff(second, t4.horaInicio, t4.horaFin)) is null then 0 else sum(datediff(second, t4.horaInicio, t4.horaFin)) end / 3600.000) as decimal(6,2)) as horasRealizadas"
     );
 
     if (!is_array($campos) || empty($campos)) {
@@ -19400,6 +19390,89 @@ function cargarEmpleados($conn_sis, $bbddSql, $campos, $order)
 
     $listaCampos = implode(', ', $camposSQL);
 
+    // ---------- JOINS ----------
+    // el join de rango filtra registroHoras por fecha; las fechas se sanean con date()/strtotime() (formato fijo, no input crudo) y van dentro del subquery
+    // horaFin es datetime: para incluir el dia fin completo se compara horaFin < (fin + 1 dia)
+    $rangoRegistroHoras = (isset($filtros['rangoRegistroHoras']) && is_array($filtros['rangoRegistroHoras'])) ? $filtros['rangoRegistroHoras'] : array();
+    $rangoInicio = isset($rangoRegistroHoras['inicio']) ? date("d-m-Y", strtotime($rangoRegistroHoras['inicio'])) : '';
+    $rangoFin = isset($rangoRegistroHoras['fin']) ? date("d-m-Y", strtotime($rangoRegistroHoras['fin']." + 1 days")) : '';
+
+    // t2: login | t3: permisos | t4: registroHoras filtrado por rango de fecha (informe de horas)
+    $joinsPermitidos = array(
+        'tabla_login' => "inner join [".$bbddSql."].[dbo].[login] as t2 on t1.id = t2.idEmpleado",
+        'tabla_permisos' => "inner join [".$bbddSql."].[dbo].[permisos] as t3 on t2.id = t3.id_usuario",
+        'tabla_registroHorasRango' => "left join (select * from [".$bbddSql."].[dbo].[registroHoras] where horaInicio >= '".$rangoInicio."' and horaFin < '".$rangoFin."') as t4 on t4.idEmpleado = t1.id"
+    );
+
+    $sqlJoins = '';
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+    if (isset($filtros['pda_o_registrosManuales']) && $filtros['pda_o_registrosManuales'] == 1) {
+        $condicion[] = "(t3.pda = 1 or t3.pda_registrosHorasManuales = 2)";
+    }
+    if (isset($filtros['activo'])) {
+        $condicion[] = 't2.activo > 0';
+    }
+    if (isset($filtros['pdaOManuales'])) {
+        $condicion[] = "(t3.pda != 0 or t3.[pda_registrosHorasManuales] != 0)";
+    }
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=');
+    $camposComparablesPermitidos = array();
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] = $camposComparablesPermitidos[$f['campo1']] . ' ' . $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- GROUP BY ----------
+    $camposGroupPermitidos = array(
+        'id' => 't1.id',
+        'nombre' => 't1.nombre',
+        'apellidos' => 't1.apellidos'
+    );
+
+    $sqlGroup = '';
+    if (!empty($group) && is_array($group)) {
+        $groups = array();
+        foreach ($group as $g) {
+            if (isset($camposGroupPermitidos[$g])) {
+                $groups[] = $camposGroupPermitidos[$g];
+            }
+        }
+        if (!empty($groups)) {
+            $sqlGroup = ' GROUP BY ' . implode(', ', $groups);
+        }
+    }
+
+    // ---------- ORDER BY ----------
     $camposOrdenPermitidos = array(
         'nombre' => 't1.nombre',
         'apellidos' => 't1.apellidos'
@@ -19425,13 +19498,16 @@ function cargarEmpleados($conn_sis, $bbddSql, $campos, $order)
     $consulta = "
         SELECT $listaCampos
         FROM [".$bbddSql."].[dbo].[empleados] AS t1
+        $sqlJoins
+        $sqlWhere
+        $sqlGroup
         $sqlOrder
     ";
 
-    $resultado = sqlsrv_query($conn_sis, $consulta);
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
 
     if ($resultado === false) {
-        return array('error' => print_r(sqlsrv_errors(), true), 'sql' => $consulta);
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
     }
 
     $result = array();
@@ -19441,7 +19517,1003 @@ function cargarEmpleados($conn_sis, $bbddSql, $campos, $order)
 
     sqlsrv_free_stmt($resultado);
 
-    return array('error' => '', 'datos' => $result, 'sql' => $consulta);
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarRegistroHoras_multiusuario($conn_sis, $bbddSql, $campos, $joins, $filtros, $order)
+{
+    $camposPermitidos = array(
+        'idUsuario' => 't1.idUsuario',
+        'idEmpleado' => 't1.idEmpleado',
+        'idEmpleadoDistinct' => 'DISTINCT t1.idEmpleado as idEmpleado',
+        'nombreEmpleado' => "CONCAT(t2.nombre, ' ', t2.apellidos) as nombreEmpleado",
+        'empleadoInicio' => "CONCAT(t3.nombre, ' ', t3.apellidos) as empleadoInicio"
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- JOINS ----------
+    // t2: empleados (empleado anadido, por idEmpleado) | t3: empleados (empleado que inicia, por idUsuario)
+    $joinsPermitidos = array(
+        'tabla_empleadoAnadido' => "inner join [".$bbddSql."].[dbo].[empleados] as t2 on t1.idEmpleado = t2.id",
+        'tabla_empleadoInicio' => "inner join [".$bbddSql."].[dbo].[empleados] as t3 on t1.idUsuario = t3.id"
+    );
+
+    $sqlJoins = '';
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['idUsuario'])) {
+        $condicion[] = 't1.idUsuario = ?';
+        $params[] = $filtros['idUsuario'];
+    }
+    if (isset($filtros['idEmpleado'])) {
+        $condicion[] = 't1.idEmpleado = ?';
+        $params[] = $filtros['idEmpleado'];
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'idUsuario' => 't1.idUsuario',
+        'idEmpleado' => 't1.idEmpleado'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[registroHoras_multiusuario] AS t1
+        $sqlJoins
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function insertarRegistroHoras_multiusuario($conn_sis, $bbddSql, $datos)
+{
+    $idUsuario = isset($datos['idUsuario']) ? $datos['idUsuario'] : null;
+    $proceso = isset($datos['proceso']) ? $datos['proceso'] : '';
+    $idEmpleado = isset($datos['idEmpleado']) ? $datos['idEmpleado'] : null;
+
+    $consulta = "insert into [".$bbddSql."].[dbo].[registroHoras_multiusuario] ([idUsuario], [proceso], [idEmpleado]) VALUES (?, ?, ?)";
+    $params = array($idUsuario, $proceso, $idEmpleado);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'sql' => $consulta, 'params' => $params);
+    }
+
+    return array('error' => '', 'sql' => $consulta, 'params' => $params);
+}
+
+function eliminarRegistroHoras_multiusuario($conn_sis, $bbddSql, $filtros)
+{
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['idUsuario'])) {
+        $condicion[] = 'idUsuario = ?';
+        $params[] = $filtros['idUsuario'];
+    }
+    if (isset($filtros['idEmpleado'])) {
+        $condicion[] = 'idEmpleado = ?';
+        $params[] = $filtros['idEmpleado'];
+    }
+
+    if (empty($condicion)) {
+        return array('error' => "eliminar sin filtros no permitido");
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    $consulta = "delete from [".$bbddSql."].[dbo].[registroHoras_multiusuario]" . $sqlWhere;
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'sql' => $consulta, 'params' => $params);
+    }
+
+    return array('error' => '', 'sql' => $consulta, 'params' => $params);
+}
+
+function eliminarRegistroHoras($conn_sis, $bbddSql, $filtros)
+{
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 'id = ?';
+        $params[] = $filtros['id'];
+    }
+    if (isset($filtros['idEmpleado'])) {
+        $condicion[] = 'idEmpleado = ?';
+        $params[] = $filtros['idEmpleado'];
+    }
+    if (isset($filtros['codigoBarras'])) {
+        $condicion[] = 'codigoBarras = ?';
+        $params[] = $filtros['codigoBarras'];
+    }
+
+    if (empty($condicion)) {
+        return array('error' => "eliminar sin filtros no permitido");
+    }
+
+    $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    $consulta = "delete from [".$bbddSql."].[dbo].[registroHoras]" . $sqlWhere;
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'sql' => $consulta, 'params' => $params);
+    }
+
+    return array('error' => '', 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarHorasDetallesEmpleado($conn_sis, $bbddSql, $fechaInicio, $fechaFin, $nombreEmpleado)
+{
+    //informe de detalle de un empleado: sus registros en el rango con analisis de rentabilidad (precio/unidad, unidad/hora, porcentaje)
+    $newDate = date("d-m-Y", strtotime($fechaInicio));
+    $newDateFin = date("d-m-Y", strtotime($fechaFin." + 1 days"));
+
+    $consulta = "SELECT t2.idConcepto, t1.[id]
+        , t1.[nombreEmpleado]
+        , t1.[codigoBarras]
+        , CONCAT(t6.departamento,'/',t5.tipoProceso,'/',t4.proceso) as concepto
+        , t1.[horaInicio]
+        , t1.[horaFin]
+        , t1.cantidad as cantidad
+        , t1.[observaciones]
+        , t1.[estado]
+        , t1.[modo]
+        , (RIGHT('0'+ cast((datediff(second, t1.horaInicio, t1.horaFin)) / 3600 as VARCHAR),2) + ':' + RIGHT('0'+ cast(((datediff(second, t1.horaInicio, t1.horaFin)) / 60)%60 as VARCHAR),2)+ ':' + RIGHT('0'+ cast((datediff(second, t1.horaInicio, t1.horaFin)) % 60 as VARCHAR),2)) as 'horas'
+        , cast((case when (datediff(second, t1.horaInicio, t1.horaFin)) is null then '0' else (datediff(second, t1.horaInicio, t1.horaFin)) end / 3600.000) as decimal(6,2)) as 'horasRealizadas1'
+        , cast(case when (case when t7.cantidad2 is null then t7.cantidad else t7.cantidad2 end)=0 then 0 else ((t2.precio * case when t2.unidades2 is null then t2.unidades else t2.unidades2 end) / case when t7.cantidad2 is null then t7.cantidad else t7.cantidad2 end) end as decimal(6,3)) as 'precio/unidad'
+        , cast((3600.000 * t1.cantidad) / cast(datediff(second, t1.horaInicio, t1.horaFin) as decimal(16,3)) as decimal(16,3)) as 'unidad/hora'
+        , t8.[unidad/hora] as 'unidad/horaTotalProceso'
+        , case when t8.[unidad/hora]<=0 then 0 else cast((cast((3600.000 * t1.cantidad) / cast(datediff(second, t1.horaInicio, t1.horaFin) as decimal(16,3)) as decimal(16,3))) * 100 / t8.[unidad/hora] as decimal(16,3)) end as porcentaje
+        FROM [".$bbddSql."].[dbo].[registroHoras] as t1
+        inner join [".$bbddSql."].[dbo].[presupuestos detalle] as t2 on t1.[codigoBarras] = cast(t2.id as nvarchar) + '-' + cast(t2.presupuesto as nvarchar)
+        inner join [".$bbddSql."].[dbo].[empleados] as t3 on t1.idEmpleado = t3.id
+        inner join [".$bbddSql."].[dbo].[procesos] as t4 on t2.idConcepto = t4.id
+        inner join [".$bbddSql."].[dbo].[procesosTipos] as t5 on t4.idTipoProceso = t5.id
+        inner join [".$bbddSql."].[dbo].[procesosDepartamento] as t6 on t4.idDepartamento = t6.id
+        inner join [".$bbddSql."].[dbo].[presupuestos] as t7 on t7.presupuesto = t2.presupuesto
+        left join (
+            select idConcepto, ot, sum(cantidad) as cantidad, sum(segundos) as segundos
+            , case when sum(segundos)<=0 then 0 else cast(3600.000 * sum(cantidad) / cast(sum(segundos) as decimal(16,3)) as decimal(16,3)) end as 'unidad/hora'
+            from (
+                select t1.nombreEmpleado, t2.idConcepto, SUBSTRING(t1.codigoBarras, CHARINDEX('-', t1.codigoBarras)+1,7) as ot
+                , sum(t1.cantidad) as cantidad
+                , cast(sum(datediff(second, t1.horaInicio, t1.horaFin)) as decimal(16,3)) as segundos
+                , case when cast(sum(datediff(second, t1.horaInicio, t1.horaFin)) as decimal(16,3))<=0 then 0 else cast(3600.000 * sum(t1.cantidad) / cast(sum(datediff(second, t1.horaInicio, t1.horaFin)) as decimal(16,3)) as decimal(16,3)) end as 'unidad/hora'
+                FROM [".$bbddSql."].[dbo].[registroHoras] as t1
+                inner join [".$bbddSql."].[dbo].[presupuestos detalle] as t2 on t1.[codigoBarras] = cast(t2.id as nvarchar) + '-' + cast(t2.presupuesto as nvarchar)
+                group by t1.nombreEmpleado, t2.idConcepto, SUBSTRING(t1.codigoBarras, CHARINDEX('-', t1.codigoBarras)+1,7)
+            ) as tabla group by idConcepto, ot
+        ) as t8 on t8.idConcepto = t2.idConcepto and SUBSTRING(t1.codigoBarras, CHARINDEX('-', t1.codigoBarras)+1,7) = t8.ot
+        where t1.nombreEmpleado = ? and t1.horaInicio >= ? and t1.horaFin < ?
+        order by horaInicio, concepto";
+
+    $params = array($nombreEmpleado, $newDate, $newDateFin);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarDatosInformeOtCostes($conn_sis, $bbddSql, $ot)
+{
+    //informe de costes por OT: horas/coste por departamento/tipoProceso/proceso/empleado/dia
+    $consulta = "SELECT t12.cliente, t12.campana, t2.departamento, t3.tipoProceso, t4.proceso
+        ,convert(varchar,DATEADD(dd, 0, DATEDIFF(dd, 0, t5.horaInicio)),23) as fechaInicio
+        ,t5.nombreEmpleado, sum(t5.cantidad) as cantidad
+        ,case when convert(varchar,DATEADD(s,sum(datediff(second, horaInicio, horaFin)),0),108) is null then '0' else convert(varchar,DATEADD(s,sum(datediff(second, horaInicio, horaFin)),0),108) end as horasTrabajados
+        ,sum(datediff(SECOND, t5.horaInicio, t5.horaFin)) as segundosTrabajados
+        ,cast(case when t5.precioHora is null then 0.000 else t5.precioHora end * case when sum(datediff(SECOND, t5.horaInicio, t5.horaFin)) is null then 0.000 else sum(datediff(SECOND, t5.horaInicio, t5.horaFin)) end / 3600.000 as decimal(16,3)) as 'costeHora'
+        ,cast(isnull(sum(t5.cantidad) /(sum(datediff(SECOND, t5.horaInicio, t5.horaFin))/60.00),0)*60 as decimal(6,0)) as media
+        FROM [".$bbddSql."].[dbo].[presupuestos detalle] as t1
+        inner join [".$bbddSql."].[dbo].[presupuestos] as t12 on t12.presupuesto = t1.presupuesto
+        inner join [".$bbddSql."].[dbo].[procesosDepartamento] as t2 on t1.idDepartamento = t2.id
+        inner join [".$bbddSql."].[dbo].[procesosTipos] as t3 on t1.idTipo = t3.id
+        inner join [".$bbddSql."].[dbo].[procesos] as t4 on t1.idConcepto = t4.id
+        left join (
+            select t1.*, t2.precioHora
+            from [".$bbddSql."].[dbo].[registroHoras] as t1
+            inner join [".$bbddSql."].[dbo].[empleados] as t2 on t1.idEmpleado = t2.id
+        ) as t5 on CONCAT(t1.id,'-',t1.presupuesto) = t5.codigoBarras
+        where t1.presupuesto = ? and t4.mostrarEnInforme = 1
+        group by t12.cliente, t12.campana, t2.departamento, t3.tipoProceso, t4.proceso, t5.nombreEmpleado
+        ,convert(varchar,DATEADD(dd, 0, DATEDIFF(dd, 0, t5.horaInicio)),23), t5.precioHora
+        order by t2.departamento, t3.tipoProceso, t4.proceso, convert(varchar,DATEADD(dd, 0, DATEDIFF(dd, 0, t5.horaInicio)),23) desc, t5.nombreEmpleado";
+
+    $params = array($ot);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarDatosInformeOtCostesTotales($conn_sis, $bbddSql, $ot)
+{
+    //informe de costes por OT (totales): factura, compras terceros, coste papel/click, transporte, satisfaccion
+    $anio = (int)substr($ot, 0, 2) + 2000;
+
+    $consulta = "select ISNULL(sum(tabla.cantidad),0) as cantidad, ISNULL(sum(tabla.segundosTrabajados),0) as segundosTrabajados, sum(tabla.costeHora) as costeHora, tabla.fechaTerminado, tabla.fechaCompromiso, tabla.fechaInicioReal, datediff(day, tabla.fechaCompromiso, tabla.fechaTerminado) as satisfaccion, datediff(day, tabla.fechaInicioReal, tabla.fechaTerminado) as tiempoRealizacion
+        , tabla.comprasTerceros, tabla.importeFactura, tabla.importeFacturaClayma, ISNULL(sum(tabla.costePapel),0) as costePapel, ISNULL(sum(tabla.costeClick),0) as costeClick, tabla.cantidadPresupuesto, ISNULL(sum(tabla.precioPapel_Presupuesto),0) as precioPapel_Presupuesto, ISNULL(sum(tabla.precioClick_Presupuesto),0) as precioClick_Presupuesto
+        , tabla.tantoPorCientoTransporte, max(tabla.pesoGramos) as pesoGramos
+        from (
+        SELECT t6.cliente, t6.campana, t2.departamento, t3.tipoProceso, t4.proceso
+        ,convert(varchar,DATEADD(dd, 0, DATEDIFF(dd, 0, t5.horaInicio)),105) as fechaInicio
+        ,t5.nombreEmpleado, sum(t5.cantidad) as cantidad
+        ,case when convert(varchar,DATEADD(s,sum(datediff(second, horaInicio, horaFin)),0),108) is null then '0' else convert(varchar,DATEADD(s,sum(datediff(second, horaInicio, horaFin)),0),108) end as horasTrabajados
+        ,sum(datediff(SECOND, t5.horaInicio, t5.horaFin)) as segundosTrabajados
+        ,cast(case when t5.precioHora is null then 0.000 else t5.precioHora end * case when sum(datediff(SECOND, t5.horaInicio, t5.horaFin)) is null then 0.000 else sum(datediff(SECOND, t5.horaInicio, t5.horaFin)) end / 3600.000 as decimal(16,3)) as 'costeHora'
+        , t6.fechaTerminado, t6.fechaCompromiso, t6.fechaInicioReal
+        , case when t9.comprasTerceros is null then 0 else t9.comprasTerceros end as comprasTerceros
+        , case when t7.precioNeto is null then 0 else t7.precioNeto end as importeFactura
+        , case when t8.precioNeto is null then 0 else t8.precioNeto end as importeFacturaClayma
+        , sum(t10.papel) as costePapel
+        , sum(t11.click) as costeClick
+        , case when t6.cantidad2 is null or t6.cantidad2 = '' then t6.cantidad else t6.cantidad2 end as cantidadPresupuesto
+        , case when t1.unidades2>0 then sum(t12.precio * t1.unidades2) else sum(t12.precio*t1.unidades) end as precioPapel_Presupuesto
+        , case when t1.unidades2>0 then sum(t13.precioClick * t1.impresionNumeroCaras * t1.unidades2) else sum(t13.precioClick * t1.impresionNumeroCaras * t1.unidades) end as precioClick_Presupuesto
+        , t14.tantoPorCientoTransporte, max(t1.pesoGramos) as pesoGramos
+        FROM [".$bbddSql."].[dbo].[presupuestos detalle] as t1
+        inner join [".$bbddSql."].[dbo].[presupuestos] as t6 on t6.presupuesto = t1.presupuesto
+        inner join [".$bbddSql."].[dbo].[procesosDepartamento] as t2 on t1.idDepartamento = t2.id
+        inner join [".$bbddSql."].[dbo].[procesosTipos] as t3 on t1.idTipo = t3.id
+        inner join [".$bbddSql."].[dbo].[procesos] as t4 on t1.idConcepto = t4.id
+        left join (
+            select t1.*, t2.precioHora
+            from [".$bbddSql."].[dbo].[registroHoras] as t1
+            inner join [".$bbddSql."].[dbo].[empleados] as t2 on t1.idEmpleado = t2.id
+        ) as t5 on CONCAT(t1.id,'-',t1.presupuesto) = t5.codigoBarras
+        left join [".$bbddSql."].[dbo].[facturas".$anio."] as t7 on t6.presupuesto = t7.presupuesto
+        left join [".$bbddSql."].[dbo].[facturasClayma".$anio."] as t8 on t6.presupuesto = t8.presupuesto
+        left join (SELECT sum(t7.total) as comprasTerceros, t8.presupuesto
+            FROM [".$bbddSql."].[dbo].[comprasTercerosDetalles] as t7
+            inner join [".$bbddSql."].[dbo].[compraTerceros] as t8 on t7.pedido = t8.pedido
+            group by t8.presupuesto
+        ) as t9 on t9.presupuesto = t6.presupuesto
+        left join (
+            SELECT t1.id, t2.precio * t1.cantidad as papel
+            FROM [".$bbddSql."].[dbo].[registroHoras] as t1
+            inner join [".$bbddSql."].[dbo].[tarifas_papel] as t2 on t1.idPapelTamano = t2.idTamanio and t1.idPapelTipo = t2.idTipo and t1.idPapelAcabado = t2.idAcabado and t1.idPapelGramaje = t2.idGramaje
+            where t2.precio * t1.cantidad is not null and t1.idPapelOrigen = 1
+        ) as t10 on t10.id = t5.id
+        left join (
+            SELECT t3.id as idRegistroHora, t1.id as idImpresora, t2.precioClick, t3.cantidad, t2.precioClick * t3.cantidad * ISNULL(t3.impresionNumeroCaras,1) as click
+            FROM [".$bbddSql."].[dbo].[L_impresoras] as t1
+            inner join [".$bbddSql."].[dbo].[L_impresorasTipo] as t2 on t1.tipoImpresora = t2.id
+            inner join [".$bbddSql."].[dbo].[registroHoras] as t3 on t3.idImpresoras = t1.id
+        ) as t11 on t11.idRegistroHora = t5.id
+        left join [".$bbddSql."].[dbo].[tarifas_papel] as t12 on t1.idMaterialPapel = t12.id
+        left join [".$bbddSql."].[dbo].[L_impresorasTipo] as t13 on t1.idTipoImpresora = t13.id
+        left join [".$bbddSql."].[dbo].[datosGenericosFranqueo] as t14 on t14.anio = ?
+        where t1.presupuesto = ?
+        group by t6.cliente, t6.campana, t2.departamento, t3.tipoProceso, t4.proceso, t5.nombreEmpleado, t6.fechaTerminado
+        ,convert(varchar,DATEADD(dd, 0, DATEDIFF(dd, 0, t5.horaInicio)),105), t5.precioHora, t6.fechaTerminado, t9.comprasTerceros, t7.precioNeto, t8.precioNeto, t6.clayma
+        , case when t6.cantidad2 is null or t6.cantidad2 = '' then t6.cantidad else t6.cantidad2 end, t6.fechaCompromiso, t6.fechaInicioReal
+        , t1.unidades2, t14.tantoPorCientoTransporte
+        ) as tabla
+        group by tabla.cliente, tabla.campana, tabla.fechaTerminado
+        , tabla.comprasTerceros, tabla.importeFactura, tabla.importeFacturaClayma, tabla.cantidadPresupuesto, tabla.tantoPorCientoTransporte, tabla.fechaCompromiso, tabla.fechaInicioReal";
+
+    $params = array($anio, $ot);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarDetallesInformeOtCostesTotales($conn_sis, $bbddSql, $ot)
+{
+    //detalle real (informatica): coste papel/click por registro de horas de la OT
+    $consulta = "SELECT t1.id as idRegistroHoras, t1.nombreEmpleado, t3.impresoras, t9.tipoImpresora, t9.precioClick
+        , t4.tamano, t5.tipo, t6.acabado, t7.gramaje, t8.origen, t2.precio as precioMaterial, t1.cantidad as cantidadEmpleado
+        , ISNULL(t1.impresionNumeroCaras,1) as numeroCaras, t2.precio * t1.cantidad * ISNULL(t1.impresionNumeroCaras,1) as costePapel
+        , t9.precioClick * t1.cantidad * ISNULL(t1.impresionNumeroCaras,1) as costeClick
+        FROM [".$bbddSql."].[dbo].[registroHoras] as t1
+        left join [".$bbddSql."].[dbo].[tarifas_papel] as t2 on t1.idPapelTamano = t2.idTamanio and t1.idPapelTipo = t2.idTipo and t1.idPapelAcabado = t2.idAcabado and t1.idPapelGramaje = t2.idGramaje
+        left join [".$bbddSql."].[dbo].[L_impresoras] as t3 on t1.idImpresoras = t3.id
+        left join [".$bbddSql."].[dbo].[L_papelTamanio] as t4 on t1.idPapelTamano = t4.id
+        left join [".$bbddSql."].[dbo].[L_papelTipo] as t5 on t1.idPapelTipo = t5.id
+        left join [".$bbddSql."].[dbo].[L_papelAcabado] as t6 on t1.idPapelAcabado = t6.id
+        left join [".$bbddSql."].[dbo].[L_papelGramaje] as t7 on t1.idPapelGramaje = t7.id
+        left join [".$bbddSql."].[dbo].[L_papelOrigen] as t8 on t1.idPapelOrigen = t8.id
+        left join [".$bbddSql."].[dbo].[L_impresorasTipo] as t9 on t9.id = t3.tipoImpresora
+        where SUBSTRING(t1.codigoBarras, CHARINDEX('-', t1.codigoBarras)+1, 7) = ? and t1.idPapelOrigen = 1";
+
+    $params = array($ot);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarDetallesPresupustoInformeOtCostesTotales($conn_sis, $bbddSql, $ot)
+{
+    //detalle presupuestado: coste papel/click por linea de detalle del presupuesto de la OT
+    $consulta = "SELECT t1.id, t3.nombre, t6.departamento, t7.tipoProceso, t8.proceso, t9.tamano, t10.tipo, t11.acabado, t12.gramaje, t5.tipoImpresora, t1.unidades, t1.unidades2
+        ,case when t1.unidades2>0 then t1.unidades2 else t1.unidades end as unidadesParaUtilizar
+        , t1.impresionNumeroCaras, t4.precio as precioMaterial, t5.precioClick
+        ,case when t1.unidades2>0 then t4.precio * t1.unidades2 else t4.precio*t1.unidades end as costePapel
+        ,case when t1.unidades2>0 then t5.precioClick * t1.impresionNumeroCaras * t1.unidades2 else t5.precioClick * t1.impresionNumeroCaras * t1.unidades end as costeClick
+        FROM [".$bbddSql."].[dbo].[presupuestos detalle] as t1
+        inner join [".$bbddSql."].[dbo].[presupuestos] as t2 on t1.presupuesto = t2.presupuesto
+        inner join [".$bbddSql."].[dbo].[presupuestadores] as t3 on t2.idComercial = t3.id
+        left join [".$bbddSql."].[dbo].[tarifas_papel] as t4 on t1.idMaterialPapel = t4.id
+        left join [".$bbddSql."].[dbo].[L_impresorasTipo] as t5 on t1.idTipoImpresora = t5.id
+        left join [".$bbddSql."].[dbo].[procesosDepartamento] as t6 on t1.idDepartamento = t6.id
+        left join [".$bbddSql."].[dbo].[procesosTipos] as t7 on t1.idTipo = t7.id
+        left join [".$bbddSql."].[dbo].[procesos] as t8 on t1.idConcepto = t8.id
+        left join [".$bbddSql."].[dbo].[L_papelTamanio] as t9 on t4.idTamanio = t9.id
+        left join [".$bbddSql."].[dbo].[L_papelTipo] as t10 on t4.idTipo = t10.id
+        left join [".$bbddSql."].[dbo].[L_papelAcabado] as t11 on t4.idAcabado = t11.id
+        left join [".$bbddSql."].[dbo].[L_papelGramaje] as t12 on t4.idGramaje = t12.id
+        where t2.presupuesto = ? and case when t1.unidades2>0 then t1.unidades2 else t1.unidades end > 0 and t8.mostrarEnInforme = 1
+        order by departamento, tipoProceso, proceso, tipoImpresora";
+
+    $params = array($ot);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarDatosInformeOtDetalle($conn_sis, $bbddSql, $codigoBarras)
+{
+    //detalle por codigoBarras: horas/cantidad por empleado, con totales del codigoBarras
+    $consulta = "SELECT t1.nombreEmpleado, t2.concepto, t1.codigoBarras,
+        sum(isnull(t1.cantidad,0)) as cantidad,
+        (RIGHT('0'+ cast(sum(datediff(second, t1.horaInicio, t1.horaFin)) / 3600 as VARCHAR),2) + ':'
+        + RIGHT('0'+ cast((sum(datediff(second, t1.horaInicio, t1.horaFin)) / 60)%60 as VARCHAR),2)+ ':'
+        + RIGHT('0'+ cast(sum(datediff(second, t1.horaInicio, t1.horaFin)) % 60 as VARCHAR),2)) as horas
+        , sum(datediff(second, t1.horaInicio, t1.horaFin)) as segundos,
+        (SELECT sum(isnull(t1.cantidad,0))
+            FROM [".$bbddSql."].[dbo].[registroHoras] as t1
+            inner join [".$bbddSql."].[dbo].[presupuestos detalle] as t2 on t1.[codigoBarras] = cast(t2.id as nvarchar) + '-' + cast(t2.presupuesto as nvarchar)
+            where t1.codigoBarras = ?
+            group by t1.codigoBarras
+        ) as cantidadTotal,
+        (SELECT (RIGHT('0'+ cast(sum(datediff(second, t1.horaInicio, t1.horaFin)) / 3600 as VARCHAR),2) + ':'
+            + RIGHT('0'+ cast((sum(datediff(second, t1.horaInicio, t1.horaFin)) / 60)%60 as VARCHAR),2)+ ':'
+            + RIGHT('0'+ cast(sum(datediff(second, t1.horaInicio, t1.horaFin)) % 60 as VARCHAR),2)) as horas
+            FROM [".$bbddSql."].[dbo].[registroHoras] as t1
+            inner join [".$bbddSql."].[dbo].[presupuestos detalle] as t2 on t1.[codigoBarras] = cast(t2.id as nvarchar) + '-' + cast(t2.presupuesto as nvarchar)
+            where t1.codigoBarras = ?
+            group by t1.codigoBarras
+        ) as horasTotal
+        FROM [".$bbddSql."].[dbo].[registroHoras] as t1
+        inner join [".$bbddSql."].[dbo].[presupuestos detalle] as t2 on t1.[codigoBarras] = cast(t2.id as nvarchar) + '-' + cast(t2.presupuesto as nvarchar)
+        where t1.codigoBarras = ?
+        group by t1.nombreEmpleado, t2.concepto, t1.codigoBarras";
+
+    $params = array($codigoBarras, $codigoBarras, $codigoBarras);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function mostrarValorConversorTamanio($conn_sis, $bbddSql, $presupuesto)
+{
+    //valor del conversor de tamano para el presupuesto (informe costes OT)
+    $consulta = "select max(t15.valor) as valorConversor
+        FROM [".$bbddSql."].[dbo].[presupuestos detalle] as t1
+        inner join [".$bbddSql."].[dbo].[L_papelTamanioConversor] as t15 on t15.idTamanioInicio = t1.idTipoImpresora and t15.idTamanioFinal = t1.idPapelTamanioFinal
+        where t1.presupuesto = ?";
+
+    $params = array($presupuesto);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarOtPorFechas($conn_sis, $bbddSql, $fechaInicio, $fechaFin)
+{
+    //informe de OT por fecha: horas/cantidad/% realizado por OT en el rango
+    $fechaInicio1 = date("d", strtotime($fechaInicio)) . '-' . date("m", strtotime($fechaInicio)) . '-' . date("y", strtotime($fechaInicio));
+    $fechaFin1 = date("d", strtotime($fechaFin)) . '-' . date("m", strtotime($fechaFin)) . '-' . date("Y", strtotime($fechaFin));
+
+    $consulta = "SELECT SUBSTRING(t1.codigoBarras,CHARINDEX('-', t1.codigoBarras)+1,7) as presupuesto
+        , sum(datediff(SECOND, t1.horaInicio, t1.horaFin))/60 as minutosTrabajados
+        , sum(datediff(SECOND, t1.horaInicio, t1.horaFin))/60/60 as horasTrabajados
+        , case when t2.finalizado='FINALIZADO' then t2.finalizado else 'EN  PROCESO' end as 'finalizado'
+        , t3.cantidad, t3.cantidad2, sum(t1.cantidad) as cantidadRealizada
+        , case when t3.cantidad2=0 or sum(t1.cantidad)=0 then 0 else CAST(SUM(t1.cantidad) AS BIGINT)*100/t3.cantidad2 end as tantoPorcientoRealizado
+        FROM [".$bbddSql."].[dbo].[registroHoras] as t1
+        left join (select tabla.*, 'FINALIZADO' as finalizado from (SELECT t1.*, t2.inicial
+            FROM [".$bbddSql."].[dbo].[presupuestos] as t1
+            inner join [".$bbddSql."].[dbo].[presupuestadores] as t2 on t1.idComercial = t2.id
+            where t1.fechaTerminado <= GETDATE()
+            or t1.numNoFactura is not null
+            or t1.presupuesto in (select presupuesto from [".$bbddSql."].[dbo].[presupuestosFacturadosTodosLosAnios])
+        ) as tabla) as t2 on SUBSTRING(t1.codigoBarras,CHARINDEX('-', t1.codigoBarras)+1,7) = t2.presupuesto
+        left join [".$bbddSql."].[dbo].[presupuestos] as t3 on SUBSTRING(t1.codigoBarras,CHARINDEX('-', t1.codigoBarras)+1,7) = t3.presupuesto
+        where t1.horaInicio >= ? and t1.horaFin < dateadd(day,1,?)
+        group by SUBSTRING(t1.codigoBarras,CHARINDEX('-', t1.codigoBarras)+1,7), t2.finalizado, t3.cantidad, t3.cantidad2
+        order by finalizado, 1";
+
+    $params = array($fechaInicio1, $fechaFin1);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarRegistrosHoras($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order, $group = array())
+{
+    $camposPermitidos = array(
+        'todos' => 't1.*',
+        'id' => 't1.id',
+        'codigoBarras' => 't1.codigoBarras',
+        'estado' => 't1.estado',
+        'horaInicio' => 't1.horaInicio',
+        'horaFin' => 't1.horaFin',
+        'idEmpleado' => 't1.idEmpleado',
+        'nombreEmpleado' => 't1.nombreEmpleado',
+        'cantidad' => 't1.cantidad',
+        'observaciones' => 't1.observaciones',
+        'modo' => 't1.modo',
+        'horarioInicio' => 'te.horarioInicio',
+        'horarioFin' => 'te.horarioFin',
+        'cliente' => 't2.cliente',
+        'campana' => "t2.campana as 'campana'",
+        'cantidadTrabajo' => "t2.cantidad as 'cantidad trabajo'",
+        'comercialPresupuesto' => 't2.comercial',
+        'fechaCompromiso' => 't2.[fechaCompromiso]',
+        'concepto' => 't4.proceso as concepto',
+        'cantidadProceso' => "t3.unidades as 'cantidad proceso'",
+        'descripcion' => 't3.descripcion',
+        'notaCibeles' => 't3.notaCibeles',
+        'presupuesto' => 't3.presupuesto',
+        'presupuestador' => 't5.nombre as presupuestador',
+        'comercial' => 't7.nombre as comercial',
+        'subcliente' => 't11.subcliente',
+        'departamento' => 't10.departamento',
+        'idDepartamento' => 't10.id as idDepartamento',
+        'tipoProceso' => 't9.tipoProceso',
+        'proceso' => 't8.proceso',
+        'sinProceso_idConcepto' => 't1.sinProceso_idConcepto',
+        'sinProceso_idCliente' => 't1.sinProceso_idCliente',
+        'sinProceso_idTipoProceso' => 't15.idTipoProceso as sinProceso_idTipoProceso',
+        'idGFSubconjunto2' => 't1.idGFSubconjunto2',
+        'idGFSubconcepto1' => 't17.id as idGFSubconcepto1',
+        'idGFConcepto' => 't18.id as idGFConcepto',
+        'gfTipoProceso' => 't13.tipoProceso as tipoProceso',
+        'gfProceso' => 't14.proceso as proceso',
+        'gfDescripcion' => 't12.descripcion as descripcion',
+        'idImpresoras' => 't1.idImpresoras',
+        'idPapelTamano' => 't1.idPapelTamano',
+        'idPapelTipo' => 't1.idPapelTipo',
+        'idPapelAcabado' => 't1.idPapelAcabado',
+        'idPapelGramaje' => 't1.idPapelGramaje',
+        'idPapelOrigen' => 't1.idPapelOrigen',
+        'impresionNumeroCaras' => 't1.impresionNumeroCaras',
+        'impresoras' => 't19.impresoras',
+        'tamanoPapel' => 't20.tamano as tamano',
+        'tipoPapel' => 't21.tipo as tipo',
+        'acabadoPapel' => 't22.acabado as acabado',
+        'gramajePapel' => 't23.gramaje as gramaje',
+        'origenPapel' => 't24.origen as origen',
+        'horas' => "isnull(RIGHT('0'+ cast(sum(datediff(second, t1.horaInicio, t1.horaFin)) / 3600 as VARCHAR),2) + ':' + RIGHT('0'+ cast((sum(datediff(second, t1.horaInicio, t1.horaFin)) / 60)%60 as VARCHAR),2)+ ':' + RIGHT('0'+ cast(sum(datediff(second, t1.horaInicio, t1.horaFin)) % 60 as VARCHAR),2),0) as horas",
+        'horasTotal' => "RIGHT('0'+ cast(sum(sum(datediff(second, t1.horaInicio, t1.horaFin))) over () / 3600 as VARCHAR),2) + ':' + RIGHT('0'+ cast((sum(sum(datediff(second, t1.horaInicio, t1.horaFin))) over () / 60)%60 as VARCHAR),2)+ ':' + RIGHT('0'+ cast(sum(sum(datediff(second, t1.horaInicio, t1.horaFin))) over () % 60 as VARCHAR),2) as horasTotal"
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- JOINS ----------
+    // t2: presupuestos | t3: presupuestos detalle | t4: procesos | t5: presupuestadores | t6: clientes union clientesClayma | t7: comerciales | te: empleados
+    // registros manuales (sinProceso_*): t8: procesos | t9: procesosTipos | t10: procesosDepartamento | t11: clientes
+    // GF (LEFT, listado gran formato): t12: presupuestos detalle | t13: procesosTipos | t14: procesos | t15: procesos(sinProceso) | t16: L_gf_subconcepto2 | t17: L_gf_subconcepto1 | t18: L_gf_concepto
+    // papel (LEFT, listado informatica): t19: L_impresoras | t20: L_papelTamanio | t21: L_papelTipo | t22: L_papelAcabado | t23: L_papelGramaje | t24: L_papelOrigen
+    $joinsPermitidos = array(
+        'tabla_presupuestos' => "inner join [".$bbddSql."].[dbo].[presupuestos] as t2 on SUBSTRING(t1.codigoBarras,CHARINDEX('-', t1.codigoBarras)+1,7) = t2.presupuesto",
+        'tabla_presupuestosDetalle' => "inner join [".$bbddSql."].[dbo].[presupuestos detalle] as t3 on SUBSTRING(t1.codigoBarras,0,CHARINDEX('-', t1.codigoBarras)) = t3.id",
+        'tabla_procesos' => "inner join [".$bbddSql."].[dbo].[procesos] as t4 on t4.id = t3.idConcepto",
+        'tabla_presupuestadores' => "left join [".$bbddSql."].[dbo].[presupuestadores] as t5 on t5.id = t2.idComercial",
+        'tabla_clientesUnion' => "left join (SELECT nombre_empresa, idComercial, 0 as clayma FROM [".$bbddSql."].[dbo].[clientes] union SELECT nombre_empresa, idComercial, 1 as clayma FROM [".$bbddSql."].[dbo].[clientesClayma]) as t6 on t6.nombre_empresa = t2.cliente and t6.clayma = t2.clayma",
+        'tabla_comerciales' => "left join [".$bbddSql."].[dbo].[comerciales] as t7 on t7.id = t6.idComercial",
+        'tabla_empleados' => "inner join [".$bbddSql."].[dbo].[empleados] as te on te.id = t1.idEmpleado",
+        'tabla_procesoManual' => "inner join [".$bbddSql."].[dbo].[procesos] as t8 on t8.id = t1.sinProceso_idConcepto",
+        'tabla_procesosTiposManual' => "inner join [".$bbddSql."].[dbo].[procesosTipos] as t9 on t8.idTipoProceso = t9.id",
+        'tabla_procesosDepartamentoManual' => "inner join [".$bbddSql."].[dbo].[procesosDepartamento] as t10 on t10.id = t8.idDepartamento",
+        'tabla_clienteManual' => "left join [".$bbddSql."].[dbo].[clientes] as t11 on t11.codigo = t1.sinProceso_idCliente",
+        'tabla_gfDetalle' => "left join [".$bbddSql."].[dbo].[presupuestos detalle] as t12 on t12.id = SUBSTRING(t1.codigoBarras,1,len(t1.codigoBarras)-8)",
+        'tabla_gfProcesosTipos' => "left join [".$bbddSql."].[dbo].[procesosTipos] as t13 on t13.id = t12.idTipo",
+        'tabla_gfProcesos' => "left join [".$bbddSql."].[dbo].[procesos] as t14 on t14.id = t12.idConcepto",
+        'tabla_gfProcesoSin' => "left join [".$bbddSql."].[dbo].[procesos] as t15 on t15.id = t1.sinProceso_idConcepto",
+        'tabla_gfSub2' => "left join [".$bbddSql."].[dbo].[L_gf_subconcepto2] as t16 on t16.id = t1.idGFSubconjunto2",
+        'tabla_gfSub1' => "left join [".$bbddSql."].[dbo].[L_gf_subconcepto1] as t17 on t16.idSubconcepto1 = t17.id",
+        'tabla_gfConcepto' => "left join [".$bbddSql."].[dbo].[L_gf_concepto] as t18 on t17.idConcepto = t18.id",
+        'tabla_impresoras' => "left join [".$bbddSql."].[dbo].[L_impresoras] as t19 on t19.id = t1.idImpresoras",
+        'tabla_papelTamano' => "left join [".$bbddSql."].[dbo].[L_papelTamanio] as t20 on t20.id = t1.idPapelTamano",
+        'tabla_papelTipo' => "left join [".$bbddSql."].[dbo].[L_papelTipo] as t21 on t21.id = t1.idPapelTipo",
+        'tabla_papelAcabado' => "left join [".$bbddSql."].[dbo].[L_papelAcabado] as t22 on t22.id = t1.idPapelAcabado",
+        'tabla_papelGramaje' => "left join [".$bbddSql."].[dbo].[L_papelGramaje] as t23 on t23.id = t1.idPapelGramaje",
+        'tabla_papelOrigen' => "left join [".$bbddSql."].[dbo].[L_papelOrigen] as t24 on t24.id = t1.idPapelOrigen"
+    );
+
+    $sqlJoins = '';
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+    if (isset($filtros['codigoBarras'])) {
+        $condicion[] = 't1.codigoBarras = ?';
+        $params[] = $filtros['codigoBarras'];
+    }
+    if (isset($filtros['idEmpleado'])) {
+        $condicion[] = 't1.idEmpleado = ?';
+        $params[] = $filtros['idEmpleado'];
+    }
+    if (isset($filtros['modo'])) {
+        $condicion[] = 't1.modo = ?';
+        $params[] = $filtros['modo'];
+    }
+    if (isset($filtros['idPapelTamano'])) {
+        $condicion[] = 't1.idPapelTamano = ?';
+        $params[] = $filtros['idPapelTamano'];
+    }
+    if (isset($filtros['idPapelTipo'])) {
+        $condicion[] = 't1.idPapelTipo = ?';
+        $params[] = $filtros['idPapelTipo'];
+    }
+    if (isset($filtros['idPapelAcabado'])) {
+        $condicion[] = 't1.idPapelAcabado = ?';
+        $params[] = $filtros['idPapelAcabado'];
+    }
+    if (isset($filtros['idPapelGramaje'])) {
+        $condicion[] = 't1.idPapelGramaje = ?';
+        $params[] = $filtros['idPapelGramaje'];
+    }
+    if (isset($filtros['maxIdPorEmpleado'])) {
+        $condicion[] = 't1.id = (select max(tmax.id) from ['.$bbddSql.'].[dbo].[registroHoras] as tmax where tmax.idEmpleado = ?)';
+        $params[] = $filtros['maxIdPorEmpleado'];
+    }
+    if (isset($filtros['otLike'])) {
+        $condicion[] = 't1.codigoBarras like ?';
+        $params[] = '%-'.$filtros['otLike'];
+    }
+    if (isset($filtros['idGFSubconjunto2NotNull'])) {
+        $condicion[] = 't1.idGFSubconjunto2 is not null';
+    }
+    if (isset($filtros['idImpresorasNotNull'])) {
+        $condicion[] = 't1.idImpresoras is not null';
+    }
+    if (isset($filtros['masde10horas'])) {
+        $condicion[] = "(t1.estado != 'abierto' and DATEDIFF(HOUR, t1.horaInicio, t1.horaFin) > 10)";
+    }
+    if (isset($filtros['fechaRangoOManual']) && is_array($filtros['fechaRangoOManual'])) {
+        $fr = $filtros['fechaRangoOManual'];
+        $cond = array();
+        if (isset($fr['inicio'])) {
+            $cond[] = 't1.horaInicio >= ?';
+            $params[] = $fr['inicio'];
+        }
+        if (isset($fr['fin'])) {
+            $cond[] = 't1.horaInicio < ?';
+            $params[] = $fr['fin'];
+        }
+        if (!empty($cond)) {
+            $condicion[] = '((' . implode(' and ', $cond) . ") or t1.codigoBarras = '0-9999999')";
+        }
+    }
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=');
+    $camposComparablesPermitidos = array(
+        'estado' => 't1.estado',
+        'horaInicio' => 't1.horaInicio',
+        'fechaInicioDia' => 'convert(date, t1.horaInicio)'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] = $camposComparablesPermitidos[$f['campo1']] . ' ' . $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- GROUP BY ----------
+    $camposGroupPermitidos = array(
+        'id' => 't1.id',
+        'codigoBarras' => 't1.codigoBarras',
+        'nombreEmpleado' => 't1.nombreEmpleado',
+        'horaInicio' => 't1.horaInicio',
+        'horaFin' => 't1.horaFin',
+        'cantidad' => 't1.cantidad',
+        'observaciones' => 't1.observaciones',
+        'estado' => 't1.estado'
+    );
+
+    $sqlGroup = '';
+    if (!empty($group) && is_array($group)) {
+        $groups = array();
+        foreach ($group as $g) {
+            if (isset($camposGroupPermitidos[$g])) {
+                $groups[] = $camposGroupPermitidos[$g];
+            }
+        }
+        if (!empty($groups)) {
+            $sqlGroup = ' GROUP BY ' . implode(', ', $groups);
+        }
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 't1.id',
+        'horaInicio' => 't1.horaInicio',
+        'horaFin' => 't1.horaFin',
+        'cantidad' => 't1.cantidad',
+        'nombreEmpleado' => 't1.nombreEmpleado',
+        'codigoBarras' => 't1.codigoBarras',
+        'estado' => 't1.estado',
+        'subcliente' => 't11.subcliente'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[registroHoras] AS t1
+        $sqlJoins
+        $sqlWhere
+        $sqlGroup
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'datos' => array(), 'sql' => $consulta, 'params' => $params);
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function insertarRegistroHoras($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'idEmpleado' => 'idEmpleado',
+        'codigoBarras' => 'codigoBarras',
+        'horaInicio' => 'horaInicio',
+        'horaFin' => 'horaFin',
+        'estado' => 'estado',
+        'cantidad' => 'cantidad',
+        'observaciones' => 'observaciones',
+        'modo' => 'modo',
+        'sinProceso_idConcepto' => 'sinProceso_idConcepto',
+        'sinProceso_idCliente' => 'sinProceso_idCliente',
+        'idGFSubconjunto2' => 'idGFSubconjunto2',
+        'idImpresoras' => 'idImpresoras',
+        'idPapelTamano' => 'idPapelTamano',
+        'idPapelTipo' => 'idPapelTipo',
+        'idPapelAcabado' => 'idPapelAcabado',
+        'idPapelGramaje' => 'idPapelGramaje',
+        'idPapelOrigen' => 'idPapelOrigen',
+        'impresionNumeroCaras' => 'impresionNumeroCaras'
+    );
+
+    $columnas = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $columnas[] = '[' . $camposPermitidos[$campo] . ']';
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($columnas)) {
+        return array('error' => 'datos vacios');
+    }
+
+    $consulta = "insert into [".$bbddSql."].[dbo].[registroHoras] (" . implode(', ', $columnas) . ") values (" . implode(', ', $placeholders) . ")";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'sql' => $consulta, 'params' => $params);
+    }
+
+    return array('error' => '', 'sql' => $consulta, 'params' => $params);
+}
+
+function modificarRegistroHoras($conn_sis, $bbddSql, $datos, $filtros)
+{
+    $camposPermitidos = array(
+        'horaInicio' => 'horaInicio',
+        'horaFin' => 'horaFin',
+        'estado' => 'estado',
+        'cantidad' => 'cantidad',
+        'observaciones' => 'observaciones',
+        'modo' => 'modo',
+        'codigoBarras' => 'codigoBarras',
+        'sinProceso_idConcepto' => 'sinProceso_idConcepto',
+        'sinProceso_idCliente' => 'sinProceso_idCliente',
+        'nombreEmpleado' => 'nombreEmpleado',
+        'idGFSubconjunto2' => 'idGFSubconjunto2',
+        'idImpresoras' => 'idImpresoras',
+        'idPapelTamano' => 'idPapelTamano',
+        'idPapelTipo' => 'idPapelTipo',
+        'idPapelAcabado' => 'idPapelAcabado',
+        'idPapelGramaje' => 'idPapelGramaje',
+        'idPapelOrigen' => 'idPapelOrigen',
+        'impresionNumeroCaras' => 'impresionNumeroCaras'
+    );
+
+    $sets = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $sets[] = '[' . $camposPermitidos[$campo] . '] = ?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($sets)) {
+        return array('error' => 'datos vacios');
+    }
+
+    $condicion = array();
+    if (isset($filtros['id'])) {
+        $condicion[] = 'id = ?';
+        $params[] = $filtros['id'];
+    }
+    if (isset($filtros['idEmpleado'])) {
+        $condicion[] = 'idEmpleado = ?';
+        $params[] = $filtros['idEmpleado'];
+    }
+    if (isset($filtros['codigoBarras'])) {
+        $condicion[] = 'codigoBarras = ?';
+        $params[] = $filtros['codigoBarras'];
+    }
+
+    if (empty($condicion)) {
+        return array('error' => 'modificar sin filtros no permitido');
+    }
+
+    $consulta = "update [".$bbddSql."].[dbo].[registroHoras] set " . implode(', ', $sets) . " where " . implode(' AND ', $condicion);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'sql' => $consulta, 'params' => $params);
+    }
+
+    return array('error' => '', 'sql' => $consulta, 'params' => $params);
+}
+
+function insertarUsuarioRegistroTrabajo($conn_sis, $bbddSql, $id)
+{
+    $consulta = "update t1 set t1.nombreEmpleado = t2.nombre + ' ' + t2.apellidos
+    from [".$bbddSql."].[dbo].[registroHoras] as t1
+    inner join [".$bbddSql."].[dbo].[empleados] as t2 on t1.idEmpleado = t2.id
+    where t1.id = ?";
+
+    $params = array($id);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'sql' => $consulta, 'params' => $params);
+    }
+
+    return array('error' => '', 'sql' => $consulta, 'params' => $params);
 }
 
 function cargarAlbaranTipo($conn_sis, $bbddSql, $campos, $order)

@@ -1,6 +1,6 @@
 <?php
 
-if(isset($_POST["accion"]) && $_POST["accion"]=="cargarOrigen")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarTiposProceso")
 {
 	$ruta = '../';
 	require($ruta."Archivos Comunes/constantes.php");
@@ -14,7 +14,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="cargarOrigen")
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];
 
-	$res = cargarOrigenPapel($conn, $bbddSql, $campos, $filtros, $order);
+	$res = cargarTipoDeProceso($conn, $bbddSql, $campos, $filtros, $order);
 
 	sqlsrv_close($conn);
 

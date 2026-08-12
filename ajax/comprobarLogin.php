@@ -101,6 +101,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="comprobarLogin")
 				'clientes',
 				'pdaGestion',
 				'pda_registrosHorasManuales',
+				'pda_registrosHorasManuales_Comprobacion',
 				'informesProduccion',
 				'pdaAdjunto',
 				'presupuestos',

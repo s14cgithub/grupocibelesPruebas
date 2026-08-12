@@ -10,10 +10,18 @@ if(isset($_POST["accion"])&$_POST["accion"]=="cargarMultiUsuario")
 		
 	
 	$idUsuario = $_SESSION["idEmpleado"];
-	
-	
-	
-	$resultado=cargarMultiUsuario($conexion,$idUsuario);
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = ['idEmpleado', 'nombreEmpleado'];
+	$joins = ['tabla_empleadoAnadido'];
+	$filtros = ['idUsuario' => $idUsuario];
+	$order = array();
+
+	$res = cargarRegistroHoras_multiusuario($conn, $bbddSql, $campos, $joins, $filtros, $order);
+	$resultado = $res['datos'];
 	
 	if (count($resultado)<=0)
 	{

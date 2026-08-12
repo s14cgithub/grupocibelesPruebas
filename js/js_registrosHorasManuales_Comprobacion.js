@@ -6,31 +6,68 @@ var laCondicion="";
 var laId1="-1";
 
 
-function buscarRegistros()
+function cargarTiposProceso()
 {
-	var condicion="";
+	peticionUnica1=crearComunicacion(peticionUnica1);
 
-	condicion = "where t1.codigoBarras = '0-9999999' ";
-
-	if (document.getElementById("buscarFechaInicio").value!="")
+	if(peticionUnica1)
 	{
-		condicion += " and  convert(date, t1.horaInicio) >= '"+document.getElementById("buscarFechaInicio").value+"'";
+		peticionUnica1.onreadystatechange = mostrarCargarTiposProceso;
+		peticionUnica1.open("POST","ajax/cargarTiposProceso.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarTiposProceso();
+		peticionUnica1.send(query_string);
 	}
-	if (document.getElementById("buscarFechaFin").value!="")
-	{
-		condicion += " and  convert(date, t1.horaInicio) <= '"+document.getElementById("buscarFechaFin").value+"'";
-	}
-	
-
-
-
-	condicion += " order by t6.subcliente";
-	laCondicion = condicion;
-	condicion = condicion.replaceAll('%','%25');
-	cargarRegistrosSinProcesos(condicion);
 }
 
-function cargarRegistrosSinProcesos(condicion="")
+function consultaCargarTiposProceso()
+{
+	var consulta = "accion=cargarTiposProceso";
+
+	var campos = ['id','tipoProceso'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	return consulta;
+}
+
+function mostrarCargarTiposProceso()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var datos = new Array;
+
+			try
+			{
+				datos = JSON.parse(peticionUnica1.responseText);
+			}
+			catch (error)
+			{
+				datos="";
+			}
+
+			var contenido = "";
+			var contador = 0;
+			while (contador < datos.length)
+			{
+				contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["tipoProceso"]+'</option>';
+				contador++;
+			}
+
+			document.getElementById("tipoProcesoModal").innerHTML = contenido;
+			peticionUnica1=null;
+		}
+	}
+}
+
+
+function buscarRegistros()
+{
+	cargarRegistrosSinProcesos();
+}
+
+function cargarRegistrosSinProcesos()
 {
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
@@ -39,15 +76,38 @@ function cargarRegistrosSinProcesos(condicion="")
 		peticionUnica1.onreadystatechange = mostrarCargarRegistrosSinProcesos;
 		peticionUnica1.open("POST","ajax/cargarRegistrosHoras.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaCargarRegistrosSinProcesos(condicion);
+		var query_string = consultaCargarRegistrosSinProcesos();
 		peticionUnica1.send(query_string);
 	}
 }
 
-function consultaCargarRegistrosSinProcesos(condicion)
+function consultaCargarRegistrosSinProcesos()
 {	
-	var consulta = "accion=cargarRegistros";
-	consulta += "&condicion="+condicion;	
+	var consulta = "accion=cargarRegistrosHoras";
+
+	var campos = ['id','horaInicio','nombreEmpleado','departamento','idDepartamento','tipoProceso','proceso','cantidad','observaciones','subcliente'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = ['tabla_procesoManual','tabla_procesosTiposManual','tabla_procesosDepartamentoManual','tabla_clienteManual'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = {codigoBarras: '0-9999999'};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var filtrosOperadores = [];
+	if (document.getElementById("buscarFechaInicio").value != "")
+	{
+		filtrosOperadores.push({campo1: 'fechaInicioDia', valor: document.getElementById("buscarFechaInicio").value, operador: '>='});
+	}
+	if (document.getElementById("buscarFechaFin").value != "")
+	{
+		filtrosOperadores.push({campo1: 'fechaInicioDia', valor: document.getElementById("buscarFechaFin").value, operador: '<='});
+	}
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var order = [{campo: 'subcliente', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 
@@ -57,24 +117,14 @@ function mostrarCargarRegistrosSinProcesos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-					
-					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";
 				
@@ -179,7 +229,7 @@ function comprobarInsertarProceso(laIdRegistroHora)
 		if(peticionUnica1)
 		{							
 			peticionUnica1.onreadystatechange = mostrarComprobarInsertarProceso;
-			peticionUnica1.open("POST","ajax/insertarProceso_RegistroHora.php",false);
+			peticionUnica1.open("POST","ajax/modificarRegistroHoras2.php",false);
 			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 			var query_string = consultaComprobarInsertarProceso(laIdRegistroHora);
 			peticionUnica1.send(query_string);
@@ -189,9 +239,13 @@ function comprobarInsertarProceso(laIdRegistroHora)
 }
 function consultaComprobarInsertarProceso(laIdRegistroHora)
 {	
-	var consulta = "accion=insertarProceso";
-	consulta += "&idRegistroHora="+laIdRegistroHora;
-	consulta += "&idProceso=" + document.getElementById(laIdRegistroHora + "_proceso").value;
+	var consulta = "accion=modificarRegistroHoras";
+
+	var datos = {codigoBarras: document.getElementById(laIdRegistroHora + "_proceso").value};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+
+	var filtros = {id: laIdRegistroHora};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -202,13 +256,14 @@ function mostrarComprobarInsertarProceso()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);			
+				alert("Proceso Insertado");			
 				buscarRegistros();			
 			}
 			peticionUnica1=null;	
@@ -228,7 +283,7 @@ function cargarListadoProcesos(laId,idDepartamento)
 		if(peticionUnica1)
 		{							
 			peticionUnica1.onreadystatechange = mostrarCargarListadoProcesos;
-			peticionUnica1.open("POST","ajax/cargarProcesosEspecificos.php",false);
+			peticionUnica1.open("POST","ajax/cargarDetallesPresupuesto.php",false);
 			peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 			var query_string = consultaCargarListadoProcesos(idDepartamento);
 			peticionUnica1.send(query_string);
@@ -240,9 +295,14 @@ function cargarListadoProcesos(laId,idDepartamento)
 
 function consultaCargarListadoProcesos(idDepartamento)
 {	
-	var consulta = "accion=cargarProcesos";
-	consulta += "&ot="+document.getElementById(laId1+"_ot").value;
-	consulta += "&idDepartamento=" + idDepartamento;
+	var consulta = "accion=cargarDetalles";
+
+	var campos = ['id','presupuesto','tipoProceso','proceso','descripcion'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	//procesosTipos (t2), procesos (t3) y procesosDepartamento (t4) ya vienen fijos en el FROM de cargarDetallesPresupuesto; no hay que mandarlos como joins
+	var filtros = {presupuesto: document.getElementById(laId1+"_ot").value, idDepartamento: idDepartamento};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -253,24 +313,14 @@ function mostrarCargarListadoProcesos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-					
-					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";			
 				
