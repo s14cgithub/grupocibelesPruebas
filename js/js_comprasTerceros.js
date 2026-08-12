@@ -10,12 +10,6 @@ var modificar = true;
 
 function cargarUnaCompra(idPedido)
 {		
-	//document.getElementById("buscarCampo").value = "codigo";
-	/*let params = new URLSearchParams(window.location.search);
-	var idPedido= params.get("id");*/
-	
-	var condicion = " where t1.pedido = " + idPedido;	
-		
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
@@ -23,17 +17,23 @@ function cargarUnaCompra(idPedido)
 		peticionUnica1.onreadystatechange = mostrarCargarUnaCompra;		
 		peticionUnica1.open("POST","ajax/cargarComprasTerceros.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultarCargarUnaCompra(condicion);
+		var query_string = consultarCargarUnaCompra(idPedido);
 		peticionUnica1.send(query_string);
 	}
 	
 }
 
-function consultarCargarUnaCompra(condicion)
+function consultarCargarUnaCompra(idPedido)
 {	
 	var consulta = "accion=cargarComprasTerceros";
-	
-	consulta += "&condicion="+(condicion);
+
+	var campos = ['pedido','fecha','idProveedor','contactoProveedor','nombreCliente','contactoCliente','idComercial','presupuesto','fechaPresupuesto','numeroFactura','clayma','numeroFacturaClayma','fechaFactura','fechaFacturaClayma','fechaEntrega','idFormaPago','numeroFacturaCompra','fechaFacturaCompra','observacionesInternas'];
+	var joins = ['tabla2','tabla5','tabla8'];
+	var filtros = {pedido: idPedido};
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -44,22 +44,15 @@ function mostrarCargarUnaCompra()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
+				var datos = res.datos;
 				
 				if (datos.length>0)
 				{
@@ -185,18 +178,23 @@ function modificarComprarTerceros()
 function consultaModificarComprarTerceros()
 {	
 	var consulta = "accion=modificarComprarTerceros";
-	
-	consulta += "&id=" + document.getElementById("pedido_id").value;
-	consulta += "&nombreProveedor=" + document.getElementById("proveedores").value; 
-	consulta += "&contactoP=" + document.getElementById("pedido_contactoP").value; 
-	consulta += "&contactoC=" + document.getElementById("pedido_contactoC").value; 
-	consulta += "&comercial=" + document.getElementById("comercial").value; 
-	consulta += "&presupuesto=" + document.getElementById("pedido_presupuesto").value; 
-	consulta += "&fechaEntrega=" + document.getElementById("pedido_fechaEntrega").value; 
-	consulta += "&formaPago=" + document.getElementById("pedido_formaPago").value; 
-	consulta += "&numFacCompra=" + document.getElementById("pedido_numFacCompra").value; 
-	consulta += "&fechaFacCompra=" + document.getElementById("pedido_fechaFacCompra").value; 
-	consulta += "&observacionInterna=" + document.getElementById("pedido_observacionInterna").value;
+
+	var datos = {
+		idProveedor: document.getElementById("proveedores").value,
+		contactoProveedor: document.getElementById("pedido_contactoP").value,
+		contactoCliente: document.getElementById("pedido_contactoC").value,
+		idComercial: document.getElementById("comercial").value,
+		presupuesto: document.getElementById("pedido_presupuesto").value,
+		fechaEntrega: document.getElementById("pedido_fechaEntrega").value,
+		idFormaPago: document.getElementById("pedido_formaPago").value,
+		numeroFacturaCompra: document.getElementById("pedido_numFacCompra").value,
+		fechaFacturaCompra: document.getElementById("pedido_fechaFacCompra").value,
+		observacionesInternas: document.getElementById("pedido_observacionInterna").value
+	};
+	var filtros = {pedido: document.getElementById("pedido_id").value};
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -207,13 +205,15 @@ function mostrarModificarComprarTerceros()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				alert(peticionUnica1.responseText);
+				alert("Compra a Tercero modificada");
 				
 			}
 			peticionUnica1=null;
@@ -278,22 +278,13 @@ function anadirDetalleCompraTercero() //js_prefactura
 function consultaAnadirDetalleCompraTercero()
 {	
 	var consulta = "accion=anadirDetalle";
-	
-	consulta += "&idPedido="+document.getElementById("pedido_id").value;
-	consulta += "&numPresupuesto="+document.getElementById("pedido_presupuesto").value;
-	
-	consulta +="&descripcion=" + reemplazarSimbolos(document.getElementById("descripcionConceptoNuevoTemp").value);
-	
-	
-	
-	
+
 	var cantidad = document.getElementById("cantidadConceptoNuevoTemp").value;	
 	cantidad = cantidad.replace(',','.');
 	if (cantidad == "")
 	{
 		cantidad =0;
 	}
-	consulta += "&cantidad=" + cantidad;
 	
 	var precioUnitario = document.getElementById("precioUnitarioConceptoNuevoTemp").value;	
 	precioUnitario = precioUnitario.replace(',','.');
@@ -302,21 +293,25 @@ function consultaAnadirDetalleCompraTercero()
 		precioUnitario =0;
 	}
 	
-	consulta += "&precioUnitario=" + precioUnitario;
-	
-	
 	var precioVenta = document.getElementById("precioVentaConceptoNuevoTemp").value;	
 	precioVenta = precioVenta.replace(',','.');
 	if (precioVenta == "")
 	{
 		precioVenta =0;
 	}
+
+	var datos = {
+		pedido: document.getElementById("pedido_id").value,
+		descripcion: reemplazarSimbolos(document.getElementById("descripcionConceptoNuevoTemp").value),
+		cantidad: cantidad,
+		precioUnidad: precioUnitario,
+		precioVenta: precioVenta,
+		total: reemplazarSimbolos(document.getElementById("precioTotalConceptoNuevoTemp").value),
+		margen: reemplazarSimbolos2(document.getElementById("margenConceptoNuevoTemp").value)
+	};
 	
-	consulta += "&precioVenta=" + precioVenta;
-	
-	consulta +="&precioTotal=" + reemplazarSimbolos(document.getElementById("precioTotalConceptoNuevoTemp").value);
-	
-	consulta +="&margen=" + reemplazarSimbolos2(document.getElementById("margenConceptoNuevoTemp").value);
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+	consulta += "&numPresupuesto=" + document.getElementById("pedido_presupuesto").value;
 	
 	return consulta;
 }
@@ -327,9 +322,11 @@ function mostrarAnadirDetalleCompraTercero()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
@@ -383,25 +380,19 @@ function mostrarCargarDetallesComprarTerceros()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
 				
 				
 				
-				var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}				
-				
+				var datos = res.datos;
+				var contenido = "";
 				if (datos != "")
 				{
 					
@@ -410,7 +401,7 @@ function mostrarCargarDetallesComprarTerceros()
 					}
 					else
 					{
-						var contenido="<tr><td>&nbsp&nbsp</td></tr><tr><td colspan='6'><center><h2>CONCEPTOS</h2></center></td></tr>";
+						contenido="<tr><td>&nbsp&nbsp</td></tr><tr><td colspan='6'><center><h2>CONCEPTOS</h2></center></td></tr>";
 
 						var contador = 0;
 
@@ -459,9 +450,11 @@ function mostrarCargarDetallesComprarTerceros()
 							contador++;
 						}
 					
-						document.getElementById("detallesPedido").innerHTML = contenido;
+						
 					}
+					
 				}
+				document.getElementById("detallesPedido").innerHTML = contenido;
 			}
 			peticionUnica1=null;
 		}
@@ -490,13 +483,19 @@ function modificarDetalleCompraTercero(idDetalle)
 function consultaModificarDetalleCompraTercero(idDetalle)
 {	
 	var consulta = "accion=modificarDetalle";
-	consulta += "&idDetalle="+idDetalle;
-	consulta += "&descripcion="+document.getElementById("descripcionConcepto_"+idDetalle).value;
-	consulta += "&cantidad="+document.getElementById("cantidadConcepto_"+idDetalle).value;
-	consulta += "&precioUnitario="+document.getElementById("precioUnitarioConcepto_"+idDetalle).value;
-	consulta += "&precioTotal="+document.getElementById("precioTotalConcepto_"+idDetalle).value;
-	consulta += "&precioVenta="+document.getElementById("precioVentaConcepto_"+idDetalle).value;
-	consulta += "&margen="+document.getElementById("margenConcepto_"+idDetalle).value;
+
+	var datos = {
+		descripcion: document.getElementById("descripcionConcepto_"+idDetalle).value,
+		cantidad: document.getElementById("cantidadConcepto_"+idDetalle).value,
+		precioUnidad: document.getElementById("precioUnitarioConcepto_"+idDetalle).value,
+		total: document.getElementById("precioTotalConcepto_"+idDetalle).value,
+		precioVenta: document.getElementById("precioVentaConcepto_"+idDetalle).value,
+		margen: document.getElementById("margenConcepto_"+idDetalle).value
+	};
+	var filtros = {id: idDetalle};
+
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	consulta += "&presupuesto="+document.getElementById("pedido_presupuesto").value;
 	return consulta;
 }
@@ -507,9 +506,11 @@ function mostrarModificarDetalleCompraTercero()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
@@ -538,7 +539,9 @@ function eliminarDetalleCompraTercero(idDetalle)
 function consultaEliminarDetalleCompraTercero(idDetalle)
 {	
 	var consulta = "accion=eliminarDetalle";
-	consulta += "&idDetalle="+idDetalle;
+
+	var filtros = {id: idDetalle};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	return consulta;
 }
 
@@ -548,9 +551,11 @@ function mostrarEliminarDetalleCompraTercero()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
@@ -605,9 +610,11 @@ function mostrarCambiarPdfGenerado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
@@ -634,7 +641,7 @@ function comprobarPresupuesto()
 	{							
 		peticionUnica1.onreadystatechange = mostrarComprobarPresupuesto;		
 		
-		peticionUnica1.open("POST","ajax/mostrarSoloPresupuestos.php",false);
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
 		
 		//peticionUnica1.open("POST","ajax/cargarClientes.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
@@ -645,10 +652,16 @@ function comprobarPresupuesto()
 
 function consultaComprobarPresupuesto()
 {	
-	var consulta = "accion=mostrarPresupuesto";		
+	var consulta = "accion=cargarPresupuestos";		
 	
 	var presupuesto = document.getElementById("pedido_presupuesto").value;
-	consulta += "&condicion="+presupuesto;
+	var campos = ['presupuesto'];
+	var filtros = {presupuesto: presupuesto};
+	var filtrosOperadores = [{campo1: 'fechaAceptacion', operador: '!=', valor: null}];
+
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
 	
 	return consulta;	
 }
@@ -659,15 +672,16 @@ function mostrarComprobarPresupuesto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
 				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);		
+				var datos = res.datos;		
 				
 				if (datos.length>0)
 				{
@@ -724,15 +738,16 @@ function mostrarVerDatosPresupuesto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
 				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);		
+				var datos = res.datos;		
 				
 				if (datos.length>0)
 				{

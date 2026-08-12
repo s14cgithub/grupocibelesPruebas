@@ -3,6 +3,11 @@ var laCondicion="";
 
 
 
+var losFiltros = {};
+var losFiltrosOperadores = [];
+var losFiltrosLike = [];
+var elOrder = [];
+
 function buscarFactura()
 {
 	var condicion="";
@@ -37,7 +42,26 @@ function buscarFactura()
 	
 	
 	laCondicion = condicion;
-	
+
+	// filtros estructurados (nuevo formato) para ajax/cargarProveedor.php
+	losFiltros = {};
+	losFiltrosLike = [];
+
+	if (campoAbuscar =="id" && textoAbuscar!="")
+	{
+		losFiltros.id = textoAbuscar;
+	}
+	else if (textoAbuscar != "")
+	{
+		losFiltrosLike = [{campo: campoAbuscar, valor: textoAbuscar}];
+	}
+
+	if (soloHomologado==true)
+	{
+		losFiltros.homologado = 1;
+	}
+
+	elOrder = [{campo: orden, dir: desc ? "DESC" : "ASC"}];
 	
 	
 	cargarListadoProveedores();
@@ -66,9 +90,13 @@ function cargarListadoProveedores()//js_presupuestosListado
 
 function consultaCargarListadoProveedores()
 {	
+	var campos = ['id','proveedor','servicio','direccion','cp','localidad'];
+
 	var consulta = "accion=cargarProveedores";	
-	
-	consulta += "&condicion=" + reemplazarSimbolosBusqueda(laCondicion);
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(losFiltros));
+	consulta += "&filtrosLike=" + encodeURIComponent(JSON.stringify(losFiltrosLike));
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(elOrder));
 	
 	return consulta;	
 }
@@ -79,14 +107,15 @@ function mostrarCargarListadoProveedores()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
@@ -213,18 +242,20 @@ function crearProveedor()
 
 function consultaCrearProveedor()
 {	
+	var datos = {
+		proveedor: document.getElementById("proveedorNuevo_nombre").value,
+		nif: document.getElementById("proveedorNuevo_nif").value,
+		servicio: document.getElementById("proveedorNuevo_servicio").value,
+		direccion: document.getElementById("proveedorNuevo_direccion").value,
+		localidad: document.getElementById("proveedorNuevo_localidad").value,
+		provincia: document.getElementById("proveedorNuevo_provincia").value,
+		cp: document.getElementById("proveedorNuevo_cp").value,
+		precioComparado: document.getElementById("proveedorNuevo_precioComparado").value,
+		telefono: document.getElementById("proveedorNuevo_Telefono").value
+	};
+
 	var consulta = "accion=insertarProveedor";	
-	
-	consulta += "&nombre=" + reemplazarSimbolosBusqueda(document.getElementById("proveedorNuevo_nombre").value);
-	consulta += "&nif=" + reemplazarSimbolosBusqueda(document.getElementById("proveedorNuevo_nif").value);
-	consulta += "&servicio=" + reemplazarSimbolosBusqueda(document.getElementById("proveedorNuevo_servicio").value);
-	consulta += "&direccion=" + reemplazarSimbolosBusqueda(document.getElementById("proveedorNuevo_direccion").value);
-	consulta += "&localidad=" + reemplazarSimbolosBusqueda(document.getElementById("proveedorNuevo_localidad").value);
-	consulta += "&provincia=" + reemplazarSimbolosBusqueda(document.getElementById("proveedorNuevo_provincia").value);
-	consulta += "&cp=" + reemplazarSimbolosBusqueda(document.getElementById("proveedorNuevo_cp").value);
-	consulta += "&precioComparado=" + reemplazarSimbolosBusqueda(document.getElementById("proveedorNuevo_precioComparado").value);
-	consulta += "&telefono=" + reemplazarSimbolosBusqueda(document.getElementById("proveedorNuevo_Telefono").value); 
-	
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
 	return consulta;	
 }
@@ -235,13 +266,15 @@ function mostrarCrearProveedor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{	
-				alert("El numero de pedido del nuevo proveeedor es: "+peticionUnica1.responseText);
+				alert("El numero de pedido del nuevo proveeedor es: "+res.datos.idProveedor);
 				cargarListadoProveedores();				
 			}
 			peticionUnica1=null;			

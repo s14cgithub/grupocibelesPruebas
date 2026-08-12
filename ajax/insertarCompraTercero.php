@@ -1,39 +1,23 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="insertarCompraTercero")
+if(isset($_POST["accion"]) && $_POST["accion"]=="insertarCompraTercero")
 {
-	
-	session_start(); 
-	$ruta = '../';	
+	session_start();
+	$ruta = '../';
 	require($ruta."Archivos Comunes/constantes.php");
-	require($ruta."Archivos Comunes/codigoInclude.php");	
-	
-	$idComercial = $_POST["idComercial"];
-	$presupuesto = $_POST["presupuesto"];
-	$idProveedor = $_POST["idProveedor"];
-	$contactoProveedor = $_POST["contactoProveedor"];
-	$formaPago = $_POST["formaPago"];
-	$anual = $_POST["anual"];
-	
-	$anual1=0;
-	if ($anual=="true")
-	{
-		$anual1=1;
-	}
-	
-		
-	
-	
-	echo insertarComprarTercero($conexion,$idComercial,$presupuesto,$idProveedor,$contactoProveedor,$formaPago,$anual1);
-	
-	
-	
-	
-	
-		
-	
-	
-}
+	require($ruta."Archivos Comunes/codigoInclude.php");
 
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = insertarComprarTercero($conn, $bbddSql, $datos);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
+}
 
 ?>

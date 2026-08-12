@@ -241,6 +241,10 @@ function cargarPresupuestadores(campo)
 function consultaCargarPresupuestadores()
 {	
 	var consulta = "accion=cargarPresupuestador";
+
+	var filtros = {activo: 1};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -398,7 +402,10 @@ function cargarFormasDePagoCompraAterceros()
 
 function consultaCargarFormasDePagoCompraAterceros()
 {	
+	var campos = ['id','concepto'];
+
 	var consulta = "accion=cargarFormaDePago";
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
 	
 	return consulta;	
 }
@@ -409,21 +416,15 @@ function mostrarCargarFormasDePagoCompraAterceros()
 	{
 		if(peticionUnica0.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica0.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica0.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}				
+				var datos = res.datos;
 				
 				if (datos != "")
 				{
@@ -2581,9 +2582,12 @@ function cargarProveedores()//js_presupuestosListado
 
 function consultaCargarProveedores()
 {	
+	var campos = ['id','proveedor'];
+	var order = [{campo: 'proveedor', dir: 'ASC'}];
+
 	var consulta = "accion=cargarProveedores";		
-	
-	consulta += "&condicion= order by proveedor";
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -2594,14 +2598,15 @@ function mostrarCargarProveedores()
 	{
 		if(peticionUnica0.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica0.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica0.responseText);				
+				var datos = res.datos;				
 				
 				var contenido = "";
 				var contador = 0;	

@@ -32,12 +32,28 @@ if(isset($_POST["imprimirAccion"])&$_POST["imprimirAccion"]=="imprimirCompra")
 	
 	$pdf->StartPageGroup();	
 
-	
-	$condicion = " where t1.pedido = ".$numeroPedido;
-	$datosCompra = cargarComprasTerceros($conexion,$condicion);
-	
-	
-	$datosCompraDetalle = mostrarComprarTerceroDetalles($conexion,$numeroPedido);		
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resCompra = cargarComprasTerceros(
+		$conn, $bbddSql,
+		array('pedido','presupuesto','fecha','nombreProveedor','comercialNombre','fechaEntrega','formaPago'),
+		array('tabla3','tabla6','tabla7'),
+		array('pedido' => $numeroPedido),
+		array(),
+		array()
+	);
+	$datosCompra = $resCompra['datos'];
+
+	$resDetalle = cargarComprasTercerosDetalles(
+		$conn, $bbddSql,
+		array('descripcion','cantidad','precioUnidad','total'),
+		array('pedido' => $numeroPedido)
+	);
+	$datosCompraDetalle = $resDetalle['datos'];
+
+	sqlsrv_close($conn);
 	
 	
 	

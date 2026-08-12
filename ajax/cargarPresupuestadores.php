@@ -15,15 +15,13 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="cargarPresupuestador")
 	$bbddSql = $conn1['bbdd'];
 
 	$campos = [
-		't1.id',
-		't1.nombre',
-		't1.telefono',
-		't1.inicial'
+		'id',
+		'nombre',
+		'telefono',
+		'inicial'
 	];
 
-	$filtros = [
-			//'cliente' => 'EMPRESA SL'
-		];
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
 
 	$order = [
 			//['campo' => 'fecha', 'dir' => 'DESC'],

@@ -14,8 +14,6 @@ function cargarUnProveedor()
 	let params = new URLSearchParams(window.location.search);
 	var idProveedor= params.get("id");
 	
-	var condicion = " where id = " + idProveedor;	
-		
 	peticionUnica1=crearComunicacion(peticionUnica1);
 
 	if(peticionUnica1)
@@ -23,17 +21,20 @@ function cargarUnProveedor()
 		peticionUnica1.onreadystatechange = mostrarCargarListadoProveedores;
 		peticionUnica1.open("POST","ajax/cargarProveedor.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
-		var query_string = consultaCargarListadoProveedores(condicion);
+		var query_string = consultaCargarListadoProveedores(idProveedor);
 		peticionUnica1.send(query_string);				
 	}
 	
 }
 
-function consultaCargarListadoProveedores(condicion)
+function consultaCargarListadoProveedores(idProveedor)
 {	
+	var campos = ['id','proveedor','nif','servicio','direccion','localidad','provincia','cp','precioComparado','fechaAlta','homologado','deshomologado'];
+	var filtros = {id: idProveedor};
+
 	var consulta = "accion=cargarProveedores";
-	
-	consulta += "&condicion="+(condicion);
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -44,22 +45,15 @@ function mostrarCargarListadoProveedores()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
+				var datos = res.datos;
 				
 				if (datos.length>0)
 				{
@@ -107,14 +101,15 @@ function cargarProveedorContactos()
 
 function consultaCargarProveedorContactos()
 {	
-	var consulta = "accion=cargarProveedorContactos";	
-	
 	let params = new URLSearchParams(window.location.search);
 	var idProveedor= params.get("id");
-	
-	var condicion = " where idCliente = " + idProveedor;
-	consulta +="&condicion=" + condicion;
-	
+
+	var campos = ['id','idSexo','nombre','apellidos','departamento','cargo','telefono','movil','email','comentario','sexo'];
+	var filtros = {idCliente: idProveedor};
+
+	var consulta = "accion=cargarProveedorContactos";	
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;
 }
@@ -125,14 +120,15 @@ function mostrarCargarProveedorContactos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var datos = new Array;
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;
 				
 				var contenido="<tr><td>&nbsp&nbsp</td></tr><tr><td colspan='6'><center><h2>CONTACTOS</h2></center></td></tr>";
 				var contador = 0;
@@ -262,21 +258,22 @@ function modificarContactoProveedor(idContacto)
 
 function constulaModificarContactoProveedor(idContacto)
 {	
-	var consulta = "accion=modificarProveedor";
-	
-	consulta +="&idContacto="+idContacto;
-	
-	consulta +="&idSexo=" + document.getElementById(idContacto + "_contactoSexo").value;
-	consulta +="&nombre=" + document.getElementById(idContacto + "_contactoNombre").value; 
-	consulta +="&apellidos=" + document.getElementById(idContacto + "_contactoApellidos").value; 
-	consulta +="&departamento=" + document.getElementById(idContacto + "_contactoDepartamento").value; 
-	consulta +="&cargo=" + document.getElementById(idContacto + "_contactoCargo").value; 
-	consulta +="&telefono=" + document.getElementById(idContacto + "_contactoTelefono").value; 
-	consulta +="&movil=" + document.getElementById(idContacto + "_contactoMovil").value; 
-	consulta +="&email=" + document.getElementById(idContacto + "_contactoEmail").value; 
-	consulta +="&comentario=" + document.getElementById(idContacto + "_contactoComentario").value; 
-				
-		
+	var datos = {
+		idSexo: document.getElementById(idContacto + "_contactoSexo").value,
+		nombre: document.getElementById(idContacto + "_contactoNombre").value,
+		apellidos: document.getElementById(idContacto + "_contactoApellidos").value,
+		departamento: document.getElementById(idContacto + "_contactoDepartamento").value,
+		cargo: document.getElementById(idContacto + "_contactoCargo").value,
+		telefono: document.getElementById(idContacto + "_contactoTelefono").value,
+		movil: document.getElementById(idContacto + "_contactoMovil").value,
+		email: document.getElementById(idContacto + "_contactoEmail").value,
+		comentario: document.getElementById(idContacto + "_contactoComentario").value
+	};
+	var filtros = {id: idContacto};
+
+	var consulta = "accion=modificarContactoProveedor";
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -287,15 +284,15 @@ function mostrarModificarContactoProveedor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
 				
-				alert(peticionUnica1.responseText);
-				peticionUnica1=null;
 				cargarProveedorContactos();
 				
 			}
@@ -322,27 +319,23 @@ function modificarProveedor()
 
 function consultaModificarProveedor()
 {	
+	var datos = {
+		proveedor: reemplazarSimbolos2(document.getElementById("proveedor_nombre").value),
+		nif: document.getElementById("proveedor_nif").value,
+		servicio: document.getElementById("proveedor_servicio").value,
+		direccion: document.getElementById("proveedor_direccion").value,
+		localidad: document.getElementById("proveedor_localidad").value,
+		provincia: document.getElementById("proveedor_provincia").value,
+		cp: document.getElementById("proveedor_cp").value,
+		precioComparado: document.getElementById("proveedor_precioComparado").value,
+		homologado: document.getElementById("proveedor_homologado").checked ? 1 : 0,
+		deshomologado: document.getElementById("proveedor_deshomologado").value
+	};
+	var filtros = {id: document.getElementById("proveedor_id").value};
+
 	var consulta = "accion=modificarProveedor";	
-	
-	consulta +="&idProveedor=" + document.getElementById("proveedor_id").value;	
-	consulta +="&nombre=" + reemplazarSimbolos2(document.getElementById("proveedor_nombre").value);	
-	consulta +="&nif=" + document.getElementById("proveedor_nif").value;	
-	consulta +="&servicio=" + document.getElementById("proveedor_servicio").value;
-	
-	consulta +="&direccion=" + document.getElementById("proveedor_direccion").value;	
-	consulta +="&localidad=" + document.getElementById("proveedor_localidad").value;	
-	consulta +="&provincia=" + document.getElementById("proveedor_provincia").value;	
-	consulta +="&cp=" + document.getElementById("proveedor_cp").value;	
-	
-	
-	
-	consulta +="&precioComparado=" + document.getElementById("proveedor_precioComparado").value;	
-	consulta +="&fechaAlta=" + document.getElementById("proveedor_fechaAlta").value;
-	consulta +="&homologado=" + document.getElementById("proveedor_homologado").checked;
-	consulta +="&motivoDeshomologado=" + document.getElementById("proveedor_deshomologado").value;
-	
-		
-	
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;
 }
@@ -354,13 +347,15 @@ function mostrarModificarProveedor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);				
+				alert("Proveedor Modificado");
 				//cargarListadoPFpendientes();				
 			}
 				
@@ -384,18 +379,21 @@ function insertarContactoProveedor()
 
 function consultaInsertarContactoProveedor()
 {	
+	var datos = {
+		idCliente: document.getElementById("proveedor_id").value,
+		idSexo: document.getElementById("contSexo").value,
+		nombre: document.getElementById("contNombre").value,
+		apellidos: document.getElementById("contApellidos").value,
+		departamento: document.getElementById("contDepartamento").value,
+		cargo: document.getElementById("contCargo").value,
+		telefono: document.getElementById("contTelefono").value,
+		movil: document.getElementById("contMovil").value,
+		email: document.getElementById("contEmail").value,
+		comentario: document.getElementById("contComentario").value
+	};
+
 	var consulta = "accion=insertarContactoProveedor";	
-	consulta += "&idProveedor="+document.getElementById("proveedor_id").value;
-	consulta += "&idSexo="+document.getElementById("contSexo").value;
-	consulta += "&nombre="+document.getElementById("contNombre").value;
-	consulta += "&apellidos="+document.getElementById("contApellidos").value;
-	consulta += "&departamento="+document.getElementById("contDepartamento").value;
-	consulta += "&cargo="+document.getElementById("contCargo").value;
-	consulta += "&telefono="+document.getElementById("contTelefono").value;
-	consulta += "&movil="+document.getElementById("contMovil").value;
-	consulta += "&email="+document.getElementById("contEmail").value;
-	consulta += "&comentario="+document.getElementById("contComentario").value;	
-	
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
 	return consulta;	
 }
@@ -406,9 +404,11 @@ function mostrarInsertarContactoProveedor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
@@ -449,9 +449,10 @@ function eliminarContactoProveedor(idContacto)
 
 function consultaEliminarContactoProveedor(idContacto)
 {	
+	var filtros = {id: idContacto};
+
 	var consulta = "accion=eliminarContactoProveedor";	
-	
-	consulta +="&idContacto=" + idContacto;
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;
 }
@@ -463,13 +464,14 @@ function mostrarEliminarContactoProveedor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				//alert(peticionUnica1.responseText);				
 				cargarProveedorContactos();				
 			}
 				

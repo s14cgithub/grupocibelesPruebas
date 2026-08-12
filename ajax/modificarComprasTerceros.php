@@ -1,39 +1,24 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="modificarComprarTerceros")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarComprarTerceros")
 {
-	
-	session_start(); 
-	$ruta = '../';	
+	session_start();
+	$ruta = '../';
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-	
-	
-	$id = $_POST["id"];
-	
-	$nombreProveedor = $_POST["nombreProveedor"];	
-	$contactoP = $_POST["contactoP"];
-	$contactoC = $_POST["contactoC"];
-	$comercial = $_POST["comercial"];
-	$presupuesto = $_POST["presupuesto"];
-	$fechaEntrega = $_POST["fechaEntrega"];
-	$formaPago = $_POST["formaPago"];
-	$numFacCompra = $_POST["numFacCompra"];
-	$fechaFacCompra = $_POST["fechaFacCompra"];
-	$observacionInterna = $_POST["observacionInterna"];
-		
-	
-	
-	if ($numFacCompra=="")
-	{
-		$numFacCompra=NULL;
-	}
-	
-	
-	echo modificarComprasTerceros($conexion,$id,$nombreProveedor,$contactoP,$contactoC,$comercial,$presupuesto,$fechaEntrega,$formaPago,$numFacCompra,$fechaFacCompra,$observacionInterna);	
-			
-	
-}
 
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = modificarComprasTerceros($conn, $bbddSql, $datos, $filtros);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
+}
 
 ?>

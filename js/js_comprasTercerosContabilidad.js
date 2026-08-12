@@ -3,43 +3,42 @@ var laCondicion="";
 var seguir = true;
 
 
+var mapaCampoFiltro = {
+	"t4.descripcion": "descripcion",
+	"t1.pedido": "pedido",
+	"t3.proveedor": "proveedor"
+};
+
+var mapaCampoOrden = {
+	"t1.pedido": "pedido"
+};
+
+var losFiltros = {};
+var losFiltrosOperadores = [];
+var elOrder = [];
+
 function buscarFactura()
 {
-	var condicion="";
 	var campoAbuscar = document.getElementById("buscarCampo").value;
 	var textoAbuscar = document.getElementById("buscarTexto").value;
 	var orden = document.getElementById("ordenBuscar").value;
 	var desc = document.getElementById("ordenDesc").checked;	
-	
-	
-	if (campoAbuscar =="t1.pedido" && textoAbuscar!="")
+
+	losFiltros = {
+		sinFacturar: true
+	};
+
+	losFiltrosOperadores = [];
+	if (campoAbuscar=="t1.pedido" && textoAbuscar!="")
 	{
-		condicion = " where "+campoAbuscar+" = " + textoAbuscar;
+		losFiltrosOperadores = [{campo1: mapaCampoFiltro[campoAbuscar], operador: "=", valor: textoAbuscar}];
 	}
-	else
+	else if (textoAbuscar != "")
 	{
-		condicion = " where "+campoAbuscar+" like '%" + textoAbuscar + "%'";
+		losFiltrosOperadores = [{campo1: mapaCampoFiltro[campoAbuscar], operador: "LIKE", valor: textoAbuscar}];
 	}
-	
-	
-	
-	condicion += " and (numeroFacturaCompra = '' or numeroFacturaCompra is null)";
-	
-	
-	
-	
-	
-	condicion += " order by " + orden;
-	
-	if (desc==true)
-	{
-		condicion += " desc";
-	}
-	
-	
-	
-	laCondicion = condicion;
-	
+
+	elOrder = [{campo: mapaCampoOrden[orden], dir: desc ? "DESC" : "ASC"}];
 	
 	
 	cargarListadoPedidos();
@@ -68,9 +67,15 @@ function cargarListadoPedidos()//js_presupuestosListado
 
 function consultaCargarListadoPedidos()
 {	
+	var campos = ['pedido','nombreProveedor','descripcion','total'];
+	var joins = ['tabla3','tabla4'];
+
 	var consulta = "accion=cargarComprasTerceros";	
-	
-	consulta += "&condicion=" + reemplazarSimbolosBusqueda(laCondicion);
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(losFiltros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(losFiltrosOperadores));
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(elOrder));
 	
 	return consulta;	
 }
@@ -81,14 +86,15 @@ function mostrarCargarListadoPedidos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;				
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
@@ -211,9 +217,11 @@ function mostrarInsertarFacturaCompra()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{

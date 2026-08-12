@@ -1,93 +1,41 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="modificarDetalle")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarDetalle")
 {
-	
-	session_start(); 
-	$ruta = '../';	
+	session_start();
+	$ruta = '../';
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-	
-	
-	$idDetalle = $_POST["idDetalle"];		
-	$descripcion = $_POST["descripcion"];	
-	$cantidad = $_POST["cantidad"];
-	$precioUnitario = $_POST["precioUnitario"];
-	$precioTotal = $_POST["precioTotal"];
-	$precioVenta = $_POST["precioVenta"];
-	$margen = $_POST["margen"];
-	$presupuesto = $_POST["presupuesto"];
-	
-	
-	
-	
-	
-	
-	$resultado = modificarDetalleCompraTercero($conexion, $idDetalle, $descripcion, $cantidad, $precioUnitario, $precioTotal, $precioVenta, $margen);
-	
-	if ($resultado=="")
+
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
+	$numPresupuesto = isset($_POST["presupuesto"]) ? $_POST["presupuesto"] : '';
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$res = modificarDetalleCompraTercero($conn, $bbddSql, $datos, $filtros);
+
+	if ($res['error'] == '')
 	{
-		
+		$datosNuevos = "descripcion: ".$datos['descripcion']."|cantidad: ".$datos['cantidad']."|precioUnitario: ".$datos['precioUnidad']."|precioVenta: ".$datos['precioVenta']."|precioTotal: ".$datos['total']."|margen: ".$datos['margen'];
+
+		insertarRegistro($conn, $bbddSql, array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => 'Modificacion',
+			'datosAntiguos' => '',
+			'datosNuevos' => $datosNuevos,
+			'tabla' => 'comprasTercerosDetalles',
+			'columna' => 'todas',
+			'idRegistro' => isset($filtros['id']) ? $filtros['id'] : 0,
+			'presupuesto' => $numPresupuesto
+		));
 	}
-	else
-	{
-		echo $resultado;
-	}
-	
-	
-	
-	
-	/////////////////////////////////////////////
-		
-	
-	
-	$descripcion1 = log_modificacion;
-	$tabla = comprasATercerosDetalles_tabla;	
-	$idRegistro = $idDetalle;
-	$usuario = $_SESSION['usuario'];
-	$numPresupuesto = $presupuesto;
-	$datosAntiguos="";
-	
-	$columna = comprasATercerosDetalles_Descripcion;
-	$datosNuevos = $descripcion;
-		
-	insertarRegistro ($conexion, $usuario, $descripcion1, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$numPresupuesto);	
-	
-	
-	$columna = comprasATercerosDetalles_cantidad;
-	$datosNuevos = $cantidad;
-		
-	insertarRegistro ($conexion, $usuario, $descripcion1, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$numPresupuesto);
-	
-	$columna = comprasATercerosDetalles_precioUnidad;
-	$datosNuevos = $precioUnitario;
-		
-	insertarRegistro ($conexion, $usuario, $descripcion1, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$numPresupuesto);
 
-	$columna = comprasATercerosDetalles_precioVenta;
-	$datosNuevos = $precioVenta;
-		
-	insertarRegistro ($conexion, $usuario, $descripcion1, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$numPresupuesto);	
+	sqlsrv_close($conn);
 
-
-	$columna = comprasATercerosDetalles_total;
-	$datosNuevos = $precioTotal;
-		
-	insertarRegistro ($conexion, $usuario, $descripcion1, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$numPresupuesto);
-
-	
-	$columna = comprasATercerosDetalles_margen;
-	$datosNuevos = $margen;
-		
-	insertarRegistro ($conexion, $usuario, $descripcion1, $datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$numPresupuesto);
-
-
-	
-	////////////////////////////////////////////////////////////////////////
-	
-	
-	
-	
+	echo json_encode($res);
 }
 
 ?>

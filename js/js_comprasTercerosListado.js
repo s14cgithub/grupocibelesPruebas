@@ -4,9 +4,30 @@ var seguir = true;
 
 
 
+var mapaCampoFiltro = {
+	"t2.cliente": "cliente",
+	"t3.proveedor": "proveedor",
+	"t1.pedido": "pedido",
+	"t1.presupuesto": "presupuesto",
+	"t4.descripcion": "descripcion"
+};
+
+var mapaCampoOrden = {
+	"t1.fechaFacturaCompra": "fechaFacturaCompra",
+	"t2.cliente": "nombreCliente",
+	"importe": "importe",
+	"t3.proveedor": "nombreProveedor",
+	"t1.pedido": "pedido",
+	"t1.presupuesto": "presupuesto",
+	"t4.descripcion": "descripcion"
+};
+
+var losFiltros = {};
+var losFiltrosOperadores = [];
+var elOrder = [];
+
 function buscarFactura()
 {
-	var condicion="";
 	var campoAbuscar = document.getElementById("buscarCampo").value;
 	var textoAbuscar = document.getElementById("buscarTexto").value;
 	var orden = document.getElementById("ordenBuscar").value;
@@ -20,45 +41,21 @@ function buscarFactura()
 	{
 		orden="t1.pedido";
 	}
-	
-	
-	if (campoAbuscar =="id" && textoAbuscar!="")
+
+	losFiltros = {
+		excluirProveedorTest: true,
+		excluirInternos: exluirInterno,
+		soloActivos: activos,
+		soloAnuales: anuales
+	};
+
+	losFiltrosOperadores = [];
+	if (textoAbuscar != "")
 	{
-		condicion = " where "+campoAbuscar+" = " + textoAbuscar;
+		losFiltrosOperadores = [{campo1: mapaCampoFiltro[campoAbuscar], operador: "LIKE", valor: textoAbuscar}];
 	}
-	else
-	{
-		condicion = " where "+campoAbuscar+" like '%" + textoAbuscar + "%'";
-	}
-	
-	
-	condicion += " and t1.idProveedor != 633";
-	
-	if (exluirInterno==true)
-	{
-		condicion +=" and t1.presupuesto>='100'";
-	}
-	
-	if (activos==true)
-	{
-		condicion +=" and ((t1.presupuesto='0000001' and (numeroFacturaCompra is null or numeroFacturaCompra = '')) or (t1.anual=0  and t1.presupuesto>1000 and (t5.numero is null or numeroFacturaCompra is null)))";
-	}
-	
-	if (anuales==true)
-	{
-		condicion +=" and t1.anual = 1";
-	}
-	
-	condicion += " order by " + orden;
-	
-	if (desc==true)
-	{
-		condicion += " desc";
-	}
-	
-	
-	
-	laCondicion = condicion;
+
+	elOrder = [{campo: mapaCampoOrden[orden], dir: desc ? "DESC" : "ASC"}];
 	
 	
 	if (campoAbuscar=="t4.descripcion")
@@ -95,9 +92,17 @@ function cargarListadoPedidos()//js_presupuestosListado
 
 function consultaCargarListadoPedidos()
 {	
+	var campos = ['pedido','presupuesto','nombreProveedor','nombreCliente','fechaFacturaCompra','importe','numeroFactura','anioFactura','clayma','numeroFacturaClayma','anioFacturaClayma'];
+	var joins = ['tabla2','tabla3','tabla4','tabla5','tabla8'];
+	var group = ['pedido','presupuesto','nombreProveedor','nombreCliente','fechaFacturaCompra','numeroFactura','anioFactura','clayma','numeroFacturaClayma','anioFacturaClayma'];
+
 	var consulta = "accion=cargarComprasTerceros";	
-	
-	consulta += "&condicion=" + reemplazarSimbolosBusqueda(laCondicion);
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(losFiltros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(losFiltrosOperadores));
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(elOrder));
+	consulta += "&group=" + encodeURIComponent(JSON.stringify(group));
 	
 	return consulta;	
 }
@@ -108,14 +113,15 @@ function mostrarCargarListadoPedidos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
@@ -233,9 +239,15 @@ function cargarListadoPedidosProductos()//js_presupuestosListado
 
 function consultaCargarListadoPedidosProductos()
 {	
+	var campos = ['pedido','presupuesto','nombreProveedor','descripcion','fecha','total','numeroFactura','anioFactura','clayma','numeroFacturaClayma','anioFacturaClayma'];
+	var joins = ['tabla2','tabla3','tabla4','tabla5','tabla8'];
+
 	var consulta = "accion=cargarComprasTerceros";	
-	
-	consulta += "&condicion=" + reemplazarSimbolosBusqueda(laCondicion);
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(losFiltros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(losFiltrosOperadores));
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(elOrder));
 	
 	return consulta;	
 }
@@ -246,14 +258,15 @@ function mostrarCargarListadoPedidosProductos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
@@ -371,7 +384,7 @@ function comprobarPresupuesto()
 	{							
 		peticionUnica1.onreadystatechange = mostrarComprobarPresupuesto;		
 		
-		peticionUnica1.open("POST","ajax/mostrarSoloPresupuestos.php",false);
+		peticionUnica1.open("POST","ajax/cargarPresupuestos.php",false);
 		
 		//peticionUnica1.open("POST","ajax/cargarClientes.php",false);
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
@@ -382,10 +395,16 @@ function comprobarPresupuesto()
 
 function consultaComprobarPresupuesto()
 {	
-	var consulta = "accion=mostrarPresupuesto";		
-	
 	var presupuesto = document.getElementById("pedidoNuevo_presupuesto").value;
-	consulta += "&condicion="+presupuesto;
+
+	var campos = ['presupuesto'];
+	var filtros = {presupuesto: presupuesto};
+	var filtrosOperadores = [{campo1: 'fechaAceptacion', operador: '!=', valor: null}];
+
+	var consulta = "accion=cargarPresupuestos";		
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
 	
 	return consulta;	
 }
@@ -396,15 +415,16 @@ function mostrarComprobarPresupuesto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
 				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);		
+				var datos = res.datos;		
 				
 				if (datos.length>0)
 				{
@@ -440,18 +460,17 @@ function crearComprar2()
 
 function consultaMostrarCrearComprar()
 {	
+	var datos = {
+		idComercial: document.getElementById("comercial").value,
+		presupuesto: document.getElementById("pedidoNuevo_presupuesto").value,
+		idProveedor: document.getElementById("proveedores").value,
+		contactoProveedor: document.getElementById("proveedorNuevo_contactorP").value,
+		idFormapago: document.getElementById("pedido_formaPago").value,
+		anual: document.getElementById("predidoNuevo_anual").checked ? 1 : 0
+	};
+
 	var consulta = "accion=insertarCompraTercero";		
-	
-	
-	consulta += "&idComercial="+document.getElementById("comercial").value;
-	consulta += "&presupuesto="+document.getElementById("pedidoNuevo_presupuesto").value;
-	consulta += "&idProveedor="+document.getElementById("proveedores").value;
-	consulta += "&contactoProveedor="+document.getElementById("proveedorNuevo_contactorP").value;
-	consulta += "&formaPago="+document.getElementById("pedido_formaPago").value;
-	consulta += "&anual=" + document.getElementById("predidoNuevo_anual").checked;
-	
-	
-	
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
 	return consulta;	
 }
@@ -462,13 +481,15 @@ function mostrarCrearComprar()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				let numeroCompraNuevo = peticionUnica1.responseText;
+				let numeroCompraNuevo = res.datos.idCompra;
 
 
 
@@ -534,9 +555,12 @@ function copiarPedido()
 
 function consultaCopiarPedido()
 {	
+	var campos = ['idProveedor','anual','idComercial','idFormaPago','contactoProveedor'];
+	var filtros = {pedido: document.getElementById("copiarPedidoTxt_modal").value};
+
 	let consulta = "accion=cargarComprasTerceros";	
-	
-	consulta += "&condicion=where t1.pedido = " + document.getElementById("copiarPedidoTxt_modal").value;
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -547,14 +571,15 @@ function mostrarCopiarPedido()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);
+				var datos = res.datos;				
 
 				if (datos.length>0)
 				{
@@ -605,9 +630,13 @@ function duplicarDetallesCompra(numeroCompraNuevo,numeroCompraCopiar)
 
 function consultaDetallesCompra(numeroCompraNuevo,numeroCompraCopiar)
 {
+	var datos = {
+		numeroPedidoNuevo: numeroCompraNuevo,
+		numeroPedidoCopiar: numeroCompraCopiar
+	};
+
 	let consulta="accion=duplicarDetalleCompra";
-	consulta += "&numeroPedidoNuevo=" + numeroCompraNuevo;
-	consulta += "&numeroPedioCopiar=" + numeroCompraCopiar;
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 
 	return consulta;	
 }
@@ -618,9 +647,11 @@ function mostrarDuplicarDetallesCompra()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error != "")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}			
 		}
 	}

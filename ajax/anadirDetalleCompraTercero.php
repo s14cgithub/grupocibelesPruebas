@@ -1,41 +1,40 @@
-<?php 
+<?php
 
 if(isset($_POST["accion"]) && $_POST["accion"]=="anadirDetalle")
 {
-	
-		session_start(); 
-		$ruta = '../';	
-		require($ruta."Archivos Comunes/constantes.php");
-		require($ruta."Archivos Comunes/codigoInclude.php");
+	session_start();
+	$ruta = '../';
+	require($ruta."Archivos Comunes/constantes.php");
+	require($ruta."Archivos Comunes/codigoInclude.php");
 
-		$idPedido = $_POST["idPedido"];
-		$numPresupuesto = $_POST["numPresupuesto"];
-		$descripcion = $_POST["descripcion"];
-		$cantidad = $_POST["cantidad"];
-		$precioUnitario = $_POST["precioUnitario"];	
-		$precioVenta = $_POST["precioVenta"];
-		$precioTotal = $_POST["precioTotal"];
-		$margen = $_POST["margen"];
+	$datos = isset($_POST["datos"]) ? json_decode($_POST["datos"], true) : array();
+	$numPresupuesto = isset($_POST["numPresupuesto"]) ? $_POST["numPresupuesto"] : '';
 
-		
-		echo insertarDetalleCompraTercero ($conexion,$idPedido,$descripcion,$cantidad,$precioUnitario,$precioVenta,$precioTotal,$margen);
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
 
-	
-	
-		$usuario = $_SESSION['usuario'];
-		$descripcion = log_creacion;
-		$tabla = comprasATercerosDetalles_tabla;
-		$datosAntiguos = '';
-		$datosNuevos = "descripcion: ".$descripcion."|cantidad: ".$cantidad."|precioUnitario: ".$precioUnitario."|precioVenta: ".$precioVenta."|precioTotal: ".$precioTotal."|margen: ".$margen;
-		$columna = "todas";
-		$idRegistro = 0;	
-	
-	
-		echo insertarRegistro ($conexion, $usuario, $descripcion,$datosAntiguos, $datosNuevos, $tabla,$columna, $idRegistro,$numPresupuesto);
-		
-	
-	
-	
+	$res = insertarDetalleCompraTercero($conn, $bbddSql, $datos);
+
+	if ($res['error'] == '')
+	{
+		$datosNuevos = "descripcion: ".$datos['descripcion']."|cantidad: ".$datos['cantidad']."|precioUnitario: ".$datos['precioUnidad']."|precioVenta: ".$datos['precioVenta']."|precioTotal: ".$datos['total']."|margen: ".$datos['margen'];
+
+		insertarRegistro($conn, $bbddSql, array(
+			'usuario' => $_SESSION['usuario'],
+			'descripcion' => 'Creacion',
+			'datosAntiguos' => '',
+			'datosNuevos' => $datosNuevos,
+			'tabla' => 'comprasTercerosDetalles',
+			'columna' => 'todas',
+			'idRegistro' => 0,
+			'presupuesto' => $numPresupuesto
+		));
+	}
+
+	sqlsrv_close($conn);
+
+	echo json_encode($res);
 }
 
 ?>

@@ -72,6 +72,21 @@ require($ruta."Archivos Comunes/cabecera.php");
 		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'presupuestos.php\'">Presupuestos</button>');		
 	}
 
+	//MATERIALES
+	if ($_SESSION["permiso_materialesPapel"]==1 || $_SESSION["permiso_materialesPapel"] == 2)
+	{	
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'materiales.php\'">Materiales</button>');		
+	}
+
+	
+	//OT - PRODUCCION
+	if ($_SESSION["permiso_ot"]==1 || $_SESSION["permiso_ot"] == 2)
+	{
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'ot.php\'">OT</button>');		
+	}
+
+	
+
 	//COMPRAS A TERCEROS
 	if ($_SESSION["permiso_comprasAterceros"]==1 || $_SESSION["permiso_comprasAterceros"] == 2 || $_SESSION["permiso_proveedores"]==1 || $_SESSION["permiso_proveedores"] == 2)	
 	{
@@ -112,19 +127,7 @@ require($ruta."Archivos Comunes/cabecera.php");
 		
 	}
 
-	//MATERIALES
-	if ($_SESSION["permiso_materialesPapel"]==1 || $_SESSION["permiso_materialesPapel"] == 2)
-	{	
-		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'materiales.php\'">Materiales</button>');		
-	}
-
 	
-	//OT - PRODUCCION
-	if ($_SESSION["permiso_ot"]==1 || $_SESSION["permiso_ot"] == 2)
-	{
-		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'ot.php\'">OT</button>');		
-	}
-
 
 	//FRANQUEO-GRABAR
 	if ($_SESSION["permiso_grabarFranqueo"]==1 || $_SESSION["permiso_grabarFranqueo"] == 2)
