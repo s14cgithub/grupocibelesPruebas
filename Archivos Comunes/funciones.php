@@ -4029,7 +4029,8 @@ function insertarFacturacion($conn_sis, $bbddSql, $datos)
         return array('error' => 'insertarFacturacion: camposSQL vacios', 'ok' => false);
     }
 
-    $subNumero = "(SELECT ISNULL(MAX(numero),0) + 1 FROM [".$bbddSql."].[dbo].[facturacion] WHERE serieFactura = ?)";
+    //numeracion por serie Y año (YEAR(fecha)); UPDLOCK/HOLDLOCK serializa inserciones concurrentes de la misma serie/año
+    $subNumero = "(SELECT ISNULL(MAX(numero),0) + 1 FROM [".$bbddSql."].[dbo].[facturacion] WITH (UPDLOCK, HOLDLOCK) WHERE serieFactura = ? AND YEAR(fecha) = ?)";
 
     $consulta = "
         INSERT INTO [".$bbddSql."].[dbo].[facturacion]
@@ -4038,7 +4039,7 @@ function insertarFacturacion($conn_sis, $bbddSql, $datos)
         VALUES ($subNumero, CONCAT(?, ' ', $subNumero, '/".$anioDosDigitos."'), ".implode(', ', $placeholders).")
     ";
 
-    $finalParams = array_merge(array($serieFactura, $serieFactura, $serieFactura), $params);
+    $finalParams = array_merge(array($serieFactura, (int)$anio, $serieFactura, $serieFactura, (int)$anio), $params);
 
     $resultado = sqlsrv_query($conn_sis, $consulta, $finalParams);
 
@@ -4154,7 +4155,8 @@ function insertarFacturacionClayma($conn_sis, $bbddSql, $datos)
         return array('error' => 'insertarFacturacionClayma: camposSQL vacios', 'ok' => false);
     }
 
-    $subNumero = "(SELECT ISNULL(MAX(numero),0) + 1 FROM [".$bbddSql."].[dbo].[facturacionClayma] WHERE serieFactura = ?)";
+    //numeracion por serie Y año (YEAR(fecha)); UPDLOCK/HOLDLOCK serializa inserciones concurrentes de la misma serie/año
+    $subNumero = "(SELECT ISNULL(MAX(numero),0) + 1 FROM [".$bbddSql."].[dbo].[facturacionClayma] WITH (UPDLOCK, HOLDLOCK) WHERE serieFactura = ? AND YEAR(fecha) = ?)";
 
     $consulta = "
         INSERT INTO [".$bbddSql."].[dbo].[facturacionClayma]
@@ -4163,7 +4165,7 @@ function insertarFacturacionClayma($conn_sis, $bbddSql, $datos)
         VALUES ($subNumero, CONCAT(?, ' ', $subNumero, '/".$anioDosDigitos."'), ".implode(', ', $placeholders).")
     ";
 
-    $finalParams = array_merge(array($serieFactura, $serieFactura, $serieFactura), $params);
+    $finalParams = array_merge(array($serieFactura, (int)$anio, $serieFactura, $serieFactura, (int)$anio), $params);
 
     $resultado = sqlsrv_query($conn_sis, $consulta, $finalParams);
 
