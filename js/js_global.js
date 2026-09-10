@@ -26,7 +26,15 @@ var camposAmostrar1="";
 var fechaCambioVerifactu = "2025-11-27";
 
 
-setInterval(function () {
+// intervaloComprobarSesion: cada cuánto se PREGUNTA si la sesión sigue activa (no es lo que hace que
+// caduque -- eso lo decide session.gc_maxlifetime en .htaccess, 1 hora en producción). Por defecto cada
+// 10 min; una pantalla concreta puede poner un valor distinto definiendo "var intervaloComprobarSesion = X;"
+// ANTES de cargar js_global.js.
+if (typeof intervaloComprobarSesion === 'undefined') {
+    var intervaloComprobarSesion = 600000;
+}
+
+function comprobarSesionActiva() {
 
     var xhr = new XMLHttpRequest();
 
@@ -55,8 +63,11 @@ setInterval(function () {
     };
 
     xhr.send();
+}
 
-}, 300000);
+comprobarSesionActiva(); // comprobación inmediata al cargar la página (por si la sesión ya estaba caducada)
+
+setInterval(comprobarSesionActiva, intervaloComprobarSesion); // y una comprobación periódica mientras la página sigue abierta
 
 
 /*

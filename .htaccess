@@ -1,0 +1,5 @@
+# Duración de la sesión por inactividad (en segundos) -- 1 hora en producción.
+# Se aplica aquí (y no en un include PHP) porque cada página llama a session_start() ella misma
+# antes de incluir nada compartido, así que un ini_set() en PHP llegaría siempre tarde.
+php_value session.gc_maxlifetime 3600
+php_value session.cookie_lifetime 3600

@@ -4,9 +4,6 @@
 <?php 
 
 
-ini_set("session.cookie_lifetime","1");
-ini_set("session.gc_maxlifetime","1");
-
 session_start(); 
 $_SESSION['titulo']="LOGIN - USUARIOS";
 $ruta="/";
