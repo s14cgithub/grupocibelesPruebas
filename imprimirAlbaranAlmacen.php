@@ -25,6 +25,22 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirAlbaran
 	
 	//$numAlbaran=2206090002;
 	
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$campos = array('albaran', 'observaciones', 'nombre_empresa', 'codigo_saldo', 'direccion', 'codigo_postal', 'localidad', 'provincia', 'nombre', 'codigo', 'modalidad', 'almacen', 'envioNombreEmpresa', 'envioDireccion', 'envioCp', 'envioLocalidad', 'envioProvincia', 'cantidad');
+	$joins = array('tabla2', 'tabla3', 'tabla4', 'tabla5', 'tabla6', 'tabla7');
+	$filtros = array('idAlbaran' => $numAlbaran);
+	$filtrosOperadores = array();
+	$order = array(array('campo' => 'codigo', 'dir' => 'ASC'));
+
+	$albaranDetalles = mostrarAlmacen_AlbaranesDetalles($conn, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order);
+
+	sqlsrv_close($conn);
+
+	$resultado = $albaranDetalles['datos'];
+
 	$pdf = new PDF_PageGroup('P','mm','A4');
 	
 	$altura=10;
@@ -33,12 +49,6 @@ if(isset($_POST["imprimirAccion"]) && $_POST["imprimirAccion"]=="imprimirAlbaran
 	$pdf->SetLeftMargin(20);
 	$pdf->SetRightMargin(20);
 	$pdf->StartPageGroup();
-	
-	
-	
-	
-	
-	$resultado = verAlbaranAlmacen($conexion, $numAlbaran);
 	
 	$alturaDatos=0;
 	

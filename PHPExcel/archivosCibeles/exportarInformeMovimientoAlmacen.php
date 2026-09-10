@@ -9,22 +9,68 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
 	
-	$condicion = $_POST["formExcelCondicion"];	
 	$tipoExcel = $_POST["formExcelTipo"];
-	 
+	$filtrosOperadores = isset($_POST["filtrosOperadores"]) ? json_decode($_POST["filtrosOperadores"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
 	if ($tipoExcel=="Articulos")
 	{
-		$condicion = " where t3.cantidadTotal>0 and ". substr($condicion,6); 		
-		$resultado = mostrarAlmacenMovimientosParaExcel($conexion,$condicion);
+		$campos = array('id', 'idProducto', 'codigo', 'nombreProducto', 'disponible');
+		$joins = array('tabla3');
 	}
 	else if ($tipoExcel=="Ubicaciones")
 	{
-		$condicion = " where t1.cantidadTotal>0 and t3.cantidadTotal>0 and ". substr($condicion,6); 			
-		$resultado = mostrarAlmacenMovimientosParaExcelubicaciones($conexion,$condicion);
+		$campos = array('id', 'idProducto', 'idHueco', 'codigo', 'nombreProducto', 'hueco', 'cantidadTotal', 'disponible');
+		$joins = array('tabla3', 'tabla5');
 	}
 	else
 	{
-		$resultado = mostrarAlmacenMovimientos($conexion,$condicion);
+		$campos = array('id', 'fecha', 'subcliente', 'codigo', 'nombreProducto', 'modalidad', 'hueco', 'cantidad', 'cantidadTotal', 'disponible', 'ot', 'observaciones');
+		$joins = array('tabla2', 'tabla3', 'tabla4', 'tabla5');
+	}
+
+	// para Articulos/Ubicaciones necesitamos el movimiento mas reciente de cada grupo (idProducto, o idProducto+idHueco);
+	// se piden todos ordenados por id DESC y nos quedamos con el primero de cada grupo (igual que en gestionHuecos())
+	$order = ($tipoExcel=="Articulos" || $tipoExcel=="Ubicaciones") ? array(array('campo' => 'id', 'dir' => 'DESC')) : array(array('campo' => 'id', 'dir' => 'ASC'));
+
+	$movimientos = mostrarAlmacenMovimientos($conn, $bbddSql, $campos, $joins, array(), $filtrosOperadores, $order);
+
+	sqlsrv_close($conn);
+
+	if ($tipoExcel=="Articulos")
+	{
+		$vistos = array();
+		$resultado = array();
+		foreach ($movimientos['datos'] as $fila) {
+			$idProducto = $fila['idProducto'];
+			if (!isset($vistos[$idProducto])) {
+				$vistos[$idProducto] = true;
+				if ($fila['disponible'] > 0) {
+					$resultado[] = $fila;
+				}
+			}
+		}
+	}
+	else if ($tipoExcel=="Ubicaciones")
+	{
+		$vistos = array();
+		$resultado = array();
+		foreach ($movimientos['datos'] as $fila) {
+			$clave = $fila['idProducto'] . '-' . $fila['idHueco'];
+			if (!isset($vistos[$clave])) {
+				$vistos[$clave] = true;
+				if ($fila['cantidadTotal'] > 0 && $fila['disponible'] > 0) {
+					$resultado[] = $fila;
+				}
+			}
+		}
+	}
+	else
+	{
+		$resultado = $movimientos['datos'];
 	}
 	
 	//die;

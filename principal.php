@@ -31,6 +31,39 @@ require($ruta."Archivos Comunes/cabecera.php");
 
 <?php
 
+//ALMACEN
+	if ($_SESSION["permiso_almacen"]==1 || $_SESSION["permiso_almacen"] == 2)
+	{
+		echo ('<br><br>');	
+		echo ('<h4>ALMACEN</h4>');
+		
+		
+		if ($_SESSION["permiso_almacen"]==1 || $_SESSION["permiso_almacen_Listado"]==2)
+		{
+			echo ('<button type="button" class="btn btn-info" onClick="location.href = \'almacen.php\'">Listado</button>');	
+		}		
+		
+		//echo ('<button type="button" class="btn btn-info" onClick="location.href = \'almacenProveedor.php\'">Proveedor</button>');
+		
+		if ($_SESSION["permiso_almacen_Nuevo"]==2)
+		{
+			echo ('<button type="button" class="btn btn-info" onClick="location.href = \'almacenProducto.php\'">Productos</button>');
+		}
+		
+		if ($_SESSION["permiso_almacen_Albaran"]==2)
+		{
+			echo ('<button type="button" class="btn btn-info" onClick="location.href = \'almacenHueco.php\'">Huecos</button>');
+		}
+		if ($_SESSION["permiso_preEntradaGestion"]==2)
+		{
+			echo '<button type="button" class="btn btn-info" onClick="location.href = \'almacenPreEntrada.php\'">preEntrada - gestion</button>';
+		}
+		
+		echo '<button type="button" class="btn btn-info" onclick="cargarImagenes()" data-toggle="modal" data-target="#exampleModal">Ver - PreEntrada</button>';
+			
+		
+	}
+
 	//PDA_GESTION
 	if ($_SESSION["permiso_pdaGestion"]==1 || $_SESSION["permiso_pdaGestion"] == 2)
 	{
@@ -177,6 +210,42 @@ require($ruta."Archivos Comunes/cabecera.php");
 	}
 
 ?>
+
+<!--VISUALIZAR IMAGENES ALMACEN-->
+
+<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+	<div class="modal-dialog" role="document">
+    	<div class="modal-content">
+      		<div class="modal-header">       
+		  		<h5 class="modal-title" id="ModalLabel">ALMACEN - PRE-ENTRADA</h5>
+      		</div>
+      		<div class="modal-body">
+		 
+				<div class="row">
+
+  				<!-- Grid column -->
+			 		<!--<div class="col-md-12 d-flex justify-content-center mb-5">
+						
+						<button type="button" class="btn btn-outline-black waves-effect filter" data-rel="all">Todos</button>
+						<button type="button" class="btn btn-outline-black waves-effect filter" data-rel="arranque">Arraque</button>
+						<button type="button" class="btn btn-outline-black waves-effect filter" data-rel="calidad">Calidad</button>
+						<button type="button" class="btn btn-outline-black waves-effect filter" data-rel="incidencia">Incidencia</button>
+			  		</div>-->
+ 				 <!-- Grid column -->
+
+				</div>
+				<div class="gallery" id="gallery"></div>
+
+		  
+      		</div>
+      		<div class="modal-footer">
+        		<button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+       
+      		</div>
+    	</div>
+  </div>
+</div>
+
 
 <!--  OT'S DE SIDI  -->
 

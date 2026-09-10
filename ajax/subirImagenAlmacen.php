@@ -12,13 +12,7 @@ if(isset($_POST["accion"])&&$_POST["accion"]=="subir")
 	$ruta = $_POST["ruta"];
 	$tipo = $_POST["tipo"];
 	
-	
-	$codigoBarras = $_POST["codigoBarras"];
-	$aux = explode('-',$codigoBarras);
-	$ot = $aux[1];
 	$rutaCarpeta = $ruta."imagenesAdjuntas/almacen-preEntrega";
-	//echo ("\nPrueba: ".$aux[0]."\n");
-	echo $rutaCarpeta;
 	
 	if (file_exists($rutaCarpeta)) 
 	{

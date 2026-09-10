@@ -22,12 +22,12 @@ if ($_SESSION["usuario"]<>"")
 		<td align="center" colspan="">Buscar por:
 			<select class=""  id="buscarCampo" name="buscarCampo">				
 				<option value="cantidad">Cantidad</option>	
-				<option value="t2.subCliente">Cliente</option>	
-				<option value="t3.codigo" selected>Codigo</option>	
+				<option value="subCliente">Cliente</option>	
+				<option value="codigo" selected>Codigo</option>	
 				<option value="hueco">Hueco</option>
 				<option value="modalidad">Modalidad</option>
 				<option value="ot">Ot</option>
-				<option value="t3.nombre">Producto</option>
+				<option value="nombreProducto">Producto</option>
 				
 				
 						
@@ -40,14 +40,14 @@ if ($_SESSION["usuario"]<>"")
 			
 			<select class="" id="ordenBuscar">
 				<option value="cantidad">Cantidad</option>	
-				<option value="t2.subCliente">Cliente</option>	
-				<option value="t3.codigo" >Codigo</option>	
+				<option value="subCliente">Cliente</option>	
+				<option value="codigo" >Codigo</option>	
 				<option value="fecha" >Fecha</option>
 				<option value="hueco">Hueco</option>
 				<option value="id" selected>Id</option>	
 				<option value="modalidad">Modalidad</option>
 				<option value="ot">Ot</option>
-				<option value="t3.nombre">Producto</option>			
+				<option value="nombreProducto">Producto</option>			
 			</select>
 		
 			Desc: <input type="checkbox" id="ordenDesc" checked></input>
@@ -284,7 +284,7 @@ else
 
 <form id="formImprimirExcelAlmacen" method="post"  target="_blank" action="PHPExcel/archivosCibeles/exportarInformeMovimientoAlmacen.php">
 	<input type="hidden" id="exportarAccion" name="exportarAccion" value="exportarExcel"></input>
-	<input type="hidden" id="formExcelCondicion" name="formExcelCondicion" value=""></input>	
+	<input type="hidden" id="formExcelFiltrosOperadores" name="filtrosOperadores" value=""></input>	
 	<input type="hidden" id="formExcelTipo" name="formExcelTipo" value=""></input>
 </form>
 
@@ -329,7 +329,7 @@ echo ("</html>");
 	/*idInputListado="proveedorModal";
 	cargarListadoProveedoresAlmacen();*/
 	
-	cargarSubClientes("A","clienteModal");
+	cargarSubClientes();
 	
 	cargarListadoProductos();
 	cargarListadoModalidadAlmacen();

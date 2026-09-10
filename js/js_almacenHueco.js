@@ -1,29 +1,8 @@
 var peticionUnica1 = null;
 
-var laCondicion="";
-
 function buscarFactura()
 {
-	var condicion="";
-	var campoAbuscar = document.getElementById("buscarCampo").value;
-	var textoAbuscar = document.getElementById("buscarTexto").value;
-	var orden = document.getElementById("ordenBuscar").value;
-	var desc = document.getElementById("ordenDesc").checked;	
-		
-	condicion = " where "+campoAbuscar+" like '%" + textoAbuscar + "%'";	
-	
-	condicion += " order by " + orden;
-	
-	if (desc==true)
-	{
-		condicion += " desc";
-	}
-	
-	laCondicion = condicion;
-
-	
 	cargarHuecos();
-	
 }
 
 
@@ -44,8 +23,26 @@ function cargarHuecos()
 
 function consultaCargarHuecos()
 {	
-	var consulta = "accion=cargarHuecos";	
-	consulta += "&condicion=" + reemplazarSimbolosBusqueda(laCondicion);
+	var consulta = "accion=mostrarAlmacenHuecos";
+
+	var campos = ['id','hueco'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtrosOperadores = [];
+	var campoAbuscar = document.getElementById("buscarCampo").value;
+	var textoAbuscar = document.getElementById("buscarTexto").value;
+	if (textoAbuscar != "")
+	{
+		filtrosOperadores.push({ campo1: campoAbuscar, valor: '%' + textoAbuscar + '%', operador: 'LIKE' });
+	}
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+
+	var orden = document.getElementById("ordenBuscar").value;
+	var desc = document.getElementById("ordenDesc").checked;
+	var order = [
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -56,14 +53,14 @@ function mostrarCargarHuecos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				var contador = 0;	
@@ -125,15 +122,16 @@ function mostrarGuardarHueco()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
 				document.getElementById("historicoHueco").value = "";	
 				document.getElementById("nombreHueco").value = "";
-				alert("Hueco Guardado");
+				alert(res.mensaje);
 			}
 			peticionUnica1=null;
 			
@@ -181,13 +179,14 @@ function mostrarModificarHueco()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				alert(peticionUnica1.responseText);
+				alert(res.mensaje);
 			}
 			peticionUnica1=null;	
 			

@@ -19,9 +19,9 @@ require($ruta."Archivos Comunes/cabecera.php");
 	<tr>
 		<td align="right" colspan="">Buscar por:
 			<select class=""  id="buscarCampo" name="buscarCampo">
-				<option value="t1.codigo">Codigo Producto</option>	
-				<option value="t1.nombre">Nombre Producto</option>	
-				<option value="t2.subCliente">Nombre Cliente</option>				
+				<option value="codigo">Codigo Producto</option>	
+				<option value="nombre">Nombre Producto</option>	
+				<option value="subcliente">Nombre Cliente</option>				
 			</select>
 		Texto:
 			<input class="" type="text" id="buscarTexto" name="buscarTexto"></input>
@@ -30,9 +30,9 @@ require($ruta."Archivos Comunes/cabecera.php");
 		<td align="right" colspan="">
 			Orden:
 			<select class="" id="ordenBuscar">
-				<option value="t1.codigo">Codigo Producto</option>	
-				<option value="t1.nombre">Nombre Producto</option>	
-				<option value="t2.subCliente">Nombre Cliente</option>		
+				<option value="codigo">Codigo Producto</option>	
+				<option value="nombre">Nombre Producto</option>	
+				<option value="subcliente">Nombre Cliente</option>		
 			</select>
 		
 			Desc: <input type="checkbox" id="ordenDesc" checked></input>
@@ -109,7 +109,7 @@ echo ("</html>");
 	
 	//idInputListado="nombreProveedor";
 	//cargarListadoProveedoresAlmacen();
-	cargarSubClientes("A","nombreCliente");
+	cargarSubClientes();
 	
 	
 	buscarFactura();

@@ -1,26 +1,62 @@
 var peticionUnica1 = null;
 
-var laCondicion="";
+function cargarSubClientes() //js_almacenProducto (antes cargarSubClientes de js_global, comentada); destino fijo: nombreCliente
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = mostrarCargarSubClientes;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarSubClientes();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarSubClientes()
+{
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo','subcliente'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {activo: 1};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var order = [{campo: 'subcliente', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;
+}
+
+function mostrarCargarSubClientes()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			var contenido = '';
+
+			if (res.error=="" && res.datos)
+			{
+				for (var i=0; i<res.datos.length; i++)
+				{
+					contenido += '<option value="'+res.datos[i]["codigo"]+'">'+res.datos[i]["subcliente"]+' - '+res.datos[i]["codigo"]+'</option>';
+				}
+			}
+
+			document.getElementById("nombreCliente").innerHTML = contenido;
+
+			peticionUnica1=null;
+		}
+	}
+}
 
 function buscarFactura()
 {
-	var condicion="";
-	var campoAbuscar = document.getElementById("buscarCampo").value;
-	var textoAbuscar = document.getElementById("buscarTexto").value;
-	var orden = document.getElementById("ordenBuscar").value;
-	var desc = document.getElementById("ordenDesc").checked;	
-		
-	condicion = " where "+campoAbuscar+" like '%" + textoAbuscar + "%'";	
-	
-	condicion += " order by " + orden;
-	
-	if (desc==true)
-	{
-		condicion += " desc";
-	}
-	
-	laCondicion = condicion;
-	
 	cargarProductos();	
 }
 
@@ -42,8 +78,30 @@ function cargarProductos()
 
 function consultaCargarProductos()
 {	
-	var consulta = "accion=cargarProductos";	
-	consulta += "&condicion=" + reemplazarSimbolosBusqueda(laCondicion);
+	var consulta = "accion=mostrarAlmacenProductos";
+
+	var campos = ['id','subcliente','nombre','codigo'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = ['tabla2'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtrosOperadores = [];
+	var campoAbuscar = document.getElementById("buscarCampo").value;
+	var textoAbuscar = document.getElementById("buscarTexto").value;
+	if (textoAbuscar != "")
+	{
+		filtrosOperadores.push({ campo1: campoAbuscar, valor: '%' + textoAbuscar + '%', operador: 'LIKE' });
+	}
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify({}));
+
+	var orden = document.getElementById("ordenBuscar").value;
+	var desc = document.getElementById("ordenDesc").checked;
+	var order = [
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -54,14 +112,14 @@ function mostrarCargarProductos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				var contador = 0;	
@@ -156,16 +214,17 @@ function mostrarGuardarProducto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
 				
 				document.getElementById("nombreProducto").value = "";
 				document.getElementById("codigoProducto").value = "";	
-				alert("Producto Guardado");
+				alert(res.mensaje);
 			}
 			peticionUnica1=null;
 			cargarProductos();
@@ -219,13 +278,14 @@ function mostrarModificarProducto()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				alert(peticionUnica1.responseText);
+				alert(res.mensaje);
 			}
 			peticionUnica1=null;	
 			

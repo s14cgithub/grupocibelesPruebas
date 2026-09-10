@@ -22339,5 +22339,1298 @@ function cargarFacturacionDetallesClayma($conn_sis, $bbddSql, $campos, $filtros,
     return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
 }
 
+// Listado de movimientos de almacén (pantalla almacen.php / buscarFactura()).
+// campo "albaran": antes la pantalla comprobaba un campo "albaran" que la consulta vieja nunca seleccionaba
+// (solo "idAlbaran"), así que el icono de "ver albarán" nunca se mostraba aunque el movimiento ya tuviera uno
+// asignado -- aquí se calcula de verdad a partir de t6.idAlbaran.
+function mostrarAlmacenMovimientos($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'fecha' => 't1.fecha',
+        'idSubCliente' => 't1.idSubCliente',
+        'idProducto' => 't1.idProducto',
+        'idModalidad' => 't1.idModalidad',
+        'idHueco' => 't1.idHueco',
+        'cantidad' => 't1.cantidad',
+        'cantidadTotal' => 't1.cantidadTotal',
+        'observaciones' => 't1.observaciones',
+        'ot' => 't1.ot',
+        'idAlmacen' => 't1.idAlmacen',
+        'subcliente' => 't2.subcliente',
+        'nombreProducto' => 't3.nombre as nombreProducto',
+        'codigo' => 't3.codigo',
+        'disponible' => 't3.cantidadTotal as disponible',
+        'modalidad' => 't4.modalidad',
+        'hueco' => 't5.hueco',
+        'idAlbaran' => 't6.idAlbaran',
+        'albaran' => '(CASE WHEN t6.idAlbaran IS NOT NULL THEN 1 ELSE 0 END) as albaran'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- JOINS ----------
+    $joinsPermitidos = array(
+        'tabla2' => "inner join [".$bbddSql."].[dbo].[clientes] as t2 on t2.codigo = t1.idSubCliente",
+        'tabla3' => "inner join [".$bbddSql."].[dbo].[almacen_Producto] as t3 on t1.idProducto = t3.id",
+        'tabla4' => "inner join [".$bbddSql."].[dbo].[almacen_Modalidad] as t4 on t1.idModalidad = t4.id",
+        'tabla5' => "inner join [".$bbddSql."].[dbo].[almacen_Huecos] as t5 on t1.idHueco = t5.id",
+        'tabla6' => "left join [".$bbddSql."].[dbo].[almacen_AlbaranesDetalles] as t6 on t1.id = t6.idMovimiento"
+    );
+
+    $sqlJoins = '';
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['idSubCliente'])) {
+        $condicion[] = 't1.idSubCliente = ?';
+        $params[] = $filtros['idSubCliente'];
+    }
+
+    if (isset($filtros['idProducto'])) {
+        $condicion[] = 't1.idProducto = ?';
+        $params[] = $filtros['idProducto'];
+    }
+
+    if (isset($filtros['idHueco'])) {
+        $condicion[] = 't1.idHueco = ?';
+        $params[] = $filtros['idHueco'];
+    }
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=', 'LIKE');
+
+    $camposComparablesPermitidos = array(
+        'fecha' => 't1.fecha',
+        'cantidad' => 't1.cantidad',
+        'subCliente' => 't2.subcliente',
+        'codigo' => 't3.codigo',
+        'hueco' => 't5.hueco',
+        'modalidad' => 't4.modalidad',
+        'ot' => 't1.ot',
+        'nombreProducto' => 't3.nombre'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] = $camposComparablesPermitidos[$f['campo1']] . ' ' . $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 't1.id',
+        'fecha' => 't1.fecha',
+        'cantidad' => 't1.cantidad',
+        'subCliente' => 't2.subcliente',
+        'codigo' => 't3.codigo',
+        'hueco' => 't5.hueco',
+        'modalidad' => 't4.modalidad',
+        'ot' => 't1.ot'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[almacen_Movimientos] AS t1
+        $sqlJoins
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function mostrarAlmacenProductos($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'nombre' => 't1.nombre',
+        'codigo' => 't1.codigo',
+        'cantidadTotal' => 't1.cantidadTotal',
+        'idSubCliente' => 't1.idSubCliente',
+        'subcliente' => 't2.subcliente'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- JOINS ----------
+    $joinsPermitidos = array(
+        'tabla2' => "inner join [".$bbddSql."].[dbo].[clientes] as t2 on t2.codigo = t1.idSubCliente"
+    );
+
+    $sqlJoins = '';
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['idSubCliente'])) {
+        $condicion[] = 't1.idSubCliente = ?';
+        $params[] = $filtros['idSubCliente'];
+    }
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=', 'LIKE');
+
+    $camposComparablesPermitidos = array(
+        'id' => 't1.id',
+        'nombre' => 't1.nombre',
+        'codigo' => 't1.codigo',
+        'cantidadTotal' => 't1.cantidadTotal',
+        'subcliente' => 't2.subcliente'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] = $camposComparablesPermitidos[$f['campo1']] . ' ' . $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 't1.id',
+        'nombre' => 't1.nombre',
+        'codigo' => 't1.codigo',
+        'cantidadTotal' => 't1.cantidadTotal',
+        'subcliente' => 't2.subcliente'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[almacen_Producto] AS t1
+        $sqlJoins
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarModalidadAlmacen($conn_sis, $bbddSql, $campos, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'modalidad' => 't1.modalidad'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=', 'LIKE');
+
+    $camposComparablesPermitidos = array(
+        'modalidad' => 't1.modalidad'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] = $camposComparablesPermitidos[$f['campo1']] . ' ' . $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 't1.id',
+        'modalidad' => 't1.modalidad'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[almacen_Modalidad] AS t1
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function cargarAlmacenesAlmacen($conn_sis, $bbddSql, $campos, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'almacen' => 't1.almacen'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=', 'LIKE');
+
+    $camposComparablesPermitidos = array(
+        'almacen' => 't1.almacen'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] = $camposComparablesPermitidos[$f['campo1']] . ' ' . $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 't1.id',
+        'almacen' => 't1.almacen'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[almacen_Almacenes] AS t1
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function mostrarAlmacenHuecos($conn_sis, $bbddSql, $campos, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'hueco' => 't1.hueco'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=', 'LIKE');
+
+    $camposComparablesPermitidos = array(
+        'id' => 't1.id',
+        'hueco' => 't1.hueco'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] = $camposComparablesPermitidos[$f['campo1']] . ' ' . $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 't1.id',
+        'hueco' => 't1.hueco'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[almacen_Huecos] AS t1
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function insertarMovimientoAlmacen($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'idAlmacen' => 'idAlmacen',
+        'fecha' => 'fecha',
+        'idSubCliente' => 'idSubCliente',
+        'idProducto' => 'idProducto',
+        'idModalidad' => 'idModalidad',
+        'idHueco' => 'idHueco',
+        'cantidad' => 'cantidad',
+        'observaciones' => 'observaciones',
+        'ot' => 'ot',
+        'cantidadTotal' => 'cantidadTotal'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array('error' => 'insertarMovimientoAlmacen: datos vacios', 'ok' => false);
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => 'insertarMovimientoAlmacen: camposSQL vacios', 'ok' => false);
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[almacen_Movimientos]
+        (".implode(', ', $camposSQL).")
+        OUTPUT INSERTED.id
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'ok' => false, 'sql' => $consulta, 'params' => $params);
+    }
+
+    $id = null;
+    if (sqlsrv_fetch($resultado) !== false) {
+        $id = sqlsrv_get_field($resultado, 0);
+    }
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'ok' => true, 'id' => $id, 'sql' => $consulta, 'params' => $params);
+}
+
+function modificarAlmacenProducto($conn_sis, $bbddSql, $datos, $filtros)
+{
+    // campos normales: sobreescriben el valor (SET campo = ?)
+    $camposPermitidos = array(
+        'nombre' => 'nombre',
+        'codigo' => 'codigo'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array('error' => 'modificarAlmacenProducto: datos vacios', 'ok' => false);
+    }
+
+    $set = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $set[] = $camposPermitidos[$campo] . ' = ?';
+            $params[] = $valor;
+        } elseif ($campo === 'cantidadTotalDelta') {
+            // caso especial: incrementa (o decrementa, si es negativo) el stock total, no lo sobreescribe
+            $set[] = 'cantidadTotal = cantidadTotal + ?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($set)) {
+        return array('error' => 'modificarAlmacenProducto: no hay campos validos para actualizar', 'ok' => false);
+    }
+
+    if (!isset($filtros['id'])) {
+        return array('error' => 'modificarAlmacenProducto: falta filtro id', 'ok' => false);
+    }
+
+    $params[] = $filtros['id'];
+
+    $consulta = "UPDATE [".$bbddSql."].[dbo].[almacen_Producto] SET " . implode(', ', $set) . " WHERE id = ?";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'ok' => false, 'sql' => $consulta, 'params' => $params);
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'ok' => true, 'sql' => $consulta, 'params' => $params);
+}
+
+function mostrarAlmacen_Albaranes($conn_sis, $bbddSql, $campos, $filtros, $filtrosOperadores, $order)
+{
+    $camposPermitidos = array(
+        'id' => 't1.id',
+        'secuencial' => 't1.secuencial',
+        'observaciones' => 't1.observaciones',
+        'fecha' => 't1.fecha',
+        'envioNombreEmpresa' => 't1.envioNombreEmpresa',
+        'envioDireccion' => 't1.envioDireccion',
+        'envioCp' => 't1.envioCp',
+        'envioLocalidad' => 't1.envioLocalidad',
+        'envioProvincia' => 't1.envioProvincia'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['id'])) {
+        $condicion[] = 't1.id = ?';
+        $params[] = $filtros['id'];
+    }
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=', 'LIKE');
+
+    $camposComparablesPermitidos = array(
+        'fecha' => 't1.fecha',
+        'secuencial' => 't1.secuencial'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] = $camposComparablesPermitidos[$f['campo1']] . ' ' . $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'id' => 't1.id',
+        'fecha' => 't1.fecha',
+        'secuencial' => 't1.secuencial'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[almacen_Albaranes] AS t1
+        $sqlWhere
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function insertarAlbaranAlmacen($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'id' => 'id',
+        'secuencial' => 'secuencial',
+        'observaciones' => 'observaciones',
+        'fecha' => 'fecha',
+        'envioNombreEmpresa' => 'envioNombreEmpresa',
+        'envioDireccion' => 'envioDireccion',
+        'envioCp' => 'envioCp',
+        'envioLocalidad' => 'envioLocalidad',
+        'envioProvincia' => 'envioProvincia'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array('error' => 'insertarAlbaranAlmacen: datos vacios', 'ok' => false);
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => 'insertarAlbaranAlmacen: camposSQL vacios', 'ok' => false);
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[almacen_Albaranes]
+        (".implode(', ', $camposSQL).")
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'ok' => false, 'sql' => $consulta, 'params' => $params);
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'ok' => true, 'sql' => $consulta, 'params' => $params);
+}
+
+function insertarAlbaranDetalle($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'idAlbaran' => 'idAlbaran',
+        'idMovimiento' => 'idMovimiento'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array('error' => 'insertarAlbaranDetalle: datos vacios', 'ok' => false);
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => 'insertarAlbaranDetalle: camposSQL vacios', 'ok' => false);
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[almacen_AlbaranesDetalles]
+        (".implode(', ', $camposSQL).")
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'ok' => false, 'sql' => $consulta, 'params' => $params);
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'ok' => true, 'sql' => $consulta, 'params' => $params);
+}
+
+function modificarValorAlbaranEnMovimientos($conn_sis, $bbddSql, $idMovimiento)
+{
+    $consulta = "UPDATE [".$bbddSql."].[dbo].[almacen_Movimientos] SET albaran = 1 WHERE id = ?";
+    $params = array($idMovimiento);
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'ok' => false, 'sql' => $consulta, 'params' => $params);
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'ok' => true, 'sql' => $consulta, 'params' => $params);
+}
+
+function verDatosDeEnvioPorIdMovimientoAlmacen($conn_sis, $bbddSql, $campos, $filtros)
+{
+    // t1 = movimiento; t3 = subcliente del movimiento; t2 = cliente de facturacion/envio del subcliente (codigo_saldo)
+    $camposPermitidos = array(
+        'nombre_empresa' => 't2.nombre_empresa',
+        'direccion' => 't2.direccion',
+        'codigo_postal' => 't2.codigo_postal',
+        'localidad' => 't2.localidad',
+        'provincia' => 't2.provincia',
+        'envio_nombre' => 't2.envio_nombre',
+        'envio_domicilio' => 't2.envio_domicilio',
+        'envio_cp' => 't2.envio_cp',
+        'envio_poblacion' => 't2.envio_poblacion',
+        'envio_provincia' => 't2.envio_provincia'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    if (!isset($filtros['idMovimiento'])) {
+        return array('error' => "falta filtro idMovimiento");
+    }
+
+    $params = array($filtros['idMovimiento']);
+
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[almacen_Movimientos] AS t1
+        inner join [".$bbddSql."].[dbo].[clientes] as t3 on t1.idSubCliente = t3.codigo
+        inner join [".$bbddSql."].[dbo].[clientes] as t2 on t3.codigo_saldo = t2.codigo
+        WHERE t1.id = ?
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function mostrarAlmacen_AlbaranesDetalles($conn_sis, $bbddSql, $campos, $joins, $filtros, $filtrosOperadores, $order)
+{
+    // t1 = almacen_AlbaranesDetalles; t2 = almacen_Albaranes; t3 = almacen_Movimientos;
+    // t4 = clientes; t5 = almacen_Producto; t6 = almacen_Modalidad; t7 = almacen_Almacenes
+    $camposPermitidos = array(
+        'albaran' => 't2.id',
+        'observaciones' => 't2.observaciones',
+        'nombre_empresa' => 't4.nombre_empresa',
+        'codigo_saldo' => 't4.codigo_saldo',
+        'direccion' => 't4.direccion',
+        'codigo_postal' => 't4.codigo_postal',
+        'localidad' => 't4.localidad',
+        'provincia' => 't4.provincia',
+        'nombre' => 't5.nombre',
+        'codigo' => 't5.codigo',
+        'modalidad' => 't6.modalidad',
+        'almacen' => 't7.almacen',
+        'envioNombreEmpresa' => 't2.envioNombreEmpresa',
+        'envioDireccion' => 't2.envioDireccion',
+        'envioCp' => 't2.envioCp',
+        'envioLocalidad' => 't2.envioLocalidad',
+        'envioProvincia' => 't2.envioProvincia'
+    );
+
+    // campo agregado: no participa en el GROUP BY
+    $camposAgregadosPermitidos = array(
+        'cantidad' => 'sum(t3.cantidad) as cantidad'
+    );
+
+    if (!is_array($campos) || empty($campos)) {
+        return array('error' => "campos vacios");
+    }
+
+    $camposSQL = array();
+    $camposGroupBy = array();
+    foreach ($campos as $campo) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $camposGroupBy[] = $camposPermitidos[$campo];
+        } elseif (isset($camposAgregadosPermitidos[$campo])) {
+            $camposSQL[] = $camposAgregadosPermitidos[$campo];
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => "campos SQL vacios");
+    }
+
+    $listaCampos = implode(', ', $camposSQL);
+
+    // ---------- JOINS ----------
+    $joinsPermitidos = array(
+        'tabla2' => "inner join [".$bbddSql."].[dbo].[almacen_Albaranes] as t2 on t1.idAlbaran = t2.id",
+        'tabla3' => "inner join [".$bbddSql."].[dbo].[almacen_Movimientos] as t3 on t1.idMovimiento = t3.id",
+        'tabla4' => "inner join [".$bbddSql."].[dbo].[clientes] as t4 on t4.codigo = t3.idSubCliente",
+        'tabla5' => "inner join [".$bbddSql."].[dbo].[almacen_Producto] as t5 on t5.id = t3.idProducto",
+        'tabla6' => "inner join [".$bbddSql."].[dbo].[almacen_Modalidad] as t6 on t6.id = t3.idModalidad",
+        'tabla7' => "inner join [".$bbddSql."].[dbo].[almacen_Almacenes] as t7 on t7.id = t3.idAlmacen"
+    );
+
+    $sqlJoins = '';
+    if (is_array($joins) && !empty($joins)) {
+        foreach ($joins as $j) {
+            if (isset($joinsPermitidos[$j])) {
+                $sqlJoins .= " " . $joinsPermitidos[$j];
+            }
+        }
+    }
+
+    // ---------- FILTROS ----------
+    $condicion = array();
+    $params = array();
+
+    if (isset($filtros['idAlbaran'])) {
+        $condicion[] = 't2.id = ?';
+        $params[] = $filtros['idAlbaran'];
+    }
+
+    $operadoresPermitidos = array('=', '>', '<', '>=', '<=', '!=', 'LIKE');
+
+    $camposComparablesPermitidos = array(
+        'codigo' => 't5.codigo',
+        'nombre' => 't5.nombre'
+    );
+
+    if (is_array($filtrosOperadores) && !empty($filtrosOperadores)) {
+        foreach ($filtrosOperadores as $f) {
+            if (
+                isset($f['campo1'], $f['valor'], $f['operador']) &&
+                isset($camposComparablesPermitidos[$f['campo1']]) &&
+                in_array($f['operador'], $operadoresPermitidos)
+            ) {
+                $condicion[] = $camposComparablesPermitidos[$f['campo1']] . ' ' . $f['operador'] . ' ?';
+                $params[] = $f['valor'];
+            }
+        }
+    }
+
+    $sqlWhere = '';
+    if (!empty($condicion)) {
+        $sqlWhere = ' WHERE ' . implode(' AND ', $condicion);
+    }
+
+    // ---------- GROUP BY ----------
+    // obligatorio porque 'cantidad' es un SUM(); agrupa por todos los campos no agregados pedidos
+    $sqlGroupBy = '';
+    if (!empty($camposGroupBy)) {
+        $sqlGroupBy = ' GROUP BY ' . implode(', ', $camposGroupBy);
+    }
+
+    // ---------- ORDER BY ----------
+    $camposOrdenPermitidos = array(
+        'codigo' => 't5.codigo',
+        'nombre' => 't5.nombre'
+    );
+
+    $sqlOrder = '';
+    if (!empty($order) && is_array($order)) {
+        $ordenes = array();
+        foreach ($order as $o) {
+            if (
+                isset($o['campo'], $o['dir']) &&
+                array_key_exists($o['campo'], $camposOrdenPermitidos) &&
+                in_array(strtoupper($o['dir']), array('ASC', 'DESC'))
+            ) {
+                $ordenes[] = $camposOrdenPermitidos[$o['campo']] . ' ' . strtoupper($o['dir']);
+            }
+        }
+        if (!empty($ordenes)) {
+            $sqlOrder = ' ORDER BY ' . implode(', ', $ordenes);
+        }
+    }
+
+    // ---------- SQL ----------
+    $consulta = "
+        SELECT $listaCampos
+        FROM [".$bbddSql."].[dbo].[almacen_AlbaranesDetalles] AS t1
+        $sqlJoins
+        $sqlWhere
+        $sqlGroupBy
+        $sqlOrder
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        die("<pre>" . print_r(sqlsrv_errors(), true) . "</pre>");
+    }
+
+    $result = array();
+    while ($fila = sqlsrv_fetch_array($resultado, SQLSRV_FETCH_ASSOC)) {
+        $result[] = $fila;
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'datos' => $result, 'sql' => $consulta, 'params' => $params);
+}
+
+function insertarAlmacenProducto($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'nombre' => 'nombre',
+        'idSubCliente' => 'idSubCliente',
+        'codigo' => 'codigo',
+        'cantidadTotal' => 'cantidadTotal'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array('error' => 'insertarAlmacenProducto: datos vacios', 'ok' => false);
+    }
+
+    if (!isset($datos['cantidadTotal'])) {
+        $datos['cantidadTotal'] = 0;
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => 'insertarAlmacenProducto: camposSQL vacios', 'ok' => false);
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[almacen_Producto]
+        (".implode(', ', $camposSQL).")
+        OUTPUT INSERTED.id
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'ok' => false, 'sql' => $consulta, 'params' => $params);
+    }
+
+    $id = null;
+    if (sqlsrv_fetch($resultado) !== false) {
+        $id = sqlsrv_get_field($resultado, 0);
+    }
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'ok' => true, 'id' => $id, 'sql' => $consulta, 'params' => $params);
+}
+
+function insertarAlmacenHueco($conn_sis, $bbddSql, $datos)
+{
+    $camposPermitidos = array(
+        'hueco' => 'hueco'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array('error' => 'insertarAlmacenHueco: datos vacios', 'ok' => false);
+    }
+
+    $camposSQL = array();
+    $placeholders = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $camposSQL[] = $camposPermitidos[$campo];
+            $placeholders[] = '?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($camposSQL)) {
+        return array('error' => 'insertarAlmacenHueco: camposSQL vacios', 'ok' => false);
+    }
+
+    $consulta = "
+        INSERT INTO [".$bbddSql."].[dbo].[almacen_Huecos]
+        (".implode(', ', $camposSQL).")
+        OUTPUT INSERTED.id
+        VALUES (".implode(', ', $placeholders).")
+    ";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'ok' => false, 'sql' => $consulta, 'params' => $params);
+    }
+
+    $id = null;
+    if (sqlsrv_fetch($resultado) !== false) {
+        $id = sqlsrv_get_field($resultado, 0);
+    }
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'ok' => true, 'id' => $id, 'sql' => $consulta, 'params' => $params);
+}
+
+function modificarAlmacenHuecos($conn_sis, $bbddSql, $datos, $filtros)
+{
+    $camposPermitidos = array(
+        'hueco' => 'hueco'
+    );
+
+    if (!is_array($datos) || empty($datos)) {
+        return array('error' => 'modificarAlmacenHuecos: datos vacios', 'ok' => false);
+    }
+
+    $set = array();
+    $params = array();
+
+    foreach ($datos as $campo => $valor) {
+        if (isset($camposPermitidos[$campo])) {
+            $set[] = $camposPermitidos[$campo] . ' = ?';
+            $params[] = $valor;
+        }
+    }
+
+    if (empty($set)) {
+        return array('error' => 'modificarAlmacenHuecos: no hay campos validos para actualizar', 'ok' => false);
+    }
+
+    if (!isset($filtros['id'])) {
+        return array('error' => 'modificarAlmacenHuecos: falta filtro id', 'ok' => false);
+    }
+
+    $params[] = $filtros['id'];
+
+    $consulta = "UPDATE [".$bbddSql."].[dbo].[almacen_Huecos] SET " . implode(', ', $set) . " WHERE id = ?";
+
+    $resultado = sqlsrv_query($conn_sis, $consulta, $params);
+
+    if ($resultado === false) {
+        return array('error' => print_r(sqlsrv_errors(), true), 'ok' => false, 'sql' => $consulta, 'params' => $params);
+    }
+
+    sqlsrv_free_stmt($resultado);
+
+    return array('error' => '', 'ok' => true, 'sql' => $consulta, 'params' => $params);
+}
+
 
 ?>

@@ -3,64 +3,64 @@ var peticionUnica1 = null;
 var laCondicion="";
 var arrayAlbaran = [];
 
+function cargarSubClientes() //js_almacen (antes cargarSubClientes de js_global, comentada); destino fijo: clienteModal
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = mostrarCargarSubClientes;
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarSubClientes();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarSubClientes()
+{
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo','subcliente'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {activo: 1};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var order = [{campo: 'subcliente', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;
+}
+
+function mostrarCargarSubClientes()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			var contenido = '';
+
+			if (res.error=="" && res.datos)
+			{
+				for (var i=0; i<res.datos.length; i++)
+				{
+					contenido += '<option value="'+res.datos[i]["codigo"]+'">'+res.datos[i]["subcliente"]+' - '+res.datos[i]["codigo"]+'</option>';
+				}
+			}
+
+			document.getElementById("clienteModal").innerHTML = contenido;
+
+			peticionUnica1=null;
+		}
+	}
+}
+
 function buscarFactura()
 {
-	var condicion="";
-	var campoAbuscar = document.getElementById("buscarCampo").value;
-	var textoAbuscar = document.getElementById("buscarTexto").value;
-	var orden = document.getElementById("ordenBuscar").value;
-	var desc = document.getElementById("ordenDesc").checked;
-	
-	var fechaInicio = document.getElementById("buscarFechaInicio").value;
-	var fechaFin = document.getElementById("buscarFechaFin").value;
-	
-	
-	
-	
-		
-	condicion = " where "+campoAbuscar+" like '%" + textoAbuscar + "%'";	
-	
-	
-	if (fechaInicio!="" && fechaInicio!=null && fechaInicio != "null")
-	{
-		var laFecha = fechaInicio.replace("/","-");
-		var datos = laFecha.split('-');
-		var anio = datos[0];
-		var mes = datos[1];
-		var dia = datos[2];	
-	
-		var laFecha1 = dia+"-"+mes+"-"+anio;
-		
-		condicion += " and t1.fecha>= '"+laFecha1+"'";
-	}
-	
-	if (fechaFin!="" && fechaFin!=null && fechaFin != "null")
-	{
-		laFecha = fechaFin.replace("/","-");
-		datos = laFecha.split('-');
-		anio = datos[0];
-		mes = datos[1];
-		dia = datos[2];	
-	
-		laFecha1 = dia+"-"+mes+"-"+anio;
-		
-		condicion += " and t1.fecha <= '"+laFecha1+"'";
-	}
-	
-	
-	
-	condicion += " order by " + orden;
-	
-	if (desc==true)
-	{
-		condicion += " desc";
-	}
-	
-	laCondicion = condicion;
-
-	
 	cargarListadoMovimientos();
-	
 }
 
 function cargarListadoMovimientos() //js_prefactura
@@ -77,12 +77,54 @@ function cargarListadoMovimientos() //js_prefactura
 	}
 }
 
+function construirFiltrosOperadoresMovimientos() // filtros del buscador de movimientos; usado por el listado y por el export a Excel
+{
+	var filtrosOperadores = [];
+
+	var campoAbuscar = document.getElementById("buscarCampo").value;
+	var textoAbuscar = document.getElementById("buscarTexto").value;
+	if (textoAbuscar != "")
+	{
+		filtrosOperadores.push({ campo1: campoAbuscar, valor: '%' + textoAbuscar + '%', operador: 'LIKE' });
+	}
+
+	var fechaInicio = document.getElementById("buscarFechaInicio").value;
+	var fechaFin = document.getElementById("buscarFechaFin").value;
+
+	if (fechaInicio != "" && fechaInicio != null && fechaInicio != "null")
+	{
+		filtrosOperadores.push({ campo1: 'fecha', valor: fechaInicio, operador: '>=' });
+	}
+
+	if (fechaFin != "" && fechaFin != null && fechaFin != "null")
+	{
+		filtrosOperadores.push({ campo1: 'fecha', valor: fechaFin, operador: '<=' });
+	}
+
+	return filtrosOperadores;
+}
+
 function consultaCargarListadoMovimientos()
 {	
 	var consulta = "accion=mostrarAlmacenMovimientos";
-	
-	consulta += "&condicion=" +  laCondicion.replaceAll('%','%25');
-	
+
+	var campos = ['id','fecha','subcliente','codigo','nombreProducto','modalidad','hueco','cantidad','cantidadTotal','disponible','ot','observaciones','albaran','idAlbaran'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = ['tabla2','tabla3','tabla4','tabla5','tabla6'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtrosOperadores = construirFiltrosOperadoresMovimientos();
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify(filtrosOperadores));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify({}));
+
+	var orden = document.getElementById("ordenBuscar").value;
+	var desc = document.getElementById("ordenDesc").checked;
+	var order = [
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 
@@ -92,14 +134,15 @@ function mostrarCargarListadoMovimientos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto tablaCabeceraColor">';
@@ -200,10 +243,16 @@ function cargarListadoProductos()
 
 function consultaCargarListadoProductos()
 {	
-	var consulta = "accion=cargarProductos";
-	var condicion = " where t1.idSubCliente = "+document.getElementById("clienteModal").value + " order by codigo";
-	consulta += "&condicion=" + reemplazarSimbolosBusqueda(condicion);
-	//consulta += "&idProveedor="+document.getElementById("proveedorModal").value;
+	var consulta = "accion=mostrarAlmacenProductos";
+	var campos = ['id','codigo','nombre'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	var joins = [];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+	var filtros = { idSubCliente: document.getElementById("clienteModal").value };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	var order = [ { campo: 'codigo', dir: 'ASC' } ];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -214,14 +263,14 @@ function mostrarCargarListadoProductos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 					
@@ -258,10 +307,11 @@ function cargarListadoModalidadAlmacen()
 
 function consultaCargarListadoModalidadAlmacen()
 {	
-	var consulta = "accion=cargarModalidad";
-	
-	consulta += "&condicion=";
-	
+	var consulta = "accion=mostrarAlmacenModalidad";
+	var campos = ['id','modalidad'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	consulta += "&order=" + encodeURIComponent(JSON.stringify([]));
 	
 	return consulta;	
 }
@@ -272,14 +322,14 @@ function mostrarCargarListadoModalidadAlmacen()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 					
@@ -317,10 +367,11 @@ function cargarListadoAlmacenesAlmacen()
 
 function consultaCargarListadoAlmacenesAlmacen()
 {	
-	var consulta = "accion=cargarAlmacenes";
-	
-	consulta += "&condicion=";
-	
+	var consulta = "accion=mostrarAlmacenAlmacenes";
+	var campos = ['id','almacen'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	consulta += "&order=" + encodeURIComponent(JSON.stringify([]));
 	
 	return consulta;	
 }
@@ -331,14 +382,14 @@ function mostrarCargarListadoAlmacenesAlmacen()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 					
@@ -377,10 +428,12 @@ function cargarListadoHuecosAlmacen()
 
 function consultaCargarListadoHuecosAlmacen()
 {	
-	var consulta = "accion=cargarHuecos";
-	
-	consulta += "&condicion= order by hueco";
-	
+	var consulta = "accion=mostrarAlmacenHuecos";
+	var campos = ['id','hueco'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	var order = [ { campo: 'hueco', dir: 'ASC' } ];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -391,14 +444,14 @@ function mostrarCargarListadoHuecosAlmacen()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 					
@@ -501,13 +554,14 @@ function mostrarCrearMovimientoAlmacen()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				alert(peticionUnica1.responseText);	
+				alert(res.mensaje);	
 			}
 			peticionUnica1=null;
 			buscarFactura();
@@ -532,7 +586,7 @@ function gestionHuecos()
 			if(peticionUnica1)
 			{							
 				peticionUnica1.onreadystatechange = mostrarGestionHuecos;
-				peticionUnica1.open("POST","ajax/mostrarHuecosUtilizadosAlmacen.php",false);
+				peticionUnica1.open("POST","ajax/mostrarAlmacenMovimientos.php",false);
 				peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 				var query_string = consultaGestionHuecos();
 				peticionUnica1.send(query_string);
@@ -548,10 +602,19 @@ function gestionHuecos()
 
 function consultaGestionHuecos()
 {	
-	var consulta = "accion=mostrarHuecosUtilizadosAlmacen";
-	
-	consulta += "&idSubCliente=" + document.getElementById("clienteModal").value;
-	consulta += "&idProducto=" +  document.getElementById("productoModal").value;
+	// Reutiliza mostrarAlmacenMovimientos.php: se piden todos los movimientos del producto/subcliente,
+	// del mas reciente al mas antiguo, y en mostrarGestionHuecos() nos quedamos con el ultimo
+	// movimiento (stock actual) de cada hueco.
+	var consulta = "accion=mostrarAlmacenMovimientos";
+	var campos = ['idHueco','hueco','cantidadTotal'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	var joins = ['tabla5'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+	var filtros = { idSubCliente: document.getElementById("clienteModal").value, idProducto: document.getElementById("productoModal").value };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	var order = [ { campo: 'id', dir: 'DESC' } ];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -562,14 +625,34 @@ function mostrarGestionHuecos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var movimientos = res.datos;
+				
+				// Nos quedamos con el ultimo movimiento (el primero, ya que vienen ordenados
+				// por id DESC) de cada hueco, y de esos solo los que tienen stock (cantidadTotal>0).
+				var huecosVistos = {};
+				var datos = [];
+				var i = 0;
+				while (i < movimientos.length)
+				{
+					var idHueco = movimientos[i]["idHueco"];
+					if (!huecosVistos[idHueco])
+					{
+						huecosVistos[idHueco] = true;
+						if (movimientos[i]["cantidadTotal"] > 0)
+						{
+							datos.push({ id: idHueco, hueco: movimientos[i]["hueco"] });
+						}
+					}
+					i++;
+				}
+				datos.sort(function(a,b){ return a.hueco.localeCompare(b.hueco); });
 				
 				var contenido = "";
 					
@@ -605,8 +688,8 @@ function generarExcel()
 	
 
 	document.getElementById("formExcelTipo").value = tipoDeExel;
-	//document.getElementById("formExcelCondicion").value = laCondicion.replaceAll('%','%25');
-	document.getElementById("formExcelCondicion").value = laCondicion;
+	var filtrosOperadores = construirFiltrosOperadoresMovimientos();
+	document.getElementById("formExcelFiltrosOperadores").value = JSON.stringify(filtrosOperadores);
 	document.getElementById("formImprimirExcelAlmacen").submit();	
 }
 
@@ -776,19 +859,14 @@ function mostrarGrabarAlbaranAlmacen()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				
-				
-				var respuesta = peticionUnica1.responseText;
-				
-				var numeroAlbaran = respuesta.substring(respuesta.indexOf("NumeroAlbaran:")+14);
-				
-				document.getElementById("formNumAlbaran").value = numeroAlbaran;	
+				document.getElementById("formNumAlbaran").value = res.numeroAlbaran;	
 				document.getElementById("formImprimirAlbaran").submit();
 				
 				peticionUnica1=null;
@@ -825,9 +903,15 @@ function verCantidadHueco()
 function consultaVerCantidadHueco()
 {	
 	var consulta = "accion=mostrarAlmacenMovimientos";
-	
-	consulta += "&condicion=where t1.id in (SELECT max(id)  FROM [gestionGrupoCibeles].[dbo].[almacen_Movimientos] where idSubCliente = " + document.getElementById("clienteModal").value + " and idProducto = " + document.getElementById("productoModal").value + " and idHueco = " + document.getElementById("huecoModal").value + ")";
-	
+	var campos = ['cantidadTotal'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	var joins = [];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+	var filtros = { idSubCliente: document.getElementById("clienteModal").value, idProducto: document.getElementById("productoModal").value, idHueco: document.getElementById("huecoModal").value };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	var order = [ { campo: 'id', dir: 'DESC' } ];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -838,19 +922,15 @@ function mostrarVerCantidadHueco()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
+				var datos = res.datos;
 				
-				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
-				
-				var contenido = "";
-					
 				if (datos.length>0)
 				{
 					document.getElementById("cantidadModal").value = datos[0]["cantidadTotal"];
