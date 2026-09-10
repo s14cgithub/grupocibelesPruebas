@@ -20,6 +20,12 @@ define('urlCodigoQrVerifactu',"https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?
 define('cifCibeles',"A81339186");
 define('cifClayma',"A80499221");
 
+define('urlCibeles',"https://vf1.boldsoftware.es/v1/");
+define('apiKeyCibeles',"M13IBu1EmdozcoAiYOWUonuEQHe9tdgfT6w3sePqcNYsPUtVQeCnrbxubATJ25m7XEYNB68LvPPzUCXXXWbZ1U"); // produccion
+
+define('urlClayma',"https://vf1.boldsoftware.es/v1/");
+define('apiKeyClayma',"8WfSPiiIGTyB2h5wEB30xc4jGX0FP229TBXFfhDDlptbvW6ZbR4QRDobM6jmC1SomyK17difXmhIr2kj2hJ0NJ"); // produccion
+
 define('estadoAbierto', 'abierto');
 define('estadoCerrado', 'cerrado');
 define('modoAutomatico', 'automatico');

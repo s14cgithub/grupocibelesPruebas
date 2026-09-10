@@ -86,6 +86,25 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="anadirFactura")
 
 		$datos['retener'] = $cliente['retener'];
 
+		// fechaRealizacion: en una rectificativa (RECT/SUST) se copia de la factura origen;
+		// en una factura normal se coge de fechaTerminado del presupuesto de origen.
+		if (isset($datos['serieFactura']) && ($datos['serieFactura'] == 'RECT' || $datos['serieFactura'] == 'SUST') && !empty($datos['origenFactura']))
+		{
+			$resOrigen = $clayma
+				? mostrarFacturacionClayma($conn, $bbddSql, ['fechaRealizacion'], [], ['numeroFacturaCompleto' => $datos['origenFactura']], [], [])
+				: mostrarFacturacion($conn, $bbddSql, ['fechaRealizacion'], [], ['numeroFacturaCompleto' => $datos['origenFactura']], [], []);
+			if (!empty($resOrigen['datos'])) {
+				$datos['fechaRealizacion'] = $resOrigen['datos'][0]['fechaRealizacion'];
+			}
+		}
+		else
+		{
+			$resPresupuesto = cargarPresupuestos($conn, $bbddSql, ['fechaTerminado'], [], ['presupuesto' => $datos['presupuesto']], [], []);
+			if (!empty($resPresupuesto['datos'])) {
+				$datos['fechaRealizacion'] = $resPresupuesto['datos'][0]['fechaTerminado'];
+			}
+		}
+
 		if ($clayma)
 		{
 			$res = insertarFacturacionClayma($conn, $bbddSql, $datos);

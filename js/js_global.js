@@ -1628,6 +1628,14 @@ function aCentimos(n) {
     return Math.round(n * 100);
 }
 
+// Redondeo al entero más cercano, "mitad siempre lejos de cero" -- el mismo criterio que round() de PHP
+// (el que usan previsualizarFactura.php/imprimirFactura.php/lanzarFactura.php). Math.round() nativo de JS
+// redondea la mitad siempre hacia arriba, lo que da un resultado distinto a PHP cuando el valor es negativo
+// (ej. Math.round(-2.5) = -2, pero round(-2.5) de PHP = -3) -- por eso no se puede usar directamente aquí.
+function redondeoLejosDeCero(n) {
+	return Math.sign(n) * Math.round(Math.abs(n));
+}
+
 function calcularTotalTodoPreFactura() //js_prefactura
 {
 	var totalNeto=0.00;
@@ -1635,8 +1643,8 @@ function calcularTotalTodoPreFactura() //js_prefactura
 	var provision=0;
 
 	var irpf=0.00;
-	var iva=0.00;
-	
+	var ivaPorTipo = {}; // base en céntimos, agrupada por tipoIva -- igual que previsualizarFactura.php/imprimirFactura.php/lanzarFactura.php
+
 	provision = document.getElementById("provisionTotal").value;	
 	
 	unArray.forEach(function(valorId){
@@ -1644,8 +1652,18 @@ function calcularTotalTodoPreFactura() //js_prefactura
 		totalNeto = Number(totalNeto) + Number(valor);
 
 		var tipoIvaValor = Number(document.getElementById(valorId+'_tipoIvaDetalleTemp').value);
-		iva = iva + (Number(valor) * tipoIvaValor / 100);
+		if (!(tipoIvaValor in ivaPorTipo)) ivaPorTipo[tipoIvaValor] = 0;
+		ivaPorTipo[tipoIvaValor] += aCentimos(valor);
 	});
+
+	var ivaCentimos = 0;
+	for (var tipo in ivaPorTipo)
+	{
+		if (Number(tipo) == 0) continue; // los tipos al 0% no aportan cuota, igual que previsualizarFactura.php
+		ivaCentimos += redondeoLejosDeCero((ivaPorTipo[tipo] * Number(tipo)) / 100);
+	}
+
+	var iva = ivaCentimos / 100;
 	
 	document.getElementById("Neto").value=totalNeto.toFixed(2);	
 	irpf=totalNeto*0.19*-1;

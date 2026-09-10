@@ -721,46 +721,55 @@ function mostrarModificarFacturaTemporal()
 
 function previsualizarFactura() //js_prefactura
 {
-	document.getElementById("previsualizar_presupuesto").value = document.getElementById("numPresupuesto").innerHTML;		
-	
-	document.getElementById("previsualizar_idCliente").value = document.getElementById("clientes").value;		
-	
-	document.getElementById("previsualizar_fecha").value = document.getElementById("fechaFactura").value;
-	document.getElementById("previsualizar_pedido").value = (document.getElementById("pedidoCliente").value);
-	
-	var valor = 0;
-	if (document.getElementById("cantidad").value=="" || document.getElementById("cantidad").value==null)
+	if (document.getElementById("clientes").value<=0)
 	{
-		valor = 0;
+		alert("Elegir un Cliente");
+		document.getElementById("clientes").focus();
 	}
 	else
 	{
-		valor = document.getElementById("cantidad").value;
+		document.getElementById("previsualizar_presupuesto").value = document.getElementById("numPresupuesto").innerHTML;		
+	
+		document.getElementById("previsualizar_idCliente").value = document.getElementById("clientes").value;		
+		
+		document.getElementById("previsualizar_fecha").value = document.getElementById("fechaFactura").value;
+		document.getElementById("previsualizar_pedido").value = (document.getElementById("pedidoCliente").value);
+		
+		var valor = 0;
+		if (document.getElementById("cantidad").value=="" || document.getElementById("cantidad").value==null)
+		{
+			valor = 0;
+		}
+		else
+		{
+			valor = document.getElementById("cantidad").value;
+		}
+		
+		document.getElementById("previsualizar_cantidad").value = valor;
+		document.getElementById("previsualizar_formaPago").value = document.getElementById("formaPago").options[document.getElementById("formaPago").selectedIndex].text;
+		
+		document.getElementById("previsualizar_nuestraCuenta").value = document.getElementById("numCuenta").value;
+		
+		document.getElementById("previsualizar_campana").value = (document.getElementById("campana").value);
+		
+		valor = 0;
+		if (document.getElementById("detallada").checked)
+		{
+			valor = 1;
+		}
+		
+		document.getElementById("previsualizar_detallada").value = valor;
+		document.getElementById("previsualizar_neto").value = document.getElementById("Neto").value;
+		document.getElementById("previsualizar_iva").value = document.getElementById("iva").value;
+		document.getElementById("previsualizar_irpf").value = document.getElementById("irpf").value;
+		document.getElementById("previsualizar_total").value = document.getElementById("total").value;
+		document.getElementById("previsualizar_provision").value = document.getElementById("provisionTotal").value;
+		document.getElementById("previsualizar_aPagar").value = document.getElementById("aPagar").value;
+		document.getElementById("previsualizar_clayma").value = document.getElementById("clienteOrigen").checked ? 1 : 0;
+					
+		document.getElementById("formPrevisualizarFactura").submit();
 	}
 	
-	document.getElementById("previsualizar_cantidad").value = valor;
-	document.getElementById("previsualizar_formaPago").value = document.getElementById("formaPago").options[document.getElementById("formaPago").selectedIndex].text;
-	
-	document.getElementById("previsualizar_nuestraCuenta").value = document.getElementById("numCuenta").value;
-	
-	document.getElementById("previsualizar_campana").value = (document.getElementById("campana").value);
-	
-	valor = 0;
-	if (document.getElementById("detallada").checked)
-	{
-		valor = 1;
-	}
-	
-	document.getElementById("previsualizar_detallada").value = valor;
-	document.getElementById("previsualizar_neto").value = document.getElementById("Neto").value;
-	document.getElementById("previsualizar_iva").value = document.getElementById("iva").value;
-	document.getElementById("previsualizar_irpf").value = document.getElementById("irpf").value;
-	document.getElementById("previsualizar_total").value = document.getElementById("total").value;
-	document.getElementById("previsualizar_provision").value = document.getElementById("provisionTotal").value;
-	document.getElementById("previsualizar_aPagar").value = document.getElementById("aPagar").value;
-	document.getElementById("previsualizar_clayma").value = document.getElementById("clienteOrigen").checked ? 1 : 0;
-				
-	document.getElementById("formPrevisualizarFactura").submit();
 }
 
 function grabarFactura() //

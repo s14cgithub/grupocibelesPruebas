@@ -21,7 +21,8 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="duplicarFacturaANegativa")
 		'cd','fechaInicio','fechaFin','importeFranqueo','cuentaDelBanco','abono','combinadoSumatorio',
 		'observaciones','observacionesInternas','liquidado','prefactura','comprobacionError',
 		'dirPost_pais','dirPost_codigoPais','nombre_empresa','direccion','codigo_postal','localidad','provincia','nif',
-		'envio_nombre','envio_domicilio','envio_cp','envio_poblacion','envio_provincia','envio_pais','envio_att','retener'
+		'envio_nombre','envio_domicilio','envio_cp','envio_poblacion','envio_provincia','envio_pais','envio_att','retener',
+		'fechaRealizacion'
 	];
 	$filtrosFacturaOriginal = ['numeroFacturaCompleto' => $facturaOriginal];
 
@@ -109,7 +110,8 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="duplicarFacturaANegativa")
 		'dirEnv_att' => $f['envio_att'],
 		'retener' => $f['retener'],
 		'serieFactura' => 'NEG',
-		'origenFactura' => $facturaOriginal
+		'origenFactura' => $facturaOriginal,
+		'fechaRealizacion' => $f['fechaRealizacion']
 	);
 
 	if ($clayma=="true")

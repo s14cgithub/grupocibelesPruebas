@@ -84,7 +84,7 @@ if ($_SESSION["usuario"]<>"")
 					<option value="descripcion">Campaña</option>	
 					<option value="cliente">Cliente</option>
 					<option value="numero" selected>Factura</option>	
-					<option value="fecha">Fecha Factura</option>
+					<option value="fecha" selected>Fecha Factura</option>
 					<option value="fechaPago">Fecha Pago</option>					
 					<option value="presupuesto">Presupuesto</option>
 					<option value="precioTotal">Total</option>				

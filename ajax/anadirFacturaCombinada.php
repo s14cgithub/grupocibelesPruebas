@@ -6,6 +6,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="verDatosPresupuestosCombinados"
 	$ruta = '../';
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
+	require_once($ruta."Verifactu/wortice/lanzarFactura.php");
 
 	$conn1 = conectarSQL($conexion);
 	$conn = $conn1['conn'];
@@ -177,6 +178,12 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="verDatosPresupuestosCombinados"
 			$datos['dirEnv_att'] = $datosCliente['envio_att'];
 		}
 
+		// fechaRealizacion de la factura combinada = fechaTerminado de uno cualquiera de los presupuestos combinados
+		$resPresupuesto = cargarPresupuestos($conn, $bbddSql, ['fechaTerminado'], [], ['presupuesto' => $presupuestos2[0]], [], []);
+		if (!empty($resPresupuesto['datos'])) {
+			$datos['fechaRealizacion'] = $resPresupuesto['datos'][0]['fechaTerminado'];
+		}
+
 		if ($clayma)
 		{
 			$resultado1 = insertarFacturacionClayma($conn, $bbddSql, $datos);
@@ -196,6 +203,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="verDatosPresupuestosCombinados"
 			$contador = 0;
 			$seguir = true;
 			$error = '';
+			$erroresDetalle = false;
 
 			while ($contador<count($presupuestos2) && $seguir == true)
 			{
@@ -227,11 +235,16 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="verDatosPresupuestosCombinados"
 
 					if ($clayma)
 					{
-						insertarFacturacionDetallesClayma($conn, $bbddSql, $datosDetalle);
+						$resDetInsert = insertarFacturacionDetallesClayma($conn, $bbddSql, $datosDetalle);
 					}
 					else
 					{
-						insertarFacturacionDetalles($conn, $bbddSql, $datosDetalle);
+						$resDetInsert = insertarFacturacionDetalles($conn, $bbddSql, $datosDetalle);
+					}
+
+					if (!$resDetInsert['ok'])
+					{
+						$erroresDetalle = true;
 					}
 				}
 
@@ -251,6 +264,11 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="verDatosPresupuestosCombinados"
 
 			if ($seguir == true)
 			{
+				if (!$erroresDetalle)
+				{
+					lanzarFactura($conn, $bbddSql, $numeroFacturaCompleto, $clayma);
+				}
+
 				echo json_encode(array('error' => '', 'ok' => true, 'numFactura' => $numFactura, 'numeroFacturaCompleto' => $numeroFacturaCompleto, 'anioSeleccionado' => $anioSeleccionado));
 			}
 			else

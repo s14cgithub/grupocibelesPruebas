@@ -202,7 +202,8 @@ function consultaCargarListadoFacturas()
 		'facRecSustitucion',
 		'numFacRec',
 		'facNeg',
-		'numFacNeg'
+		'numFacNeg',
+		'verifactu_queueId'
 	];
 	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
 
@@ -218,7 +219,8 @@ function consultaCargarListadoFacturas()
 	var orden = document.getElementById("ordenBuscar").value;
 	var desc = document.getElementById("ordenDesc").checked;
 	var order = [
-		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' },
+		{ campo: 'id', dir: 'DESC' }
 	];
 	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 
@@ -383,6 +385,10 @@ function mostrarCargarListadoFacturas()
 							var messageError = datos[contador]["verifactu_message"];
 							messageError = messageError.replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 							fondo = 'style="background-color: black;" title="'+messageError+'"';
+						}
+						else
+						{
+							fondo = ' ondblclick="verEstado('+datos[contador]["verifactu_queueId"]+')"';
 						}
 
 					}
@@ -1019,7 +1025,8 @@ function consultaCargarListadoAgenteComercial()
 	var orden = document.getElementById("ordenBuscar").value;
 	var desc = document.getElementById("ordenDesc").checked;
 	var order = [
-		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' },
+		{ campo: 'id', dir: 'DESC' }
 	];
 	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 
@@ -1268,6 +1275,11 @@ function crearFacRecSustitucion(numeroFactura)
 	document.getElementById("facRecSustitucion_numeroFactura").value =numeroFactura; 	
 	document.getElementById("facRecSustitucion_clayma").value = document.getElementById("clienteOrigen").checked;
 	document.getElementById("formIrAfacRecSustitucion").submit();
+}
+
+function verEstado(id)
+{
+	alert(id);
 }
 
 

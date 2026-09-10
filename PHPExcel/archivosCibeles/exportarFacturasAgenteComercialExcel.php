@@ -22,6 +22,13 @@ if(isset($_POST["exportarACAccion"]) && $_POST["exportarACAccion"]=="exportarExc
 	$desc = $_POST["exportarDesc"];*/
 	$filtros = isset($_POST["exportarACFiltros"]) ? json_decode($_POST["exportarACFiltros"], true) : array();
 	$filtrosOperadores = isset($_POST["exportarACFiltrosOperadores"]) ? json_decode($_POST["exportarACFiltrosOperadores"], true) : array();
+	$orden = isset($_POST["exportarACOrden"]) ? $_POST["exportarACOrden"] : '';
+	$desc = isset($_POST["exportarACDesc"]) ? $_POST["exportarACDesc"] : 'false';
+
+	$order = array(
+		array('campo' => $orden, 'dir' => ($desc=="true" ? 'DESC' : 'ASC')),
+		array('campo' => 'id', 'dir' => 'DESC')
+	);
 
 	$camposFactura = ['numeroFacturaCompleto','nombreComercial','cliente','fecha','precioNeto','formaPagoReal','fechaPago','serieFactura','liquidado'];
 	$joinsFactura = ['tabla2','tabla3'];
@@ -30,8 +37,8 @@ if(isset($_POST["exportarACAccion"]) && $_POST["exportarACAccion"]=="exportarExc
 	$conn = $conn1['conn'];
 	$bbddSql = $conn1['bbdd'];
 
-	$resCibeles = mostrarFacturacion($conn, $bbddSql, $camposFactura, $joinsFactura, $filtros, $filtrosOperadores, []);
-	$resClayma = mostrarFacturacionClayma($conn, $bbddSql, $camposFactura, $joinsFactura, $filtros, $filtrosOperadores, []);
+	$resCibeles = mostrarFacturacion($conn, $bbddSql, $camposFactura, $joinsFactura, $filtros, $filtrosOperadores, $order);
+	$resClayma = mostrarFacturacionClayma($conn, $bbddSql, $camposFactura, $joinsFactura, $filtros, $filtrosOperadores, $order);
 
 	sqlsrv_close($conn);
 

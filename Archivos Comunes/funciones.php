@@ -3993,7 +3993,8 @@ function insertarFacturacion($conn_sis, $bbddSql, $datos)
         'dirPost_nombrePais' => 'dirPost_nombrePais',
         'dirEnv_att' => 'dirEnv_att',
         'motivo' => 'motivo',
-        'origenFactura' => 'origenFactura'
+        'origenFactura' => 'origenFactura',
+        'fechaRealizacion' => 'fechaRealizacion'
     );
 
     if (!is_array($datos) || empty($datos) || !isset($datos['fecha'])) {
@@ -4119,7 +4120,8 @@ function insertarFacturacionClayma($conn_sis, $bbddSql, $datos)
         'dirPost_nombrePais' => 'dirPost_nombrePais',
         'dirEnv_att' => 'dirEnv_att',
         'motivo' => 'motivo',
-        'origenFactura' => 'origenFactura'
+        'origenFactura' => 'origenFactura',
+        'fechaRealizacion' => 'fechaRealizacion'
     );
 
     if (!is_array($datos) || empty($datos) || !isset($datos['fecha'])) {
@@ -5762,6 +5764,7 @@ function calcularDatosFacturaMensualCliente($conn, $bbddSql, $valor, $fechaInici
         'descripcion' => $descripcion,
         'presupuesto' => $presupuesto,
         'fecha' => $fecha,
+        'fechaRealizacion' => $fecha,
         'inicialComercial' => $inicialComercial,
         'precioNeto' => $precioNetoTotal,
         'iva' => $iva,
@@ -6853,9 +6856,16 @@ function mostrarFacturacion($conn_sis, $bbddSql, $campos, $joins, $filtros, $fil
         'observaciones' => 't1.observaciones',
         'observacionesInternas' => 't1.observacionesInternas',
         'precioNetoExentoIva' => 't1.precioNetoExentoIva',
+        'fechaRealizacion' => 't1.fechaRealizacion',
         'verifactu_qrcode' => 't1.verifactu_qrcode',
         'verifactu_message' => 't1.verifactu_message',
         'verifactu_idSolicitud' => 't1.verifactu_idSolicitud',
+        'verifactu_nifExpedidor' => 't1.verifactu_nifExpedidor',
+        'verifactu_fechaExpedicion' => 't1.verifactu_fechaExpedicion',
+        'verifactu_numFactura' => 't1.verifactu_numFactura',
+        'verifactu_hast' => 't1.verifactu_hast',
+        'verifactu_url' => 't1.verifactu_url',
+        'verifactu_queueId' => 't1.verifactu_queueId',
         'aniosUtilizados' => 'DISTINCT YEAR(t1.fecha) as aniosUtilizados',
         'fechaPago' => 't1.fechaPago',
         'formaPagoReal' => 't1.formaPagoReal',
@@ -7020,6 +7030,7 @@ function mostrarFacturacion($conn_sis, $bbddSql, $campos, $joins, $filtros, $fil
         'serieFactura' => 't1.serieFactura',
         'formaPagoReal' => 't1.formaPagoReal',
         'liquidado' => 't1.liquidado',
+        'id' => 't1.id',
         'ordenAgentesComerciales_ComercialCliente' => 't3.nombre, t1.cliente, t1.serieFactura desc, t1.fecha'
     );
 
@@ -7127,9 +7138,16 @@ function mostrarFacturacionClayma($conn_sis, $bbddSql, $campos, $joins, $filtros
         'observaciones' => 't1.observaciones',
         'observacionesInternas' => 't1.observacionesInternas',
         'precioNetoExentoIva' => 't1.precioNetoExentoIva',
+        'fechaRealizacion' => 't1.fechaRealizacion',
         'verifactu_qrcode' => 't1.verifactu_qrcode',
         'verifactu_message' => 't1.verifactu_message',
         'verifactu_idSolicitud' => 't1.verifactu_idSolicitud',
+        'verifactu_nifExpedidor' => 't1.verifactu_nifExpedidor',
+        'verifactu_fechaExpedicion' => 't1.verifactu_fechaExpedicion',
+        'verifactu_numFactura' => 't1.verifactu_numFactura',
+        'verifactu_hast' => 't1.verifactu_hast',
+        'verifactu_url' => 't1.verifactu_url',
+        'verifactu_queueId' => 't1.verifactu_queueId',
         'aniosUtilizados' => 'DISTINCT YEAR(t1.fecha) as aniosUtilizados',
         'fechaPago' => 't1.fechaPago',
         'formaPagoReal' => 't1.formaPagoReal',
@@ -7293,6 +7311,7 @@ function mostrarFacturacionClayma($conn_sis, $bbddSql, $campos, $joins, $filtros
         'serieFactura' => 't1.serieFactura',
         'formaPagoReal' => 't1.formaPagoReal',
         'liquidado' => 't1.liquidado',
+        'id' => 't1.id',
         'ordenAgentesComerciales_ComercialCliente' => 't3.nombre, t1.cliente, t1.serieFactura desc, t1.fecha'
     );
 
@@ -14455,7 +14474,16 @@ function modificarFacturacionClayma($conn_sis, $bbddSql, $datos, $filtros, $filt
     $camposPermitidos = array(       
         'formaPagoReal' => 't1.formaPagoReal',
         'fechaPago' => 't1.fechaPago',
-        'liquidado' => 't1.liquidado'
+        'liquidado' => 't1.liquidado',
+        'verifactu_qrcode' => 't1.verifactu_qrcode',
+        'verifactu_message' => 't1.verifactu_message',
+        'verifactu_idSolicitud' => 't1.verifactu_idSolicitud',
+        'verifactu_nifExpedidor' => 't1.verifactu_nifExpedidor',
+        'verifactu_fechaExpedicion' => 't1.verifactu_fechaExpedicion',
+        'verifactu_numFactura' => 't1.verifactu_numFactura',
+        'verifactu_hast' => 't1.verifactu_hast',
+        'verifactu_url' => 't1.verifactu_url',
+        'verifactu_queueId' => 't1.verifactu_queueId'
     );
 
     if (!is_array($datos) || empty($datos)) {
@@ -16511,7 +16539,16 @@ function modificarFacturacion($conn_sis, $bbddSql, $datos, $filtros, $filtrosOpe
     $camposPermitidos = array(       
         'formaPagoReal' => 't1.formaPagoReal',
         'fechaPago' => 't1.fechaPago',
-        'liquidado' => 't1.liquidado'
+        'liquidado' => 't1.liquidado',
+        'verifactu_qrcode' => 't1.verifactu_qrcode',
+        'verifactu_message' => 't1.verifactu_message',
+        'verifactu_idSolicitud' => 't1.verifactu_idSolicitud',
+        'verifactu_nifExpedidor' => 't1.verifactu_nifExpedidor',
+        'verifactu_fechaExpedicion' => 't1.verifactu_fechaExpedicion',
+        'verifactu_numFactura' => 't1.verifactu_numFactura',
+        'verifactu_hast' => 't1.verifactu_hast',
+        'verifactu_url' => 't1.verifactu_url',
+        'verifactu_queueId' => 't1.verifactu_queueId'
     );
 
     if (!is_array($datos) || empty($datos)) {

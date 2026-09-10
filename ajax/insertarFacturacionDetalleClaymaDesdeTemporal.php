@@ -6,6 +6,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="insertarFacturacionDetalles")
 	$ruta = '../';
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
+	require_once($ruta."Verifactu/wortice/lanzarFactura.php");
 
 	$numPresupuesto = isset($_POST["numPresupuesto"]) ? $_POST["numPresupuesto"] : '';
 	$facturaOriginal = isset($_POST["facturaOriginal"]) ? $_POST["facturaOriginal"] : '';
@@ -44,6 +45,18 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="insertarFacturacionDetalles")
 	}
 
 	eliminarFacturasDetallesTemporal($conn, $bbddSql, ['idEmpleado' => $idEmpleado], []);
+
+	$huboErrorDetalle = false;
+	foreach ($resultado as $fila) {
+		if (empty($fila['ok'])) {
+			$huboErrorDetalle = true;
+			break;
+		}
+	}
+
+	if (!$huboErrorDetalle && $numeroFacturaCompleto != '') {
+		lanzarFactura($conn, $bbddSql, $numeroFacturaCompleto, true);
+	}
 
 	sqlsrv_close($conn);
 

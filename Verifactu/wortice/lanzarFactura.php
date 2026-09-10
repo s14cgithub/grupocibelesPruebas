@@ -1,714 +1,256 @@
 <?php
 
-//urlCibeles = 'https://wortice.es/api-demo/';
-//$apiKeyCibeles ='CCqXXdxBa1ZlO4rDTyLEPt3Yw833tI4l9ZZi1zxCvE7zgf7yVs7g8iPEUPNonVzK7DZJXqDqH2fLNaN9Jjv5zE'; //pruebas
-
-$urlCibeles = 'https://vf1.boldsoftware.es/v1/';
-$apiKeyCibeles ='M13IBu1EmdozcoAiYOWUonuEQHe9tdgfT6w3sePqcNYsPUtVQeCnrbxubATJ25m7XEYNB68LvPPzUCXXXWbZ1U'; // produccion
-
-function lanzarFacturaCibeles ($conexion,$numFactura,$anioSeleccionado,$urlCibeles,$apiKeyCibeles)//15, 2025
+// Convierte un importe en euros (string con coma o punto decimal, o null) a céntimos enteros.
+// Toda la aritmética de importes de lanzarFactura() se hace en céntimos (enteros): las columnas de origen
+// (facturacion.iva, facturacionDetalles.total, etc.) son DECIMAL(18,2) en BBDD, así que esta conversión
+// es exacta y las sumas/comparaciones posteriores no pueden arrastrar ningún error de redondeo.
+function euroACentimos($valor)
 {
-    $pruebas="Pruebas1_Cib ";
-    echo "aqui1";
-    //session_start(); 
-    //$ruta = '../../';
-    
-    //require_once($ruta."Archivos Comunes/constantes.php");
-	//require_once($ruta."Archivos Comunes/codigoInclude.php");
-
-    $datosFactura = verFactura($conexion,$numFactura,$anioSeleccionado);
-    $totalesPorIva = verFacturaDetalleTotalesPorIVA($conexion,$numFactura,$anioSeleccionado); //hay un registro por cada tipo de iva (cibeles solo tienes 2 opciones de iva: 21% y 0%)
-
-
-    $mostrarDatos="";
-    $mostrarInformacion="";
-
-    if (!empty($datosFactura)) 
-    {
-        // Hay registros
-        // Ejemplo: primera fila
-        
-        
-        
-        $nifCliente = $datosFactura[0]["nif"];
-        $nombreCliente = $datosFactura[0]["cliente"];
-        $codigoPais = $datosFactura[0]["codigoPais1"];
-        //$codigoPais = "ES";
-        $fechaFacturacion = $datosFactura[0]["fecha"]->format('Y-m-d');
-        //echo "\nfecha: ".$fechaFacturacion;;
-        $numeroFacturaCompleto = $datosFactura[0]["numeroFacturaCompleto"];
-
-        $precioIva = $datosFactura[0]["iva"];
-        $precioIrpf= $datosFactura[0]["irpf"];
-        //$precioTotal= $datosFactura[0]["precioTotal"];
-        $precioTotal= $datosFactura[0]["precioTotalSinIrpf"];        
-
-        $precioIva = str_replace(",",".",$precioIva);
-        $precioIrpf = str_replace(",",".",$precioIrpf);
-        $precioTotal = str_replace(",",".",$precioTotal);
-
-        if ($precioIva==".00")$precioIva=0;
-        if ($precioIrpf==".00")$precioIrpf=0;
-        if ($precioTotal==".00")$precioTotal=0;
-        
-        if ($precioIva=="" || $precioIva=="NULL" || $precioIva == null) $precioIva=0;
-        if ($precioIrpf=="" || $precioIrpf=="NULL" || $precioIrpf == null) $precioIrpf=0;
-        if ($precioTotal=="" || $precioTotal=="NULL" || $precioTotal == null) $precioTotal=0;
-
-        if (isset($precioIva[0]) && $precioIva[0] === '.') $precioIva = '0' . $precioIva;
-        if (isset($precioIrpf[0]) && $precioIrpf[0] === '.') $precioIrpf = '0' . $precioIrpf;
-        if (isset($precioTotal[0]) && $precioTotal[0] === '.') $precioTotal = '0' . $precioTotal;
-
-
-
-
-        $clienteSinIva = $datosFactura[0]["sinIva"];
-        $clienteConIrpf = $datosFactura[0]["retencion"];
-
-
-
-        
-        
-
-
-
-        if ($clienteSinIva=="" || $clienteSinIva=="NULL" || $clienteSinIva == null) $clienteSinIva=0;
-        if ($clienteConIrpf=="" || $clienteConIrpf=="NULL" || $clienteConIrpf == null) $clienteConIrpf=0;
-
-
-        //$detallesFactura = verFacturaDetalle($conexion,$numFactura,$anioSeleccionado);
-        
-
-       
-        
-
-        $baseConIva = 0;
-        $baseSinIva = 0;
-
-        if (count($totalesPorIva)>1) //2 TIPOS DE IVA 21% y 0% ; Aquí no debe entrar los extranjeros
-        {  echo "\nEntra1";
-            if ($totalesPorIva[0]["exentoIva"]==1)
-            {  //echo "\nEntra2";
-                $baseSinIva = $totalesPorIva[0]["base"];
-                $baseConIva = $totalesPorIva[1]["base"];
-            }
-            else
-            { echo "\nEntra3";
-                $baseSinIva = $totalesPorIva[1]["base"];
-                $baseConIva = $totalesPorIva[0]["base"];
-            }
-
-            $baseSinIva = str_replace(",",".",$baseSinIva);
-            $baseConIva = str_replace(",",".",$baseConIva);
-
-
-            if ($baseConIva==".00" || $baseConIva=="" || $baseConIva=="NULL" || $baseConIva == null) $baseConIva=0;
-            if ($baseSinIva==".00" || $baseSinIva=="" || $baseSinIva=="NULL" || $baseSinIva == null) $baseSinIva=0;
-
-            if (isset($baseConIva[0]) && $baseConIva[0] === '.') $baseConIva = '0' . $baseConIva;
-            if (isset($baseSinIva[0]) && $baseSinIva[0] === '.') $baseSinIva = '0' . $baseSinIva;
-
-
-            $vatLines = array(
-                array(
-                    "base" => (float)$baseConIva,
-                    "rate" => 21,
-                    "amount" => (float)$precioIva,
-                    "vatOperation" => "S1",
-                    "vatKey" => "01"
-                ),
-                array(
-                    "base" => (float)$baseSinIva,
-                    "rate" => 0,
-                    "amount" => 0,
-                    "vatOperation" => "N1",
-                    "vatKey" => "01"
-                ),
-            );
-
-        }
-        else if (count($totalesPorIva)==1) //un tipo de via 21% o 0%
-        { echo "\nEntra4";
-            
-            if ($clienteSinIva=="1") //toda la factura sin IVA (0%). Esto se indica en la fiche de clientes; aquí entran los extranjeros
-            {  echo "\nEntra5";
-                
-                $baseSinIva = $totalesPorIva[0]["base"];
-                $baseSinIva = str_replace(",",".",$baseSinIva);
-
-                if ($baseSinIva==".00" || $baseSinIva=="" || $baseSinIva=="NULL" || $baseSinIva == null) $baseSinIva=0;
-                if (isset($baseSinIva[0]) && $baseSinIva[0] === '.') $baseSinIva = '0' . $baseSinIva;
-
-                $valorVarOperacion="N1";
-                if ($codigoPais!="ES")
-                    $valorVarOperacion="N2";
-
-                $vatLines = array(
-                    array(
-                        "base" => (float)$baseSinIva,
-                        "rate" => 0,
-                        "amount" => 0,
-                        "vatOperation" => $valorVarOperacion,
-                        "vatKey" => "01"
-                    ),
-                );
-            }
-            else //toda la factura con 21% ; Aquí no debe entrar los extranjeros
-            {   echo "\nEntra6";
-                $baseConIva = $totalesPorIva[0]["base"];
-                $baseConIva = str_replace(",",".",$baseConIva);
-                if ($baseConIva==".00" || $baseConIva=="" || $baseConIva=="NULL" || $baseConIva == null) $baseConIva=0;
-                if (isset($baseConIva[0]) && $baseConIva[0] === '.') $baseConIva = '0' . $baseConIva;
-           
-               
-                $vatLines = array(
-                    array(
-                        "base" => (float)$baseConIva,
-                        "rate" => 21,
-                        "amount" => (float)$precioIva,
-                        "vatOperation" => "S1",
-                        "vatKey" => "01"
-                    ),
-                );
-            }
-        }
-
-        //PARA PRUEBAS
-        
-        $mostrarDatos .=  "\nnifCliente: ".$nifCliente;
-        $mostrarDatos .=  "\nnombreCliente: ".$nombreCliente;
-        $mostrarDatos .= "\ncodigoPais: ".$codigoPais;
-        $mostrarDatos .= "\nfechaFacturacion: ".$fechaFacturacion;
-        $mostrarDatos .= "\nnumeroFacturaCompleto: ".$numeroFacturaCompleto;
-        $mostrarDatos .= "\nprecioIva: ".$precioIva;
-        $mostrarDatos .= "\nprecioIrpf: ".$precioIrpf;
-        $mostrarDatos .= "\nprecioTotal: ".$precioTotal;
-        $mostrarDatos .= "\nclienteSinIva: ".$clienteSinIva;
-        $mostrarDatos .= "\nclienteConIrpf: ".$clienteConIrpf;        
-        $mostrarDatos .= "\ncodigoPais: ".$codigoPais;
-        $mostrarDatos .= "\nbaseConIva: ".$baseConIva;
-        $mostrarDatos .= "\nbaseSinIva: ".$baseSinIva;
-        
-        
-
-    } 
-    else { // No hay registros
-       echo  'ERROR: NO SE HA ENCONTRADO LA FACTURA EN LA BBDD DE CIBELES';
-    }
-
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-
-
-    // Serie y número de factura. Añadimos un sufijo aleatorio (número entero aleatorio 1-1000)
-    //$invoice_number = "A-" . date("Ymd") . "-" . mt_rand(1, 1000);
-    //$invoice_number = "A-" . date("Ymd") . "-1"; 
-
-
-    // Construcción del array con info de la factura :: inicio
-   
-
-
-    if ($codigoPais!="ES")
-    {
-        $invoice = [
-                "invoice" => 
-                [
-                    "recipient" =>
-                    [
-                        "id" => $nifCliente,
-                        "idType" => "06", //ver esto con marian
-                        "name" => $nombreCliente, 
-                        "country" => $codigoPais
-                    ],
-                    "description" => 
-                    [
-                        "text" => "Factura",
-                        "operationDate" => $fechaFacturacion 
-                    ],
-                    "id" => 
-                    [
-                        "number"  =>  $pruebas.$numeroFacturaCompleto, 
-                        "issuedTime" => $fechaFacturacion 
-                    ],
-                    "type" => "F1", 
-                    "vatLines" => $vatLines,
-                    "total" => (float)$precioTotal,
-                    "amount" => (float)$precioIva
-                ]
-            ];
-    }
-    else
-    {
-        $invoice = [
-            "invoice" => 
-            [
-                "recipient" =>
-                [
-                    "irsId" => $nifCliente,
-                    "name" => $nombreCliente, 
-                    "country" => $codigoPais
-                ],
-                "description" => 
-                [
-                    "text" => "Factura",
-                    "operationDate" => $fechaFacturacion 
-                ],
-                "id" => 
-                [
-                    "number"  =>  $pruebas.$numeroFacturaCompleto, 
-                    "issuedTime" => $fechaFacturacion 
-                ],
-                "type" => "F1", 
-                "vatLines" => $vatLines,
-                "total" => (float)$precioTotal,
-                "amount" => (float)$precioIva
-            ]
-        ];
-    }
-                  
-
-
-
-    // Construcción del array con info de la factura :: fin
-
-
-    // Codificación del array de la factura en JSON
-    $json_invoice = json_encode($invoice);
-
-
-
-    // Solicitud mediante cURL a la API Wórtice Verifactu :: inicio
-    $curl = curl_init();
-
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => $urlCibeles.'invoice',        
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 90, //0
-        CURLOPT_FOLLOWLOCATION => false, //true
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => $json_invoice,
-        CURLOPT_FRESH_CONNECT => true,// no reutilizar conexión
-        CURLOPT_FORBID_REUSE=> true, // cerrar tras la petición
-        CURLOPT_CONNECTTIMEOUT => 15, // Controlas el tiempo de conexión por separado (si no, puedes “quemar” todo el timeout total solo intentando conectar)
-
-
-        // Importante: API-KEY en cabeceras HTTP
-        CURLOPT_HTTPHEADER => array(
-            'Content-Type: application/json',            
-            'API-KEY: '.$apiKeyCibeles,
-            'Expect:',            // evita 100-continue
-            'Connection: close'   // cierra TCP al final
-        ),
-    ));
-
-   
-
-    $response = curl_exec($curl);
-
-    $respuestaFinal = "\n<br>fac: ".$numFactura;
-
-
-    if ($response === false)
-    {   /*
-        echo "\nEntra7";
-        echo "Error cURL: " . curl_error($curl);
-        echo " Código: " . curl_errno($curl);
-        */
-         $respuestaFinal .= " Error cURL: " . curl_error($curl)." Código: " . curl_errno($curl);
-    }
-    else
-    {  //echo "\nEntra8";
-        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        //echo "<br><br>" . $http_code . "<br><br>";
-        $respuestaFinal .= " codigoHTTP: " . $http_code;
-        //echo $respuestaFinal;
-        
-    }
-    //echo "console.log('Factura: ".$numFactura." ;codigoHTTP: " . $http_code . "');";
-    
-
-
-    curl_close($curl);
-
-    // var_dump($response);
-
-
-    $json_response = json_decode($response, true);
-
-    //var_dump($json_response);
-    //exit;
-
-
-        
-
-
-    //PARA PRUEBAS
-    if (is_array($json_response) && array_key_exists('message', $json_response)) 
-    {  $mostrarDatos .= "\nentra en error";
-        $message = $json_response['message'];
-        $code =  $json_response['code'];
-        $requestId =  $json_response['requestId'];
-
-
-       /*
-        echo "\n<br>ErrorMensaje: ".$message;
-        echo "\n<br>Codigo: ".$code;
-        echo "\n<br>Id de la Solicitud: " .$requestId;
-
-        */
-        $respuestaFinal .= " message: " . $json_response['message']. "codigo: ".$json_response['code'];
-        
-        guardarVerifactuErrores($conexion,$numFactura,$anioSeleccionado,$message, $code, $requestId);
-
-    } 
-    else 
-    {  $mostrarDatos .= "\nentra en correcto";
-        $qr_code = $json_response["qrcode"]; 
-        //echo "<br>Codigo QR:" . $qr_code; 
-
-
-        $issuerIrsId = $json_response["chainInfo"]["issuerIrsId"];
-        $issuedTime = $json_response["chainInfo"]["issuedTime"];
-        $number = $json_response["chainInfo"]["number"];
-        $hash = $json_response["chainInfo"]["hash"];
-
-        $respuestaFinal .= "\n<br>NIF del expedidor: " . $issuerIrsId . "<br>";
-        $respuestaFinal .= "\n<br>Fecha de expedición: " . $issuedTime . "<br>";
-        $respuestaFinal .= "\n<br>Número de factura: " . $number . "<br>";
-        $respuestaFinal .= "\n<br>HAST: " . $hash . "<br>";
-
-        $verifactuUrl = $json_response["verifactuUrl"];
-        $respuestaFinal .= "\n<br>verifactuUrl: " . $verifactuUrl. "<br>";
-
-        $queueId = $json_response["queueId"];
-        $respuestaFinal .= "\n<br>id / Posicion del mensjae en la cola de envío: " . $queueId. "<br>";
-
-        $requestId = $json_response["requestId"];
-        $respuestaFinal .= "\n<br>Id de la Solicitud: " . $requestId . "<br>";
-
-        $respuestaFinal .= "\ncorrecto";
-        
-        guardarVerifactuRespuesta($conexion,$numFactura,$anioSeleccionado,$qr_code, $issuerIrsId, $issuedTime,$number,$hash,$verifactuUrl, $queueId, $requestId);
-    }
-
-    echo $mostrarDatos;
-    echo $respuestaFinal;
-    
+    $valor = str_replace(",", ".", $valor);
+    if ($valor === "" || $valor === null || $valor === "NULL") return 0;
+    return (int) round(((float)$valor) * 100);
 }
 
-function lanzarFacturaRecDiferenciaCibeles ($conexion,$numeroFacturaRec,$anioSeleccionado,$urlCibeles,$apiKeyCibeles)//RECT 6/25, 2025
+// Redondeo al entero más cercano, "mitad siempre lejos de cero" -- el mismo criterio que usa round() de PHP
+// (el que ya usan previsualizarFactura.php/imprimirFactura.php), en aritmética entera pura (equivalente a
+// intdiv(), que no existe antes de PHP 7). Funciona igual para dividendos positivos y negativos: las líneas
+// de una rectificativa pueden venir en negativo (una reducción), y un redondeo que solo funcione bien en
+// positivo daría un céntimo de diferencia justo en el caso de empate exacto (X,50 céntimos).
+function divisionEntera($dividendo, $divisor)
 {
-    $pruebas="PruebasCib ";
+    $signo = ($dividendo < 0) ? -1 : 1;
+    $dividendoAbs = abs($dividendo);
+    $resto = $dividendoAbs % $divisor;
+    $cociente = ($dividendoAbs - $resto) / $divisor;
 
-    $datosFactura = verFacturaRectificativa($conexion,$numeroFacturaRec,$anioSeleccionado);
-    $totalesPorIva = verFacturaRecDetalleTotalesPorIVA($conexion,$numeroFacturaRec,$anioSeleccionado); //hay un registro por cada tipo de iva (cibeles solo tienes 2 opciones de iva: 21% y 0%)
-
-
-    $mostrarDatos="";
-    $mostrarInformacion="";
-
-    if (!empty($datosFactura)) 
-    {
-        // Hay registros
-        // Ejemplo: primera fila
-        
-        
-        //se averigua la fecha de la factura original
-        $origenFactura = $datosFactura[0]["origenFactura"];
-
-        $datosOrigenFactura = explode('/',$origenFactura);  //RECT 6     y    25
-        $anioFacturaOriginalDosDigitos = $datosOrigenFactura[1];//25
-        $anioFacturaOriginal = $anioFacturaOriginalDosDigitos+2000; //2025
-        $datosOrigenFactura1 = explode(' ',$datosOrigenFactura[0]); //RECT 6 
-        $tipoFacturaOriginal = $datosOrigenFactura1[0]; //RECT
-        $numeroFacturaOriginal = $datosOrigenFactura1[1]; //6
-
-        echo "\nnumero de la factura Origen: ".$numeroFacturaRec;
-        echo "\nanio de la factura Origen: ".$anioSeleccionado;
-
-        if (trim($tipoFacturaOriginal)=="FAC")
-        {
-            echo "\nEntra en Fac1";
-            $datosFacturaOriginal = verFactura($conexion,$numeroFacturaOriginal,$anioFacturaOriginal);
-        }
-        else if (trim($tipoFacturaOriginal)=="RECT")
-        {
-            echo "\nEntra en Rect";
-            $datosFacturaOriginal = verFacturaRectificativa($conexion,$origenFactura,$anioFacturaOriginal);
-        }
-        else if (trim($tipoFacturaOriginal)=="SUST")
-        {
-            echo "\nEntra en Sust";
-            $datosFacturaOriginal = verFacturaRectificativaSustitucion($conexion,$origenFactura,$anioFacturaOriginal);
-        }
-
-        echo "\nnumero de filas: ".count($datosFacturaOriginal);
-        echo "\nnumero FacturaOriginal: ".$numeroFacturaOriginal;
-        echo "\nanio factura Original: ".$anioFacturaOriginal;
-
-        $fechaFacturaOriginal = $datosFacturaOriginal[0]["fecha"]->format('Y-m-d'); 
-
-
-        $nifCliente = $datosFactura[0]["nif"];
-        $nombreCliente = $datosFactura[0]["cliente"];        
-        //$codigoPais = "ES";
-        $codigoPais = $datosFactura[0]["codigoPais1"];
-        $fechaFacturacion = $datosFactura[0]["fecha"]->format('Y-m-d');
-        //echo "\nfecha: ".$fechaFacturacion;;
-        $numeroFacturaCompleto = $datosFactura[0]["numeroFacturaCompleto"];
-
-        $precioIva = $datosFactura[0]["iva"];
-        $precioIrpf= $datosFactura[0]["irpf"];
-        //$precioTotal= $datosFactura[0]["precioTotal"];
-        $precioTotal= $datosFactura[0]["precioTotalSinIrpf"];     
-
-        $precioIva = str_replace(",",".",$precioIva);
-        $precioIrpf = str_replace(",",".",$precioIrpf);
-        $precioTotal = str_replace(",",".",$precioTotal);
-
-        if ($precioIva==".00")$precioIva=0;
-        if ($precioIrpf==".00")$precioIrpf=0;
-        if ($precioTotal==".00")$precioTotal=0;
-        
-        if ($precioIva=="" || $precioIva=="NULL" || $precioIva == null) $precioIva=0;
-        if ($precioIrpf=="" || $precioIrpf=="NULL" || $precioIrpf == null) $precioIrpf=0;
-        if ($precioTotal=="" || $precioTotal=="NULL" || $precioTotal == null) $precioTotal=0;
-
-        if (isset($precioIva[0]) && $precioIva[0] === '.') $precioIva = '0' . $precioIva;
-        if (isset($precioIrpf[0]) && $precioIrpf[0] === '.') $precioIrpf = '0' . $precioIrpf;
-        if (isset($precioTotal[0]) && $precioTotal[0] === '.') $precioTotal = '0' . $precioTotal;
-
-
-        $clienteSinIva = $datosFactura[0]["sinIva"];
-        $clienteConIrpf = $datosFactura[0]["retencion"];
-
-
-        if ($clienteSinIva=="" || $clienteSinIva=="NULL" || $clienteSinIva == null) $clienteSinIva=0;
-        if ($clienteConIrpf=="" || $clienteConIrpf=="NULL" || $clienteConIrpf == null) $clienteConIrpf=0;
-
-
-        //$detallesFactura = verFacturaDetalle($conexion,$numFactura,$anioSeleccionado);
-
-        $baseConIva = 0;
-        $baseSinIva = 0;
-
-        if (count($totalesPorIva)>1) //2 TIPOS DE IVA 21% y 0% ; Aquí no debe entrar los extranjeros
-        {  //echo "\nEntra1";
-            if ($totalesPorIva[0]["exentoIva"]==1)
-            {  //echo "\nEntra2";
-                $baseSinIva = $totalesPorIva[0]["base"];
-                $baseConIva = $totalesPorIva[1]["base"];
-            }
-            else
-            { //echo "\nEntra3";
-                $baseSinIva = $totalesPorIva[1]["base"];
-                $baseConIva = $totalesPorIva[0]["base"];
-            }
-
-            $baseSinIva = str_replace(",",".",$baseSinIva);
-            $baseConIva = str_replace(",",".",$baseConIva);
-
-
-            if ($baseConIva==".00" || $baseConIva=="" || $baseConIva=="NULL" || $baseConIva == null) $baseConIva=0;
-            if ($baseSinIva==".00" || $baseSinIva=="" || $baseSinIva=="NULL" || $baseSinIva == null) $baseSinIva=0;
-
-            if (isset($baseConIva[0]) && $baseConIva[0] === '.') $baseConIva = '0' . $baseConIva;
-            if (isset($baseSinIva[0]) && $baseSinIva[0] === '.') $baseSinIva = '0' . $baseSinIva;
-
-
-            $vatLines = array(
-                array(
-                    "base" => (float)$baseConIva,
-                    "rate" => 21,
-                    "amount" => (float)$precioIva,
-                    "vatOperation" => "S1",
-                    "vatKey" => "01"
-                ),
-                array(
-                    "base" => (float)$baseSinIva,
-                    "rate" => 0,
-                    "amount" => 0,
-                    "vatOperation" => "N1",
-                    "vatKey" => "01"
-                ),
-            );
-
-        }
-        else if (count($totalesPorIva)==1) //un tipo de via 21% o 0%
-        { //echo "\nEntra4";
-            
-            if ($clienteSinIva=="1") //toda la factura sin IVA (0%). Esto se indica en la fiche de clientes; aquí entran los extranjeros
-            {  //echo "\nEntra5";
-                
-                $baseSinIva = $totalesPorIva[0]["base"];
-                $baseSinIva = str_replace(",",".",$baseSinIva);
-
-                if ($baseSinIva==".00" || $baseSinIva=="" || $baseSinIva=="NULL" || $baseSinIva == null) $baseSinIva=0;                
-                if (isset($baseSinIva[0]) && $baseSinIva[0] === '.') $baseSinIva = '0' . $baseSinIva;
-
-                $valorVarOperacion="N1";
-                if ($codigoPais!="ES")
-                    $valorVarOperacion="N2";
-
-                $vatLines = array(
-                    array(
-                        "base" => (float)$baseSinIva,
-                        "rate" => 0,
-                        "amount" => 0,
-                        "vatOperation" => $valorVarOperacion,
-                        "vatKey" => "01"
-                    ),
-                );
-            }
-            else //toda la factura con 21% ; Aquí no debe entrar los extranjeros
-            {   //echo "\nEntra6";
-                $baseConIva = $totalesPorIva[0]["base"];
-                $baseConIva = str_replace(",",".",$baseConIva);
-                if ($baseConIva==".00" || $baseConIva=="" || $baseConIva=="NULL" || $baseConIva == null) $baseConIva=0;
-                if (isset($baseConIva[0]) && $baseConIva[0] === '.') $baseConIva = '0' . $baseConIva;
-           
-               
-                $vatLines = array(
-                    array(
-                        "base" => (float)$baseConIva,
-                        "rate" => 21,
-                        "amount" => (float)$precioIva,
-                        "vatOperation" => "S1",
-                        "vatKey" => "01"
-                    ),
-                );
-            }
-        }
-
-        //PARA PRUEBAS
-        
-        $mostrarDatos .=  "\nnifCliente: ".$nifCliente;
-        $mostrarDatos .=  "\nnombreCliente: ".$nombreCliente;
-        $mostrarDatos .= "\ncodigoPais: ".$codigoPais;
-        $mostrarDatos .= "\nfechaFacturacion: ".$fechaFacturacion;
-        $mostrarDatos .= "\nnumeroFacturaCompleto: ".$numeroFacturaCompleto;
-        $mostrarDatos .= "\nprecioIva: ".$precioIva;
-        $mostrarDatos .= "\nprecioIrpf: ".$precioIrpf;
-        $mostrarDatos .= "\nprecioTotal: ".$precioTotal;
-        $mostrarDatos .= "\nclienteSinIva: ".$clienteSinIva;
-        $mostrarDatos .= "\nclienteConIrpf: ".$clienteConIrpf;        
-        $mostrarDatos .= "\ncodigoPais: ".$codigoPais;
-        $mostrarDatos .= "\nbaseConIva: ".$baseConIva;
-        $mostrarDatos .= "\nbaseSinIva: ".$baseSinIva;
-        $mostrarDatos .= "\norigenFactura: ".$origenFactura;
-        $mostrarDatos .= "\nfechaFacturaOriginal: ".$fechaFacturaOriginal;
-
-
-        
-        
-        
-        
-
-    } 
-    else { // No hay registros
-       echo  'ERROR: NO SE HA ENCONTRADO LA FACTURA EN LA BBDD DE CIBELES';
+    if ($resto * 2 >= $divisor) {
+        $cociente++;
     }
 
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
+    return $signo * (int) $cociente;
+}
 
+// Guarda en un fichero de texto la respuesta de cada llamada a lanzarFactura(), tanto si es correcta como
+// si da error -- para tener rastro de todo lo que se ha intentado enviar a Hacienda. Un fichero para
+// Cibeles y otro para Clayma. Si el fichero no existe se crea; si ya existe, se añade al final
+// (file_put_contents con FILE_APPEND hace las dos cosas).
+function guardarLogLanzarFactura($numeroFacturaCompleto, $clayma, $res)
+{
+    $rutaLog = 'C:/xampp/htdocs/' . ($clayma ? 'lanzarFactura_log_clayma.txt' : 'lanzarFactura_log_cibeles.txt');
 
-    // Serie y número de factura. Añadimos un sufijo aleatorio (número entero aleatorio 1-1000)
-    //$invoice_number = "A-" . date("Ymd") . "-" . mt_rand(1, 1000);
-    //$invoice_number = "A-" . date("Ymd") . "-1"; 
+    $linea = '[' . date('Y-m-d H:i:s') . '] '
+        . 'factura=' . $numeroFacturaCompleto . ' '
+        . json_encode($res, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+        . PHP_EOL;
 
+    file_put_contents($rutaLog, $linea, FILE_APPEND | LOCK_EX);
+}
 
-    $facturaOriginal = [
-            "style" => "I",
-            "ids" => [
-                [
-                    "number"     =>  $pruebas.$origenFactura,
-                    "issuedTime" => $fechaFacturaOriginal
-                ]
-            ]
-        ];
-    
-    
-    // Construcción del array con info de la factura :: inicio
-    
-    
-    if ($codigoPais!="ES")
+// $clayma = true -> tabla facturacionClayma / constantes urlClayma,apiKeyClayma
+// $clayma = false -> tabla facturacion / constantes urlCibeles,apiKeyCibeles
+// Unifica lanzarFacturaCibeles + lanzarFacturaClayma + lanzarFacturaRecDiferencia(Cibeles/Clayma) +
+// lanzarFacturaRecSustitucion(Cibeles/Clayma): una factura normal, una rectificativa por diferencia y una
+// rectificativa por sustitución son la misma fila de facturacion/facturacionClayma -- solo cambia el
+// serieFactura (FAC/RECT/SUST), así que no hace falta una función distinta por caso.
+function lanzarFactura($conn, $bbddSql, $numeroFacturaCompleto, $clayma)
+{
+    $url    = $clayma ? urlClayma    : urlCibeles;
+    $apiKey = $clayma ? apiKeyClayma : apiKeyCibeles;
+
+    //TODO confirmar con el usuario: este prefijo ya se aplicaba en el código original tanto en pruebas como en producción
+    // (se antepone siempre al numeroFacturaCompleto real enviado a Hacienda). Se mantiene igual para no cambiar el comportamiento actual.
+    $pruebas = $clayma ? "Pruebas1a_Cla " : "Pruebas1a_Cib ";
+
+    $filtros = array('numeroFacturaCompleto' => $numeroFacturaCompleto);
+    $campos  = array('numeroFacturaCompleto','nif','cliente','fecha','fechaRealizacion','iva','precioTotalSinIrpf','dirPost_codigoPais','serieFactura','origenFactura');
+
+    $resFactura = $clayma
+        ? mostrarFacturacionClayma($conn, $bbddSql, $campos, [], $filtros, [], [])
+        : mostrarFacturacion($conn, $bbddSql, $campos, [], $filtros, [], []);
+
+    $datosFactura = $resFactura['datos'];
+
+    if (empty($datosFactura))
     {
-        $invoice = [
-                "invoice" => 
-                [
-                    "recipient" =>
-                    [
-                        "id" => $nifCliente,
-                        "idType" => "06", //ver esto con marian
-                        "name" => $nombreCliente, 
-                        "country" => $codigoPais
-                    ],
-                    "description" => 
-                    [
-                        "text" => "Factura Rectificativa por Diferencia",
-                        "operationDate" => $fechaFacturacion 
-                    ],
-                    "id" => 
-                    [
-                        "number"  =>  $pruebas.$numeroFacturaCompleto, 
-                        "issuedTime" => $fechaFacturacion 
-                    ],
-                    "type" => "R1", //R1 RECTIFICATIVA
-                    "creditNote"=> $facturaOriginal,            
-                    "vatLines" => $vatLines,
-                    "total" => (float)$precioTotal,
-                    "amount" => (float)$precioIva
-                ]
-            ];
+        $res = array('error' => 'ERROR: NO SE HA ENCONTRADO LA FACTURA '.$numeroFacturaCompleto.' EN LA BBDD DE '.($clayma ? 'CLAYMA' : 'CIBELES'));
+        guardarLogLanzarFactura($numeroFacturaCompleto, $clayma, $res);
+        return $res;
+    }
+
+    $nifCliente       = $datosFactura[0]["nif"];
+    $nombreCliente    = $datosFactura[0]["cliente"];
+    $codigoPais       = $datosFactura[0]["dirPost_codigoPais"];
+    $fechaFacturacion = $datosFactura[0]["fecha"]->format('Y-m-d');
+    $serieFactura     = $datosFactura[0]["serieFactura"];
+
+    // operationDate (fecha de la operación real) se informa con fechaRealizacion; si por lo que sea no
+    // estuviera rellena (factura antigua anterior a este cambio), se usa la fecha de la factura como reserva.
+    $fechaRealizacion = !empty($datosFactura[0]["fechaRealizacion"])
+        ? $datosFactura[0]["fechaRealizacion"]->format('Y-m-d')
+        : $fechaFacturacion;
+
+    $precioTotalCentimos = euroACentimos($datosFactura[0]["precioTotalSinIrpf"]);
+    $ivaCabeceraCentimos = euroACentimos($datosFactura[0]["iva"]);
+
+    // Si es una rectificativa (RECT = por diferencia, SUST = por sustitución), la factura origen es otra fila
+    // de la misma tabla (origenFactura ya guarda directamente su numeroFacturaCompleto) -> se reutiliza la
+    // misma consulta mostrarFacturacion(Clayma), no hace falta ninguna función aparte por tipo de factura origen.
+    $esRectificativa = ($serieFactura == 'RECT' || $serieFactura == 'SUST');
+    $creditNote = null;
+
+    if ($esRectificativa)
+    {
+        $origenFactura = $datosFactura[0]["origenFactura"];
+        $filtrosOrigen = array('numeroFacturaCompleto' => $origenFactura);
+        $camposOrigen  = array('numeroFacturaCompleto','fecha','precioNeto','iva');
+
+        $resOrigen = $clayma
+            ? mostrarFacturacionClayma($conn, $bbddSql, $camposOrigen, [], $filtrosOrigen, [], [])
+            : mostrarFacturacion($conn, $bbddSql, $camposOrigen, [], $filtrosOrigen, [], []);
+
+        $datosOrigen = $resOrigen['datos'];
+
+        if (empty($datosOrigen))
+        {
+            $res = array('error' => 'ERROR: NO SE HA ENCONTRADO LA FACTURA ORIGEN '.$origenFactura.' DE LA RECTIFICATIVA '.$numeroFacturaCompleto);
+            guardarLogLanzarFactura($numeroFacturaCompleto, $clayma, $res);
+            return $res;
+        }
+
+        $creditNote = array(
+            "style" => ($serieFactura == 'SUST') ? "S" : "I",
+            "ids" => array(
+                array(
+                    "number" => $pruebas.$origenFactura,
+                    "issuedTime" => $datosOrigen[0]["fecha"]->format('Y-m-d')
+                )
+            )
+        );
+
+        if ($serieFactura == 'SUST')
+        {
+            $creditNote["creditBase"] = euroACentimos($datosOrigen[0]["precioNeto"]) / 100;
+            $creditNote["creditVat"]  = euroACentimos($datosOrigen[0]["iva"]) / 100;
+        }
+    }
+
+    // vatLines: un grupo por cada tipoIva realmente presente en las líneas de detalle (facturacionDetalles /
+    // facturacionDetallesClayma) -- nunca se asume 21% fijo, igual que hace imprimirFactura.php.
+    // vatOperation se calcula solo a partir de tipoIva y codigoPais (no se usa exentoIVA):
+    // tipoIva=0 -> operación no sujeta/exenta (N1 si es España, N2 si es extranjero); tipoIva>0 -> S1.
+    $resDetalle = $clayma
+        ? cargarFacturacionDetallesClayma($conn, $bbddSql, array('total','tipoIva'), $filtros, [], [], [])
+        : cargarFacturacionDetalles($conn, $bbddSql, array('total','tipoIva'), $filtros, [], [], []);
+
+    $gruposIva = array(); // clave = tipoIva => base acumulada en céntimos
+    foreach ($resDetalle['datos'] as $linea)
+    {
+        $tipo = (float)$linea['tipoIva'];
+
+        if (!isset($gruposIva[$tipo])) $gruposIva[$tipo] = array('tipo' => $tipo, 'baseCentimos' => 0);
+        $gruposIva[$tipo]['baseCentimos'] += euroACentimos($linea['total']); // suma de enteros, exacta
+    }
+
+    $vatLines = array();
+    $ivaCalculadoCentimos = 0;
+
+    foreach ($gruposIva as $grupo)
+    {
+        if ($grupo['tipo'] == 0)
+        {
+            $amountCentimos = 0;
+            $vatOperation = ($codigoPais != "ES") ? "N2" : "N1";
+        }
+        else
+        {
+            // redondeo al céntimo más cercano (mitad lejos de cero, como round() de PHP), en enteros
+            $amountCentimos = divisionEntera($grupo['baseCentimos'] * $grupo['tipo'], 100);
+            $vatOperation = "S1";
+        }
+
+        $ivaCalculadoCentimos += $amountCentimos;
+
+        $vatLines[] = array(
+            "base" => $grupo['baseCentimos'] / 100,
+            "rate" => $grupo['tipo'],
+            "amount" => $amountCentimos / 100,
+            "vatOperation" => $vatOperation,
+            "vatKey" => "01"
+        );
+    }
+
+    // Comprobación obligatoria: la suma de los grupos de tipoIva de facturacionDetalles debe coincidir
+    // exactamente con el campo iva de la cabecera de facturacion/facturacionClayma. Si no coincide, no se
+    // envía nada a Hacienda: son dos orígenes de datos que deben cuadrar siempre (igual que en toda pantalla
+    // de facturación de esta aplicación -- ver imprimirFactura.php, que hace la misma comprobación aunque
+    // solo avisa; aquí, al ser un envío a Hacienda, se bloquea en vez de solo avisar).
+    if ($ivaCalculadoCentimos !== $ivaCabeceraCentimos)
+    {
+        $res = array(
+            'error' => 'ERROR: el IVA calculado desde facturacionDetalles ('.($ivaCalculadoCentimos/100).') no coincide con el IVA de la cabecera de la factura '.$numeroFacturaCompleto.' ('.($ivaCabeceraCentimos/100).')'
+        );
+        guardarLogLanzarFactura($numeroFacturaCompleto, $clayma, $res);
+        return $res;
+    }
+
+    $precioIvaCentimos = $ivaCalculadoCentimos;
+
+
+    // Construcción del array con info de la factura :: inicio
+
+    if ($codigoPais != "ES")
+    {
+        $recipient = array(
+            "id" => $nifCliente,
+            "idType" => "06", //ver esto con marian
+            "name" => $nombreCliente,
+            "country" => $codigoPais
+        );
     }
     else
-    {    
-        $invoice = [
-            "invoice" => 
-            [
-                "recipient" =>
-                [
-                    "irsId" => $nifCliente,
-                    "name" => $nombreCliente, 
-                    "country" => $codigoPais
-                ],
-                "description" => 
-                [
-                    "text" => "Factura Rectificativa por Diferencia",
-                    "operationDate" => $fechaFacturacion 
-                ],
-                "id" => 
-                [
-                    "number"  =>  $pruebas.$numeroFacturaCompleto, 
-                    "issuedTime" => $fechaFacturacion 
-                ],
-                "type" => "R1", //R1 RECTIFICATIVA
-                "creditNote"=> $facturaOriginal,            
-                "vatLines" => $vatLines,
-                "total" => (float)$precioTotal,
-                "amount" => (float)$precioIva
-            ]
-        ];
+    {
+        $recipient = array(
+            "irsId" => $nifCliente,
+            "name" => $nombreCliente,
+            "country" => $codigoPais
+        );
     }
+
+    if ($esRectificativa)
+    {
+        $descripcionTexto = ($serieFactura == 'SUST') ? "Factura Rectificativa por Sustitucion" : "Factura Rectificativa por Diferencia";
+    }
+    else
+    {
+        $descripcionTexto = "Factura";
+    }
+
+    $datosInvoice = array(
+        "recipient" => $recipient,
+        "description" => array(
+            "text" => $descripcionTexto,
+            "operationDate" => $fechaRealizacion
+        ),
+        "id" => array(
+            "number" => $pruebas.$numeroFacturaCompleto,
+            "issuedTime" => $fechaFacturacion
+        ),
+        "type" => $esRectificativa ? "R1" : "F1"
+    );
+
+    if ($esRectificativa)
+    {
+        $datosInvoice["creditNote"] = $creditNote;
+    }
+
+    $datosInvoice["vatLines"] = $vatLines;
+    $datosInvoice["total"] = $precioTotalCentimos / 100;
+    $datosInvoice["amount"] = $precioIvaCentimos / 100;
+
+    $invoice = array("invoice" => $datosInvoice);
     // Construcción del array con info de la factura :: fin
 
- 
-
-    // Codificación del array de la factura en JSON
     $json_invoice = json_encode($invoice);
-
 
 
     // Solicitud mediante cURL a la API Wórtice Verifactu :: inicio
@@ -720,7 +262,7 @@ function lanzarFacturaRecDiferenciaCibeles ($conexion,$numeroFacturaRec,$anioSel
     curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => $urlCibeles.'invoice', 
+        CURLOPT_URL => $url.'invoice',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -732,548 +274,85 @@ function lanzarFacturaRecDiferenciaCibeles ($conexion,$numeroFacturaRec,$anioSel
         CURLOPT_FRESH_CONNECT => true,// no reutilizar conexión
         CURLOPT_FORBID_REUSE=> true, // cerrar tras la petición
         CURLOPT_CONNECTTIMEOUT => 15, // Controlas el tiempo de conexión por separado (si no, puedes “quemar” todo el timeout total solo intentando conectar)
-
 
         // Importante: API-KEY en cabeceras HTTP
         CURLOPT_HTTPHEADER => array(
             'Content-Type: application/json',
-            'API-KEY: '.$apiKeyCibeles,
+            'API-KEY: '.$apiKey,
             'Expect:',            // evita 100-continue
             'Connection: close'   // cierra TCP al final
         ),
     ));
 
-   
-
     $response = curl_exec($curl);
 
-    $respuestaFinal = "\n<br>fac: ".$numeroFacturaCompleto;
-
+    $respuestaFinal = "fac: ".$numeroFacturaCompleto;
 
     if ($response === false)
-    {   /*
-        echo "\nEntra7";
-        echo "Error cURL: " . curl_error($curl);
-        echo " Código: " . curl_errno($curl);
-        */
-         $respuestaFinal .= " Error cURL: " . curl_error($curl)." Código: " . curl_errno($curl);
+    {
+        $respuestaFinal .= " Error cURL: " . curl_error($curl)." Código: " . curl_errno($curl);
     }
     else
-    {  //echo "\nEntra8";
+    {
         $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        //echo "<br><br>" . $http_code . "<br><br>";
         $respuestaFinal .= " codigoHTTP: " . $http_code;
-        //echo $respuestaFinal;
-        
     }
-    //echo "console.log('Factura: ".$numFactura." ;codigoHTTP: " . $http_code . "');";
-    
-
 
     curl_close($curl);
 
-    // var_dump($response);
-
-
     $json_response = json_decode($response, true);
 
-    //var_dump($json_response);
-    //exit;
+    if (is_array($json_response) && array_key_exists('message', $json_response))
+    {
+        // escapado de comillas antes de guardar (evita romper el guardado si Wórtice devuelve un mensaje con comillas)
+        $message   = str_replace("'", "''", $json_response['message']);
+        $code      = $json_response['code'];
+        $requestId = $json_response['requestId'];
 
+        $respuestaFinal .= " message: " . $json_response['message']. " codigo: ".$code;
 
-        
-
-
-    //PARA PRUEBAS
-    if (is_array($json_response) && array_key_exists('message', $json_response)) 
-    {  //echo "\nEntra9";
-        $message = $json_response['message'];
-        $code =  $json_response['code'];
-        $requestId =  $json_response['requestId'];
-
-
-       /*
-        echo "\n<br>ErrorMensaje: ".$message;
-        echo "\n<br>Codigo: ".$code;
-        echo "\n<br>Id de la Solicitud: " .$requestId;
-
-        */
-        $respuestaFinal .= " message: " . $json_response['message']. "codigo: ".$json_response['code'];
-        
-        guardarVerifactuErroresRec($conexion,$numeroFacturaCompleto,$anioSeleccionado,$message, $code, $requestId);
-
-    } 
-    else 
-    {  //echo "\nEntra10";
-        $qr_code = $json_response["qrcode"]; 
-        //echo "<br>Codigo QR:" . $qr_code; 
-
-
+        $datosModificar = array(
+            'verifactu_message' => $message,
+            'verifactu_idSolicitud' => $requestId
+        );
+    }
+    else
+    {
+        $qr_code   = $json_response["qrcode"];
+        $requestId = $json_response["requestId"];
         $issuerIrsId = $json_response["chainInfo"]["issuerIrsId"];
         $issuedTime = $json_response["chainInfo"]["issuedTime"];
         $number = $json_response["chainInfo"]["number"];
         $hash = $json_response["chainInfo"]["hash"];
-
-        $respuestaFinal .= "<br>NIF del expedidor: " . $issuerIrsId . "<br>";
-        $respuestaFinal .= "<br>Fecha de expedición: " . $issuedTime . "<br>";
-        $respuestaFinal .= "<br>Número de factura: " . $number . "<br>";
-        $respuestaFinal .= "<br>HAST: " . $hash . "<br>";
-
         $verifactuUrl = $json_response["verifactuUrl"];
-        $respuestaFinal .= "<br>verifactuUrl: " . $verifactuUrl. "<br>";
-
         $queueId = $json_response["queueId"];
-        $respuestaFinal .= "<br>id / Posicion del mensjae en la cola de envío: " . $queueId. "<br>";
-
         $requestId = $json_response["requestId"];
-        $respuestaFinal .= "<br>Id de la Solicitud: " . $requestId . "<br>";
 
         $respuestaFinal .= " correcto";
-        
-        guardarVerifactuRespuestaRec($conexion,$numeroFacturaCompleto,$anioSeleccionado,$qr_code, $issuerIrsId, $issuedTime,$number,$hash,$verifactuUrl, $queueId, $requestId);
+
+        $datosModificar = array(
+            'verifactu_qrcode' => $qr_code,
+            'verifactu_message' => null,
+            'verifactu_idSolicitud' => $requestId,
+            'verifactu_nifExpedidor' => $issuerIrsId,
+            'verifactu_fechaExpedicion' => $issuedTime,
+            'verifactu_numFactura' => $number,
+            'verifactu_hast' => $hash,
+            'verifactu_url' => $verifactuUrl,
+            'verifactu_queueId' => $queueId
+
+        );
     }
 
-    echo $mostrarDatos;
-    echo $respuestaFinal;
-    
-}
-
-function lanzarFacturaRecSustitucionCibeles ($conexion,$numeroFacturaRec,$anioSeleccionado,$urlCibeles,$apiKeyCibeles)//RECT 6/25, 2025
-{
-    $pruebas="PruebasCib ";
-
-    $datosFactura = verFacturaRectificativaSustitucion($conexion,$numeroFacturaRec,$anioSeleccionado);
-    $totalesPorIva = verFacturaRecSustDetalleTotalesPorIVA($conexion,$numeroFacturaRec,$anioSeleccionado); //hay un registro por cada tipo de iva (cibeles solo tienes 2 opciones de iva: 21% y 0%)
-
-
-    $mostrarDatos="";
-    $mostrarInformacion="";
-
-    if (!empty($datosFactura)) 
-    {
-        // Hay registros
-        // Ejemplo: primera fila
-        
-        
-        //se averigua la fecha de la factura original
-        $origenFactura = $datosFactura[0]["origenFactura"];
-
-        $datosOrigenFactura = explode('/',$origenFactura);  //RECT 6     y    25
-        $anioFacturaOriginalDosDigitos = $datosOrigenFactura[1];//25
-        $anioFacturaOriginal = $anioFacturaOriginalDosDigitos+2000; //2025
-        $datosOrigenFactura1 = explode(' ',$datosOrigenFactura[0]); //RECT 6 
-        $tipoFacturaOriginal = $datosOrigenFactura1[0]; //RECT
-        $numeroFacturaOriginal = $datosOrigenFactura1[1]; //6
-        echo "\nnumero de la factura Origen: ".$numeroFacturaRec;
-        echo "\nanio de la factura Origen: ".$anioSeleccionado;
-
-        if (trim($tipoFacturaOriginal)=="FAC")
-        {
-            $datosFacturaOriginal = verFactura($conexion,$numeroFacturaOriginal,$anioFacturaOriginal);
-        }
-        else if (trim($tipoFacturaOriginal)=="RECT")
-        {
-            echo "\nEntra en Rect";
-            $datosFacturaOriginal = verFacturaRectificativa($conexion,$origenFactura,$anioFacturaOriginal);
-        }
-        else if (trim($tipoFacturaOriginal)=="SUST")
-        {
-            echo "\nEntra en Sust";
-            $datosFacturaOriginal = verFacturaRectificativaSustitucion($conexion,$origenFactura,$anioFacturaOriginal);
-        }
-        
-        $fechaFacturaOriginal = $datosFacturaOriginal[0]["fecha"]->format('Y-m-d'); 
-        $netoFacturaOriginal = $datosFacturaOriginal[0]["precioNeto"]; 
-        $ivaFacturaOriginal = $datosFacturaOriginal[0]["iva"]; 
-
-        if ($netoFacturaOriginal==".00" || $netoFacturaOriginal=="" || $netoFacturaOriginal=="NULL" || $netoFacturaOriginal == null) $netoFacturaOriginal=0.00;
-        if ($ivaFacturaOriginal==".00" || $ivaFacturaOriginal=="" || $ivaFacturaOriginal=="NULL" || $ivaFacturaOriginal == null) $ivaFacturaOriginal=0.00;
-
-        $nifCliente = $datosFactura[0]["nif"];
-        $nombreCliente = $datosFactura[0]["cliente"];
-        $codigoPais = $datosFactura[0]["codigoPais1"];
-        //$codigoPais = "ES";
-        $fechaFacturacion = $datosFactura[0]["fecha"]->format('Y-m-d');
-        //echo "\nfecha: ".$fechaFacturacion;;
-        $numeroFacturaCompleto = $datosFactura[0]["numeroFacturaCompleto"];
-
-        $precioIva = $datosFactura[0]["iva"];
-        $precioIrpf= $datosFactura[0]["irpf"];
-        //$precioTotal= $datosFactura[0]["precioTotal"];
-        $precioTotal= $datosFactura[0]["precioTotalSinIrpf"]; 
-
-        $precioIva = str_replace(",",".",$precioIva);
-        $precioIrpf = str_replace(",",".",$precioIrpf);
-        $precioTotal = str_replace(",",".",$precioTotal);
-
-        if ($precioIva==".00")$precioIva=0;
-        if ($precioIrpf==".00")$precioIrpf=0;
-        if ($precioTotal==".00")$precioTotal=0;
-        
-        if ($precioIva=="" || $precioIva=="NULL" || $precioIva == null) $precioIva=0;
-        if ($precioIrpf=="" || $precioIrpf=="NULL" || $precioIrpf == null) $precioIrpf=0;
-        if ($precioTotal=="" || $precioTotal=="NULL" || $precioTotal == null) $precioTotal=0;
-
-        if (isset($precioIva[0]) && $precioIva[0] === '.') $precioIva = '0' . $precioIva;
-        if (isset($precioIrpf[0]) && $precioIrpf[0] === '.') $precioIrpf = '0' . $precioIrpf;
-        if (isset($precioTotal[0]) && $precioTotal[0] === '.') $precioTotal = '0' . $precioTotal;
-
-
-        $clienteSinIva = $datosFactura[0]["sinIva"];
-        $clienteConIrpf = $datosFactura[0]["retencion"];
-
-
-        if ($clienteSinIva=="" || $clienteSinIva=="NULL" || $clienteSinIva == null) $clienteSinIva=0;
-        if ($clienteConIrpf=="" || $clienteConIrpf=="NULL" || $clienteConIrpf == null) $clienteConIrpf=0;
-
-
-        //$detallesFactura = verFacturaDetalle($conexion,$numFactura,$anioSeleccionado);
-
-        $baseConIva = 0;
-        $baseSinIva = 0;
-
-        if (count($totalesPorIva)>1) //2 TIPOS DE IVA 21% y 0% ; Aquí no debe entrar los extranjeros
-        {  //echo "\nEntra1";
-            if ($totalesPorIva[0]["exentoIva"]==1)
-            {  //echo "\nEntra2";
-                $baseSinIva = $totalesPorIva[0]["base"];
-                $baseConIva = $totalesPorIva[1]["base"];
-            }
-            else
-            { //echo "\nEntra3";
-                $baseSinIva = $totalesPorIva[1]["base"];
-                $baseConIva = $totalesPorIva[0]["base"];
-            }
-
-            $baseSinIva = str_replace(",",".",$baseSinIva);
-            $baseConIva = str_replace(",",".",$baseConIva);
-
-
-            if ($baseConIva==".00" || $baseConIva=="" || $baseConIva=="NULL" || $baseConIva == null) $baseConIva=0;
-            if ($baseSinIva==".00" || $baseSinIva=="" || $baseSinIva=="NULL" || $baseSinIva == null) $baseSinIva=0;
-
-            if (isset($baseConIva[0]) && $baseConIva[0] === '.') $baseConIva = '0' . $baseConIva;
-            if (isset($baseSinIva[0]) && $baseSinIva[0] === '.') $baseSinIva = '0' . $baseSinIva;
-
-
-            $vatLines = array(
-                array(
-                    "base" => (float)$baseConIva,
-                    "rate" => 21,
-                    "amount" => (float)$precioIva,
-                    "vatOperation" => "S1",
-                    "vatKey" => "01"
-                ),
-                array(
-                    "base" => (float)$baseSinIva,
-                    "rate" => 0,
-                    "amount" => 0,
-                    "vatOperation" => "N1",
-                    "vatKey" => "01"
-                ),
-            );
-
-        }
-        else if (count($totalesPorIva)==1) //un tipo de via 21% o 0%
-        { //echo "\nEntra4";
-            
-            if ($clienteSinIva=="1") //toda la factura sin IVA (0%). Esto se indica en la fiche de clientes; aquí entran los extranjeros
-            {  //echo "\nEntra5";
-                
-                $baseSinIva = $totalesPorIva[0]["base"];
-                $baseSinIva = str_replace(",",".",$baseSinIva);
-
-                if ($baseSinIva==".00" || $baseSinIva=="" || $baseSinIva=="NULL" || $baseSinIva == null) $baseSinIva=0;                
-                if (isset($baseSinIva[0]) && $baseSinIva[0] === '.') $baseSinIva = '0' . $baseSinIva;
-
-
-                $valorVarOperacion="N1";
-                if ($codigoPais!="ES")
-                    $valorVarOperacion="N2";
-
-                $vatLines = array(
-                    array(
-                        "base" => (float)$baseSinIva,
-                        "rate" => 0,
-                        "amount" => 0,
-                        "vatOperation" => $valorVarOperacion,
-                        "vatKey" => "01"
-                    ),
-                );
-            }
-            else //toda la factura con 21% ; Aquí no debe entrar los extranjeros
-            {   //echo "\nEntra6";
-                $baseConIva = $totalesPorIva[0]["base"];
-                $baseConIva = str_replace(",",".",$baseConIva);
-                if ($baseConIva==".00" || $baseConIva=="" || $baseConIva=="NULL" || $baseConIva == null) $baseConIva=0;
-                if (isset($baseConIva[0]) && $baseConIva[0] === '.') $baseConIva = '0' . $baseConIva;
-           
-               
-                $vatLines = array(
-                    array(
-                        "base" => (float)$baseConIva,
-                        "rate" => 21,
-                        "amount" => (float)$precioIva,
-                        "vatOperation" => "S1",
-                        "vatKey" => "01"
-                    ),
-                );
-            }
-        }
-
-        //PARA PRUEBAS
-        
-        $mostrarDatos .=  "\nnifCliente: ".$nifCliente;
-        $mostrarDatos .=  "\nnombreCliente: ".$nombreCliente;
-        $mostrarDatos .= "\ncodigoPais: ".$codigoPais;
-        $mostrarDatos .= "\nfechaFacturacion: ".$fechaFacturacion;
-        $mostrarDatos .= "\nnumeroFacturaCompleto: ".$numeroFacturaCompleto;
-        $mostrarDatos .= "\nprecioIva: ".$precioIva;
-        $mostrarDatos .= "\nprecioIrpf: ".$precioIrpf;
-        $mostrarDatos .= "\nprecioTotal: ".$precioTotal;
-        $mostrarDatos .= "\nclienteSinIva: ".$clienteSinIva;
-        $mostrarDatos .= "\nclienteConIrpf: ".$clienteConIrpf;        
-        $mostrarDatos .= "\ncodigoPais: ".$codigoPais;
-        $mostrarDatos .= "\nbaseConIva: ".$baseConIva;
-        $mostrarDatos .= "\nbaseSinIva: ".$baseSinIva;
-        $mostrarDatos .= "\norigenFactura: ".$origenFactura;
-        $mostrarDatos .= "\nfechaFacturaOriginal: ".$fechaFacturaOriginal;
-
-        $mostrarDatos .="\nnetoFacturaOriginal: ".$netoFacturaOriginal;
-        $mostrarDatos .="\nivaFacturaOriginal: ".$ivaFacturaOriginal;
-        
-
-    } 
-    else { // No hay registros
-       echo  'ERROR: NO SE HA ENCONTRADO LA FACTURA EN LA BBDD DE CIBELES';
-    }
-
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-
-
-    // Serie y número de factura. Añadimos un sufijo aleatorio (número entero aleatorio 1-1000)
-    //$invoice_number = "A-" . date("Ymd") . "-" . mt_rand(1, 1000);
-    //$invoice_number = "A-" . date("Ymd") . "-1"; 
-
-
-    $facturaOriginal = [
-            "style" => "S",
-            "ids" => [
-                [
-                    "number"     =>  $pruebas.$origenFactura,
-                    "issuedTime" => $fechaFacturaOriginal
-                ]
-            ],
-            "creditBase" => (float)$netoFacturaOriginal,
-            "creditVat"  => (float)$ivaFacturaOriginal
-           // "creditBase" => 1.2,
-            //"creditVat"  => 0
-        ];
-    
-    
-    // Construcción del array con info de la factura :: inicio
-    
-    
-    if ($codigoPais!="ES")
-    {
-        $invoice = [
-                "invoice" => 
-                [
-                    "recipient" =>
-                    [
-                        "id" => $nifCliente,
-                        "idType" => "06", //ver esto con marian
-                        "name" => $nombreCliente, 
-                        "country" => $codigoPais
-                    ],
-                    "description" => 
-                    [
-                        "text" => "Factura Rectificativa por Sustitucion",
-                        "operationDate" => $fechaFacturacion 
-                    ],
-                    "id" => 
-                    [
-                        "number"  =>  $pruebas.$numeroFacturaCompleto, 
-                        "issuedTime" => $fechaFacturacion 
-                    ],
-                    "type" => "R1", //R1 RECTIFICATIVA
-                    "creditNote"=> $facturaOriginal,            
-                    "vatLines" => $vatLines,
-                    "total" => (float)$precioTotal,
-                    "amount" => (float)$precioIva
-                ]
-            ];
-    }
+    if ($clayma)
+        modificarFacturacionClayma($conn, $bbddSql, $datosModificar, $filtros, []);
     else
-    {
-        $invoice = [
-            "invoice" => 
-            [
-                "recipient" =>
-                [
-                    "irsId" => $nifCliente,
-                    "name" => $nombreCliente, 
-                    "country" => $codigoPais
-                ],
-                "description" => 
-                [
-                    "text" => "Factura Rectificativa por Sustitucion",
-                    "operationDate" => $fechaFacturacion 
-                ],
-                "id" => 
-                [
-                    "number"  =>  $pruebas.$numeroFacturaCompleto, 
-                    "issuedTime" => $fechaFacturacion 
-                ],
-                "type" => "R1", //R1 RECTIFICATIVA
-                "creditNote"=> $facturaOriginal,            
-                "vatLines" => $vatLines,
-                "total" => (float)$precioTotal,
-                "amount" => (float)$precioIva
-            ]
-        ];
+        modificarFacturacion($conn, $bbddSql, $datosModificar, $filtros, []);
 
-    }
-    // Construcción del array con info de la factura :: fin
-
- 
-
-    // Codificación del array de la factura en JSON
-    $json_invoice = json_encode($invoice);
-
-
-
-    // Solicitud mediante cURL a la API Wórtice Verifactu :: inicio
-    $curl = curl_init();
-
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-
-    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-
-    curl_setopt_array($curl, array(
-        CURLOPT_URL => $urlCibeles.'invoice', 
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_ENCODING => '',
-        CURLOPT_MAXREDIRS => 10,
-        CURLOPT_TIMEOUT => 90, //0
-        CURLOPT_FOLLOWLOCATION => false, //true
-        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-        CURLOPT_CUSTOMREQUEST => 'POST',
-        CURLOPT_POSTFIELDS => $json_invoice,
-        CURLOPT_FRESH_CONNECT => true,// no reutilizar conexión
-        CURLOPT_FORBID_REUSE=> true, // cerrar tras la petición
-        CURLOPT_CONNECTTIMEOUT => 15, // Controlas el tiempo de conexión por separado (si no, puedes “quemar” todo el timeout total solo intentando conectar)
-
-
-        // Importante: API-KEY en cabeceras HTTP
-        CURLOPT_HTTPHEADER => array(
-            'Content-Type: application/json',
-            'API-KEY: '.$apiKeyCibeles,
-            'Expect:',            // evita 100-continue
-            'Connection: close'   // cierra TCP al final
-        ),
-    ));
-
-   
-
-    $response = curl_exec($curl);
-
-    $respuestaFinal = "\n<br>fac: ".$numeroFacturaCompleto;
-
-
-    if ($response === false)
-    {   /*
-        echo "\nEntra7";
-        echo "Error cURL: " . curl_error($curl);
-        echo " Código: " . curl_errno($curl);
-        */
-         $respuestaFinal .= " Error cURL: " . curl_error($curl)." Código: " . curl_errno($curl);
-    }
-    else
-    {  //echo "\nEntra8";
-        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        //echo "<br><br>" . $http_code . "<br><br>";
-        $respuestaFinal .= " codigoHTTP: " . $http_code;
-        //echo $respuestaFinal;
-        
-    }
-    //echo "console.log('Factura: ".$numFactura." ;codigoHTTP: " . $http_code . "');";
-    
-
-
-    curl_close($curl);
-
-    // var_dump($response);
-
-
-    $json_response = json_decode($response, true);
-
-    //var_dump($json_response);
-    //exit;
-
-
-        
-
-
-    //PARA PRUEBAS
-    if (is_array($json_response) && array_key_exists('message', $json_response)) 
-    {  //echo "\nEntra9";
-        $message =  str_replace("'", "''", $json_response['message']);
-        $code =  $json_response['code'];
-        $requestId =  $json_response['requestId'];
-
-
-       /*
-        echo "\n<br>ErrorMensaje: ".$message;
-        echo "\n<br>Codigo: ".$code;
-        echo "\n<br>Id de la Solicitud: " .$requestId;
-
-        */
-        $respuestaFinal .= " message: " . $json_response['message']. "codigo: ".$json_response['code']. "|idSolicitud: ".$requestId;
-        
-        guardarVerifactuErroresRecSust($conexion,$numeroFacturaCompleto,$anioSeleccionado,$message, $code, $requestId);
-
-    } 
-    else 
-    {  //echo "\nEntra10";
-        $qr_code = $json_response["qrcode"]; 
-        //echo "<br>Codigo QR:" . $qr_code; 
-
-
-        $issuerIrsId = $json_response["chainInfo"]["issuerIrsId"];
-        $issuedTime = $json_response["chainInfo"]["issuedTime"];
-        $number = $json_response["chainInfo"]["number"];
-        $hash = $json_response["chainInfo"]["hash"];
-
-        $respuestaFinal .= "<br>NIF del expedidor: " . $issuerIrsId . "<br>";
-        $respuestaFinal .= "<br>Fecha de expedición: " . $issuedTime . "<br>";
-        $respuestaFinal .= "<br>Número de factura: " . $number . "<br>";
-        $respuestaFinal .= "<br>HAST: " . $hash . "<br>";
-
-        $verifactuUrl = $json_response["verifactuUrl"];
-        $respuestaFinal .= "<br>verifactuUrl: " . $verifactuUrl. "<br>";
-
-        $queueId = $json_response["queueId"];
-        $respuestaFinal .= "<br>id / Posicion del mensjae en la cola de envío: " . $queueId. "<br>";
-
-        $requestId = $json_response["requestId"];
-        $respuestaFinal .= "<br>Id de la Solicitud: " . $requestId . "<br>";
-
-        $respuestaFinal .= " correcto";
-        
-        guardarVerifactuRespuestaRecSust($conexion,$numeroFacturaCompleto,$anioSeleccionado,$qr_code, $issuerIrsId, $issuedTime,$number,$hash,$verifactuUrl, $queueId, $requestId);
-    }
-
-    echo $mostrarDatos;
-    echo $respuestaFinal;
-    
+    $res = array('error' => '', 'respuesta' => $respuestaFinal, 'enviado' => $invoice, 'json_response' => $json_response);
+    guardarLogLanzarFactura($numeroFacturaCompleto, $clayma, $res);
+    return $res;
 }
-
-    // echo "\n";
-
 
     /*
     ///////////////CON ESTO SE VE TODA LA INFORMACION QUE HAY EN chainInfo//////////////////////
@@ -1313,7 +392,7 @@ vf_estado_factura("d148a19f-37c9-4781-affb-570135c547b7");
     function vf_estado_factura($id) {
     // Construir la URL con el ID de la factura
     $url = rtrim(VF_BASE_URL, '/') . '/api-demo/invoice_state/' . rawurlencode((string)$id);
-         
+
     // Body vacío (tal y como está en la colección)
     $res = http_post($url, '', vf_headers());
 
@@ -1328,9 +407,15 @@ vf_estado_factura("d148a19f-37c9-4781-affb-570135c547b7");
 
 
 
-function verEstado ($queueId,$urlCibeles,$apiKeyCibeles)
+// Consulta el estado de una factura ya enviada a Verifactu (M03/R03 de la documentación de Wörtice).
+// $clayma = true -> constantes urlClayma,apiKeyClayma
+// $clayma = false -> constantes urlCibeles,apiKeyCibeles
+function verEstado($queueId, $clayma)
 {
- $curl = curl_init();
+    $url    = $clayma ? urlClayma    : urlCibeles;
+    $apiKey = $clayma ? apiKeyClayma : apiKeyCibeles;
+
+    $curl = curl_init();
 
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 
@@ -1338,7 +423,7 @@ function verEstado ($queueId,$urlCibeles,$apiKeyCibeles)
     curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => $urlCibeles.'invoice_state/'.$queueId,        
+        CURLOPT_URL => $url.'invoice_state/'.$queueId,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1346,63 +431,28 @@ function verEstado ($queueId,$urlCibeles,$apiKeyCibeles)
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
         CURLOPT_CUSTOMREQUEST => 'POST',
-        //CURLOPT_POSTFIELDS => $json_invoice,
 
         // Importante: API-KEY en cabeceras HTTP
         CURLOPT_HTTPHEADER => array(
             'Content-Type: application/json',
-            'API-KEY: '.$apiKeyCibeles,
+            'API-KEY: '.$apiKey,
         ),
     ));
 
     $response = curl_exec($curl);
 
-
-
-
     if ($response === false)
-    {  echo "\nEntra7";
-        echo "Error cURL: " . curl_error($curl);
-        echo " Código: " . curl_errno($curl);
+    {
+        $error = 'Error cURL: ' . curl_error($curl) . ' Código: ' . curl_errno($curl);
+        curl_close($curl);
+        return array('error' => $error);
     }
-    else
-    { echo "\nEntra8";
-        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        echo "<br><br>" . $http_code . "<br><br>";
-    }
+
+    curl_close($curl);
 
     $json_response = json_decode($response, true);
 
-    if (is_array($json_response) && array_key_exists('message', $json_response)) 
-    {  echo "\nEntra9";
-        $message = $json_response['message'];
-        $code =  $json_response['code'];
-        $requestId =  $json_response['requestId'];
-
-        
-        echo "\n<br>Mensaje: ".$message;
-        echo "\n<br>Codigo: ".$code;
-        echo "\n<br>Id de la Solicitud: " .$requestId;       
-
-    } 
-    else 
-    {  echo "\nEntra10";
-        $state = $json_response["state"]; 
-        echo "<br>Estado:" . $state;        
-
-        $requestId = $json_response["requestId"];
-        echo "<br>Id de la Solicitud: " . $requestId . "<br>";
-
-    }
-
-
-    echo '<pre>';
-    echo htmlspecialchars(
-        json_encode($json_response, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-        ENT_QUOTES | ENT_SUBSTITUTE,
-        'UTF-8'
-    );
-    echo '</pre>';
+    return array('error' => '', 'json_response' => $json_response);
 }
 
 
@@ -1417,7 +467,7 @@ function anularFacturaCibeles ($queueId,$urlCibeles,$apiKeyCibeles)
     curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => $urlCibeles.'invoice_cancel/'.$queueId,        
+        CURLOPT_URL => $urlCibeles.'invoice_cancel/'.$queueId,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1452,23 +502,23 @@ function anularFacturaCibeles ($queueId,$urlCibeles,$apiKeyCibeles)
 
     $json_response = json_decode($response, true);
     echo $response;
-    if (is_array($json_response) && array_key_exists('message', $json_response)) 
+    if (is_array($json_response) && array_key_exists('message', $json_response))
     {   echo "\nEntra9";
-        
-        
+
+
 
         $message = $json_response['message'];
         $code = $json_response['code'];
 
         echo "\n<br>message: ".$message;
         echo "\n<br>code: ".$code;
-        
-        
 
-    } 
-    else 
-    {  
-        
+
+
+    }
+    else
+    {
+
         echo "\nEntra10";
         $qrcode = $json_response['qrcode'];
         $charinfo =  $json_response['chainInfo'];
@@ -1477,12 +527,12 @@ function anularFacturaCibeles ($queueId,$urlCibeles,$apiKeyCibeles)
         $queueId =  $json_response['queueId'];
 
 
-        
+
         echo "\n<br>qrcode: ".$qrcode;
         echo "\n<br>charinfo: ".$charinfo;
-        echo "\n<br>verifactuXml: " .$verifactuXml;   
-        echo "\n<br>id de la solicitud: " .$requestId;    
-        echo "\n<br>id queue: " .$queueId;  
+        echo "\n<br>verifactuXml: " .$verifactuXml;
+        echo "\n<br>id de la solicitud: " .$requestId;
+        echo "\n<br>id queue: " .$queueId;
 
     }
 
@@ -1524,31 +574,31 @@ function anularFacturaCibeles1 ($queueId,$urlCibeles,$apiKeyCibeles)
 
 
 
-	
 
-	
+
+
 
 function lanzarFacturaCibelesPrueba ($urlCibeles,$apiKeyCibeles)
-{  
-   
-    
+{
+
+
         $nifCliente = 'A81339186';
         $nombreCliente = "nombre del cliente. sl";
         $codigoPais = "ES";
         $fechaFacturacion = "2025-10-01"; //Y-m-d
-       
+
         //$numeroFacturaCompleto = "A-" . date("Ymd") . "-" . mt_rand(1, 1000);
         $numeroFacturaCompleto = "SUST-" . date("Ymd") . "-" . mt_rand(1, 1000);
 
         $baseConIva = "100";
-        $precioIva = "21";  
-        $rate = 21;    //%iva  
+        $precioIva = "21";
+        $rate = 21;    //%iva
         $precioTotal= "121";
 
 
-        
-        //$baseSinIva = 0;           
-    
+
+        //$baseSinIva = 0;
+
         $facturaOriginal = [
             "style" => "I",
             "ids" => [
@@ -1569,45 +619,45 @@ function lanzarFacturaCibelesPrueba ($urlCibeles,$apiKeyCibeles)
             ),
         );
 
-        
-        
 
-    
+
+
+
 
     $invoice = [
-        "invoice" => 
+        "invoice" =>
         [
             "recipient" =>
             [
                 "irsId" => $nifCliente,
-                "name" => $nombreCliente, 
+                "name" => $nombreCliente,
                 "country" => $codigoPais
             ],
-            "description" => 
+            "description" =>
             [
                 "text" => "Factura simplificada (ticket)",
-                "operationDate" => $fechaFacturacion 
+                "operationDate" => $fechaFacturacion
             ],
-            "id" => 
+            "id" =>
             [
-                "number"  =>  $pruebas.$numeroFacturaCompleto, 
-                "issuedTime" => $fechaFacturacion 
+                "number"  =>  $pruebas.$numeroFacturaCompleto,
+                "issuedTime" => $fechaFacturacion
             ],
-            "type" => "R1", //F1 factura normal -            
+            "type" => "R1", //F1 factura normal -
             "creditNote"=> $facturaOriginal,
             "vatLines" => $vatLines,
             "total" => (float)$precioTotal,
             "amount" => (float)$precioIva
         ]
     ];
-    
+
 
     ini_set('display_errors', 1);
     ini_set('display_startup_errors', 1);
     error_reporting(E_ALL);
 
 
-    
+
     $json_invoice = json_encode($invoice);
 
 
@@ -1621,7 +671,7 @@ function lanzarFacturaCibelesPrueba ($urlCibeles,$apiKeyCibeles)
     curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 
     curl_setopt_array($curl, array(
-        CURLOPT_URL => $urlCibeles.'invoice', 
+        CURLOPT_URL => $urlCibeles.'invoice',
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_ENCODING => '',
         CURLOPT_MAXREDIRS => 10,
@@ -1644,7 +694,7 @@ function lanzarFacturaCibelesPrueba ($urlCibeles,$apiKeyCibeles)
         ),
     ));
 
-   
+
 
     $response = curl_exec($curl);
 
@@ -1652,7 +702,7 @@ function lanzarFacturaCibelesPrueba ($urlCibeles,$apiKeyCibeles)
 
 
     if ($response === false)
-    {   
+    {
          $respuestaFinal .= " <br>Error cURL: " . curl_error($curl)." <br>Código: " . curl_errno($curl);
     }
     else
@@ -1661,10 +711,10 @@ function lanzarFacturaCibelesPrueba ($urlCibeles,$apiKeyCibeles)
         //echo "<br><br>" . $http_code . "<br><br>";
         $respuestaFinal .= " <br>codigoHTTP: " . $http_code;
         //echo $respuestaFinal;
-        
+
     }
     //echo "console.log('Factura: ".$numFactura." ;codigoHTTP: " . $http_code . "');";
-    
+
 
 
     curl_close($curl);
@@ -1678,27 +728,27 @@ function lanzarFacturaCibelesPrueba ($urlCibeles,$apiKeyCibeles)
     //exit;
 
 
-        
+
 
 
     //PARA PRUEBAS
-    if (is_array($json_response) && array_key_exists('message', $json_response)) 
+    if (is_array($json_response) && array_key_exists('message', $json_response))
     {  //echo "\nEntra9";
         $message = $json_response['message'];
         $code =  $json_response['code'];
         $requestId =  $json_response['requestId'];
 
-      
+
         $respuestaFinal .= "<br>message: " . $json_response['message']. "<br>codigo: ".$json_response['code'] . "<br>";
-        
+
         //guardarVerifactuErrores($conexion,$numFactura,$anioSeleccionado,$message, $code, $requestId);
 
-    } 
-    else 
+    }
+    else
     {  //echo "\nEntra10";
-        $qr_code = $json_response["qrcode"]; 
-        $respuestaFinal .= "<br>Codigo QR:" . $qr_code . "<br>"; 
-        
+        $qr_code = $json_response["qrcode"];
+        $respuestaFinal .= "<br>Codigo QR:" . $qr_code . "<br>";
+
 
         $issuerIrsId = $json_response["chainInfo"]["issuerIrsId"];
         $issuedTime = $json_response["chainInfo"]["issuedTime"];
@@ -1720,13 +770,13 @@ function lanzarFacturaCibelesPrueba ($urlCibeles,$apiKeyCibeles)
         $respuestaFinal .= "<br>Id de la Solicitud: " . $requestId . "<br>";
 
         $respuestaFinal .= "<br> correcto";
-        
+
         //guardarVerifactuRespuesta($conexion,$numFactura,$anioSeleccionado,$qr_code, $issuerIrsId, $issuedTime,$number,$hash,$verifactuUrl, $queueId, $requestId);
     }
 
-    
+
     echo $respuestaFinal;
-    
+
 }
 
 

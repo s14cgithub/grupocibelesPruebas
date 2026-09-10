@@ -1166,8 +1166,9 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 	$esMayor = ($fechaFactura111 > $fechaLimite) ? "SI" : "NO";
 	//$pdf->Cell(0,0,$esMayor,0,1,'C',false);
 	
+	$serieFactura = trim($datosFactura[0]["serieFactura"]);
 	
-	if (strlen($datosFactura[0]["verifactu_message"])>5 || ($datosFactura[0]["verifactu_idSolicitud"]==NULL && $esMayor=="SI" ))
+	if ($serieFactura!='NEG' && (strlen($datosFactura[0]["verifactu_message"])>5 || ($datosFactura[0]["verifactu_idSolicitud"]==NULL && $esMayor=="SI" )))
 	
 	{
 		
@@ -1180,7 +1181,7 @@ function nuevaPagina(&$pdf,&$altura,$alturaSiguientePagina,$datosNuevaPagina1,$d
 		$pdf->SetTextColor(0,0,0);
 	}
 
-	$serieFactura = trim($datosFactura[0]["serieFactura"]);
+	
 
 	if ($clayma)
 	{

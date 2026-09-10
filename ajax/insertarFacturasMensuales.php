@@ -7,6 +7,7 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="crearFacturasMensuales")
 	$ruta = '../';
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
+	require_once($ruta."Verifactu/wortice/lanzarFactura.php");
 
 
 
@@ -83,12 +84,23 @@ if(isset($_POST["accion"]) && $_POST["accion"]=="crearFacturasMensuales")
 
 		//echo $numeroFactura;
 
+		$erroresDetalle = false;
+
 		foreach ($lineasDetalle as $linea)
 		{
 			$linea['numeroFacturaCompleto'] = $numeroFacturaCompleto;
-			insertarFacturacionDetalles($conn, $bbddSql, $linea);
+			$resDetalle = insertarFacturacionDetalles($conn, $bbddSql, $linea);
+
+			if (!$resDetalle['ok'])
+			{
+				$erroresDetalle = true;
+			}
 		}
 
+		if (!$erroresDetalle)
+		{
+			lanzarFactura($conn, $bbddSql, $numeroFacturaCompleto, false);
+		}
 
 		//echo "<br>\nNumero Factura: ".$numeroFactura;
 		//lanzarFacturaCibeles($conexion,$numeroFactura,$anioSeleccionado);

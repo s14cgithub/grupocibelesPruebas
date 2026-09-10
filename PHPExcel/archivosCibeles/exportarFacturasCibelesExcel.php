@@ -25,7 +25,10 @@ if(isset($_POST["exportarAccion"]) && $_POST["exportarAccion"]=="exportarExcel")
 	$orden = isset($_POST["exportarOrden"]) ? $_POST["exportarOrden"] : '';
 	$desc = isset($_POST["exportarDesc"]) ? $_POST["exportarDesc"] : 'false';
 
-	$order = array(array('campo' => $orden, 'dir' => ($desc=="true" ? 'DESC' : 'ASC')));
+	$order = array(
+		array('campo' => $orden, 'dir' => ($desc=="true" ? 'DESC' : 'ASC')),
+		array('campo' => 'id', 'dir' => 'DESC')
+	);
 
 	$camposFactura = ['numeroFacturaCompleto','idCodigoCliente','cliente','fecha','precioNeto','iva','precioTotal','presupuesto'];
 

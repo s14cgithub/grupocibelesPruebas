@@ -208,7 +208,14 @@ function comprobarIvaCliente(id,clayma) //js_prefactura
 	if(peticionUnica1)
 	{							
 		peticionUnica1.onreadystatechange = mostrarComprobarIvaCliente;
-		peticionUnica1.open("POST","ajax/verIvaCliente.php",false);
+		if (clayma)
+		{
+			peticionUnica1.open("POST","ajax/cargarClientesClayma.php",false);
+		}
+		else
+		{
+			peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		}
 		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");		
 		var query_string = consultaComprobarIvaCliente(id);
 		peticionUnica1.send(query_string);
@@ -216,10 +223,14 @@ function comprobarIvaCliente(id,clayma) //js_prefactura
 }
 function consultaComprobarIvaCliente(id)
 {	
-	var consulta = "accion=verSiTieneFirma";	
-	consulta+="&idCliente="+id;
-	consulta+="&clayma="+clayma;
-	
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['sinIva','retencion'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { codigo: id };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
 	return consulta;	
 }
 
@@ -229,23 +240,17 @@ function mostrarComprobarIvaCliente()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
-			{	
-				var datos = new Array;
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
-				
-				if (datos != "")
+			{
+				var datos = res.datos;
+
+				if (datos.length>0)
 				{
 					if (datos[0]["sinIva"]==1)
 					{
