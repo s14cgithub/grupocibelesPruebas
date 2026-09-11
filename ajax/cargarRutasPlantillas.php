@@ -1,47 +1,26 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarRutasPlantilla")
+if(isset($_POST["accion"]) && $_POST["accion"]=="mostrarRutasPlantilla")
 {
-	
+	session_start();
 	$ruta = '../';
-	//require($ruta.$rutaCabecera);
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-		
-	session_start(); 
-	
-	
-	
-	
-	$condicion = $_POST["condicion"];
-	//$orden = $_POST["orden"];
-	
-	
-	/*if ($condicion!="")
-	{
-		$condicion = " where idCliente=".$condicion;
-	}
-	if ($orden !="")
-	{
-		$condicion = $condicion + " order by " + $orden; 
-	}*/
-	
-	
-	$registros = cargarRutasPlantilla($conexion,$condicion);
-	//echo (count($registros1));
-	if (count($registros)<=0)
-	{
-		
-		echo json_encode("");
-		//echo ("Error2: No hay subprocesos para mostrar: ");
-	}
-	else
-	{
-		
-		echo json_encode($registros);
-	}
-		
-}
 
+	$campos = isset($_POST["campos"]) ? json_decode($_POST["campos"], true) : array();
+	$filtros = isset($_POST["filtros"]) ? json_decode($_POST["filtros"], true) : array();
+	$filtrosOperadores = isset($_POST["filtrosOperadores"]) ? json_decode($_POST["filtrosOperadores"], true) : array();
+	$order = isset($_POST["order"]) ? json_decode($_POST["order"], true) : array();
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resultado = mostrarRutasPlantilla($conn, $bbddSql, $campos, $filtros, $filtrosOperadores, $order);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($resultado);
+}
 
 ?>

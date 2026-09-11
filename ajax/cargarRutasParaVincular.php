@@ -1,29 +1,21 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="cargarRutasParaVincular")
+if(isset($_POST["accion"]) && $_POST["accion"]=="cargarRutasParaVincular")
 {
+	session_start();
 	$ruta = '../';
-	//require($ruta.$rutaCabecera);
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-		
-	
-	
-	
-	
-	
-	$empleado=cargarRutasParaVincular($conexion);
-	
-	if (count($empleado)<=0)
-	{
-		echo json_encode("");
-		//echo ("Error2: No hay subprocesos para mostrar: ");
-	}
-	else
-	{
-		echo json_encode($empleado);
-	}
-		
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resultado = mostrarRutasParaVincular($conn, $bbddSql);
+
+	sqlsrv_close($conn);
+
+	echo json_encode($resultado);
 }
 
 ?>

@@ -1,9 +1,5 @@
 var peticionUnica1 = null;
 
-var laCondicion="";
-
-
-
 function cargarTarifasTipoImpresora()
 {	
 	peticionUnica1=crearComunicacion(peticionUnica1);
@@ -20,7 +16,16 @@ function cargarTarifasTipoImpresora()
 
 function consultaCargarTarifasTipoImpresora()
 {	
-	var consulta = "accion=cargarTarifasTipoImpresora";	
+	var consulta = "accion=mostrarTarifasTipoImpresora";
+
+	var campos = ['id','tipoImpresora','precioClick'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify({}));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+
+	var order = [{campo: 'tipoImpresora', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 
@@ -30,14 +35,14 @@ function mostrarCargarTarifasTipoImpresora()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto  tablaCabeceraColor">';
@@ -136,13 +141,14 @@ function mostrarModificarTarifaTipoImpresora()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				alert("Tarifa Modificada");
+				alert(res.mensaje);
 				cargarTarifasTipoImpresora();
 			}
 			peticionUnica1=null;			

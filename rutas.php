@@ -184,9 +184,9 @@ echo ("</html>");
 	//cargarSubClientes('A','clienteRuta');
 	//cargarSubClientes('A','clienteRutaBuscar');
 
-	cargarSubClientes2(' codigo, subcliente ', 'A','clienteRuta');
+	cargarSubClientesRuta('clienteRuta');
 	booleano=true;
-	cargarSubClientes2(' codigo, subcliente ', 'A','clienteRutaBuscar');
+	cargarSubClientesRuta('clienteRutaBuscar');
 
 
 	idInputListado = "rutaRutaBuscar";

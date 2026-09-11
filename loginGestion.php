@@ -1,5 +1,3 @@
-<script  src="js/js_global.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
-<script  src="js/js_login.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
 
 <?php 
 
@@ -260,7 +258,9 @@ echo '<br>PHP_SELF: '.$_SERVER['PHP_SELF'];*/
 </div>	
 
 	
-				
+	<script  src="js/js_global.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
+<script  src="js/js_login.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
+			
 
 
 <?php
@@ -271,10 +271,8 @@ echo ("</html>");
 ?>
 
 <script language="javascript">
-	idInputListado = "empleadoNuevo";
-	cargarListadoEmpleado();
-	idInputListado = "listadoEmpleado1";
-	cargarListadoEmpleado();
+	cargarListadoEmpleado("empleadoNuevo");
+	cargarListadoEmpleado("listadoEmpleado1");
 	
 	cargarLogin();
 

@@ -198,8 +198,8 @@ echo ("</html>");
 	idInputListado="";
 
 	*/
-	cargarSubClientes2(' codigo, subcliente ', 'A','clienteRuta');
-	cargarSubClientes2(' codigo, subcliente ', 'A','clienteRutaBuscar');
+	cargarSubClientesRuta('clienteRuta');
+	cargarSubClientesRuta('clienteRutaBuscar');
 	
 	/*idInputListado = "LR";
 	cargarRutasParaVincular();

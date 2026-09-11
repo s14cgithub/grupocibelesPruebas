@@ -100,7 +100,6 @@ echo ("</html>");
 
 
 
-	idInputListado = "listadoEmpleado";
 	cargarListadoEmpleado();
 	
 	idInputListado = "rutaVinculacion";

@@ -1,6 +1,66 @@
 var peticionUnica1 = null;
 var permisosSoloLectura = null;
 
+function cargarSubClientesRuta(destino) //js_rutas (antes cargarSubClientes2 de js_global, comentada); destino variable
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = function() { mostrarCargarSubClientesRuta(destino); };
+		peticionUnica1.open("POST","ajax/cargarClientes.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarSubClientesRuta();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarSubClientesRuta()
+{
+	var consulta = "accion=cargarClientes";
+
+	var campos = ['codigo','subcliente'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {activo: 1};
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+
+	var order = [{campo: 'subcliente', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
+	return consulta;
+}
+
+function mostrarCargarSubClientesRuta(destino)
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+
+			var contenido = '';
+
+			if (booleano==true)
+			{
+				contenido += '<option value="todos">todos</option>';
+			}
+
+			if (res.error=="" && res.datos)
+			{
+				for (var i=0; i<res.datos.length; i++)
+				{
+					contenido += '<option value="'+res.datos[i]["codigo"]+'">'+res.datos[i]["subcliente"]+' - '+res.datos[i]["codigo"]+'</option>';
+				}
+			}
+
+			document.getElementById(destino).innerHTML = contenido;
+
+			peticionUnica1=null;
+		}
+	}
+}
+
 function cargarRutasPlantilla() //js_rutas
 {	
 	peticionUnica1=crearComunicacion(peticionUnica1);
@@ -17,42 +77,32 @@ function cargarRutasPlantilla() //js_rutas
 
 function consultaCargarRutasPlantilla()
 {	
-	var consulta = "accion=cargarRutasPlantilla";	
-	
-	var condicion = "";
-	
+	var consulta = "accion=mostrarRutasPlantilla";
+
+	var campos = ['id','idCliente','lunesRuta','lunesHora','martesRuta','martesHora','miercolesRuta','miercolesHora','juevesRuta','juevesHora','viernesRuta','viernesHora','contacto','incidencia'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {};
+
 	if (document.getElementById("clienteRutaBuscar").value != 0 && document.getElementById("clienteRutaBuscar").value !='todos')
 	{
-		condicion = "where idCliente='"+ document.getElementById("clienteRutaBuscar").value + "'";
+		filtros.idCliente = document.getElementById("clienteRutaBuscar").value;
 	}
 
 	if (document.getElementById("rutaRutaBuscar").value!="")
 	{
-		if (condicion!="")
-		{
-			condicion += " and (lunesRuta = "+document.getElementById("rutaRutaBuscar").value+" or martesRuta = "+document.getElementById("rutaRutaBuscar").value+" or miercolesRuta = "+document.getElementById("rutaRutaBuscar").value+" or juevesRuta = "+document.getElementById("rutaRutaBuscar").value+" or viernesRuta = "+document.getElementById("rutaRutaBuscar").value+")";
-		}
-		else 
-		{
-			condicion += " where (lunesRuta = "+document.getElementById("rutaRutaBuscar").value+" or martesRuta = "+document.getElementById("rutaRutaBuscar").value+" or miercolesRuta = "+document.getElementById("rutaRutaBuscar").value+" or juevesRuta = "+document.getElementById("rutaRutaBuscar").value+" or viernesRuta = "+document.getElementById("rutaRutaBuscar").value+")";
-		}
+		filtros.ruta = document.getElementById("rutaRutaBuscar").value;
 	}
-	
-	var orden = " order by " + document.getElementById("orden").value;
-	
-	if (document.getElementById("ordenDesc").checked==true)
-	{
-		orden += " desc";
-	}
-	else
-	{
-		orden += " asc";
-	}
-	
-	condicion = condicion  + orden;	
-	
-	consulta +="&condicion=" + condicion;
-	//consulta +="&orden=" + orden;
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+
+	var orden = document.getElementById("orden").value;
+	var desc = document.getElementById("ordenDesc").checked;
+	var order = [
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -63,22 +113,14 @@ function mostrarCargarRutasPlantilla()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";
 				
@@ -255,15 +297,11 @@ function mostrarCargarRutasPlantilla()
 				
 				while  (contador<datos.length)
 				{ 					
-					//idInputListado = datos[contador]["id"]+'_cliente';
-					//cargarListadoNombreFranqueo();
-					cargarSubClientes2(' codigo, subcliente ', 'A',datos[contador]["id"]+'_cliente');
+					cargarSubClientesRuta(datos[contador]["id"]+'_cliente');
 
 
 					document.getElementById(datos[contador]["id"]+'_cliente').value = datos[contador]["idCliente"];					
 
-					idInputListado = "";
-				
 					contador++;	
 				}
 						
@@ -322,14 +360,14 @@ function mostrarInsertarRutaPlantilla()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
 				cargarRutasPlantilla();
-				//alert("registro eliminado");
 				
 			}
 		}
@@ -389,13 +427,14 @@ function mostrarModificarRutaPlantilla()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				alert("Ruta Modificada");
+				alert(res.mensaje);
 				cargarRutasPlantilla();			
 				
 			}
@@ -440,14 +479,15 @@ function mostrarBorrarRutaPlantilla()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
 				cargarRutasPlantilla();
-				alert("registro eliminado");
+				alert(res.mensaje);
 				
 			}
 		}

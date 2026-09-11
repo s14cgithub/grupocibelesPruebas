@@ -1,5 +1,3 @@
-<script  src="js/js_global.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
-<script  src="js/js_empleados.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
 
 <?php 
 
@@ -58,7 +56,8 @@ require($ruta."Archivos Comunes/cabecera.php");
 								<td align="center">Nombre</td>
 								<td align="center">Apellidos</td>							
 								<td align="center">Precio Hora</td>
-								<td align="center">Horas Laborales</td>								
+								<td align="center">Horas Laborales</td>
+								<td align="center">Activo</td>
 								<td align="center"></td>
 							</tr>
 							<tr>
@@ -68,6 +67,7 @@ require($ruta."Archivos Comunes/cabecera.php");
 								<td><input class="" type="text" id="apellidosNuevo" name="apellidosNuevo" value=""></input></td>
 								<td><input class="" type="number" id="precioHoraNuevo" name="precioHoraNuevo" value=""></input></td>
 								<td><input class="" type="time" id="horasLaboralNuevo" name="horasLaboralNuevo" value=""></input></td>
+								<td><input type="checkbox" id="activoNuevo" name="activoNuevo" checked></input></td>
 								<td><input type="image" value="" src="imagenes/crear.png" style="width:20px; cursor:pointer;" onclick="insertarRegistroEmpleado()" ></td>
 							</tr>
 						</table>
@@ -102,7 +102,9 @@ require($ruta."Archivos Comunes/cabecera.php");
 					
 
 
-	
+<script  src="js/js_global.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
+<script  src="js/js_empleados.js?<?php echo (versionCibeles); ?>" type="text/javascript" language="JavaScript" charset="UTF-8"></script>
+
 				
 
 
@@ -114,7 +116,6 @@ echo ("</html>");
 ?>
 
 <script language="javascript">
-	idInputListado = "listadoEmpleado1";
 	cargarListadoEmpleado();
 	cargarEmpleados();
 

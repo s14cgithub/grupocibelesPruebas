@@ -1,85 +1,42 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="modificarRegistro")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarRegistro")
 {
-	session_start(); 
-	$ruta = '../';	
+	session_start();
+	$ruta = '../';
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-			
-	
-	$id= $_POST["id"];
-	$idCliente= $_POST["idCliente"];
-	/*$Lruta= $_POST["Lruta"];
-	$Lhora= $_POST["Lhora"];
-	$Mruta= $_POST["Mruta"];
-	$Mhora= $_POST["Mhora"];
-	$Xruta= $_POST["Xruta"];
-	$Xhora= $_POST["Xhora"];
-	$Jruta= $_POST["Jruta"];
-	$Jhora= $_POST["Jhora"];
-	$Vruta= $_POST["Vruta"];
-	$Vhora= $_POST["Vhora"];*/
-	
-	$hora= $_POST["hora"];
-	$ruta= $_POST["ruta"];
-	
-	$contacto= $_POST["contacto"];
-	$incidencia= $_POST["incidencia"];
-	$fecha= $_POST["fecha"];
-	
-	
-	/*if ($Lruta=="")
-	{
-		$Lruta="null";
-	}
-	if ($Mruta=="")
-	{
-		$Mruta="null";
-	}
-	if ($Xruta=="")
-	{
-		$Xruta="null";
-	}
-	if ($Jruta=="")
-	{
-		$Jruta="null";
-	}
-	if ($Vruta=="")
-	{
-		$Vruta="null";
-	}*/
-	
-	/*if ($Lhora=="")
-	{
-		$Lhora=null;
-	}
-	if ($Mhora=="")
-	{
-		$Mhora=null;
-	}
-	if ($Xhora=="")
-	{
-		$Xhora=null;
-	}
-	if ($Jhora=="")
-	{
-		$Jhora=null;
-	}
-	if ($Vhora=="")
-	{
-		$Vhora=null;
-	}*/
-	
-	
-	
-	
-	
-	
-	//echo modificarRutasAdicional($conexion,$id,$idCliente,$Lruta,$Lhora,$Mruta,$Mhora,$Xruta,$Xhora,$Jruta,$Jhora,$Vruta,$Vhora,$contacto,$incidencia,$fecha);
-	echo modificarRutasAdicional($conexion,$id,$idCliente,$hora,$ruta,$contacto,$incidencia,$fecha);
-	
-}
 
+	$id = $_POST["id"];
+	$idCliente = $_POST["idCliente"];
+	$hora = $_POST["hora"];
+	$rutaValor = $_POST["ruta"];
+	$contacto = $_POST["contacto"];
+	$incidencia = $_POST["incidencia"];
+	$fecha = $_POST["fecha"];
+
+	$datos = array(
+		'idCliente' => $idCliente,
+		'ruta' => $rutaValor,
+		'hora' => $hora,
+		'incidencia' => $incidencia,
+		'contacto' => $contacto,
+		'fecha' => $fecha
+	);
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resultado = modificarRutasAdicional($conn, $bbddSql, $datos, array('id' => $id));
+
+	sqlsrv_close($conn);
+
+	if (!$resultado['ok']) {
+		echo json_encode(array('error' => $resultado['error']));
+	} else {
+		echo json_encode(array('error' => '', 'mensaje' => 'Ruta Modificada'));
+	}
+}
 
 ?>

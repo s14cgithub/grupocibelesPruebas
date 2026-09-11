@@ -2208,55 +2208,40 @@ function mostrarCargarRutasParaVincular()
 	{
 		if(peticionUnica0.status == 200)
 		{
-			if (peticionUnica0.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica0.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica0.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
+				var datos = res.datos;
 				
-				try 
+				if (datos.length>0)
 				{
-					datos = JSON.parse(peticionUnica0.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
-				
-				if (datos != "")
-				{
-					
-					if (datos.length<=0)
-					{						
-					}
-					else
-					{
 													
-						var contenido = "";					
+					var contenido = "";					
 
 
-						var contador = 0;
-						
-						if (idInputListado=="LR" || idInputListado=="MR" || idInputListado=="XR" || idInputListado=="JR" || idInputListado=="VR"|| idInputListado=="rutaRutaBuscar")
-						{
-							contenido += '  <option value=""></option>';
-						}
-
-						while  (contador<datos.length)
-						{
-							if (datos[contador]["ruta"] != null && datos[contador]["ruta"] != "")
-							{
-								contenido += '  <option value="'+datos[contador]["ruta"]+'">'+datos[contador]["ruta"]+'</option>';
-							}
-
-							contador++;
-						}
-						
-						document.getElementById(idInputListado).innerHTML = contenido;						
+					var contador = 0;
+					
+					if (idInputListado=="LR" || idInputListado=="MR" || idInputListado=="XR" || idInputListado=="JR" || idInputListado=="VR"|| idInputListado=="rutaRutaBuscar")
+					{
+						contenido += '  <option value=""></option>';
 					}
-				}				
+
+					while  (contador<datos.length)
+					{
+						if (datos[contador]["ruta"] != null && datos[contador]["ruta"] != "")
+						{
+							contenido += '  <option value="'+datos[contador]["ruta"]+'">'+datos[contador]["ruta"]+'</option>';
+						}
+
+						contador++;
+					}
+					
+					document.getElementById(idInputListado).innerHTML = contenido;						
+				}
 			}
 			peticionUnica0=null;	
 		}

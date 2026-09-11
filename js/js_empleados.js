@@ -1,5 +1,64 @@
 var peticionUnica1 = null;
 
+function cargarListadoEmpleado() //js_empleados (antes cargarListadoEmpleado de js_global, comentada); destino fijo: listadoEmpleado1
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = mostrarCargarListadoEmpleado;
+		peticionUnica1.open("POST","ajax/cargarListadoEmpleado.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarListadoEmpleado();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarListadoEmpleado()
+{	
+	var consulta = "accion=cargarListadoEmpleado";
+
+	var campos = ['id','nombre','apellidos'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify({}));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify([]));
+
+	var order = [{campo: 'nombre', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	return consulta;	
+}
+
+function mostrarCargarListadoEmpleado()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{				
+				var datos = res.datos;
+				
+				var contador=0;
+				var contenido="<option value=\"\">Todos</option>";
+				while  (contador<datos.length)
+				{
+					contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["nombre"]+ ' ' + datos[contador]["apellidos"] + '</option>';
+					contador++;
+				}
+				document.getElementById("listadoEmpleado1").innerHTML = contenido;	
+							
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
 
 function cargarEmpleados() //js_empleados
 {	
@@ -18,14 +77,40 @@ function cargarEmpleados() //js_empleados
 function consultaCargarEmpleados()
 {	
 	var consulta = "accion=cargarEmpleados";	
-	
-	
-	consulta +="&idEmpleado="+document.getElementById("listadoEmpleado1").value;
-	consulta += "&precioHora="+document.getElementById("buscarPrecioHora").value;
-	consulta += "&horasLaborales="+document.getElementById("buscarHorasLaborales").value;
-	consulta += "&orden="+document.getElementById("orden").value;
-	consulta += "&desc="+document.getElementById("ordenDesc").checked;
-	
+
+	var campos = ['id','nombre','apellidos','precioHora','horasLaborales','activo'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {};
+
+	var idEmpleado = document.getElementById("listadoEmpleado1").value;
+	if (idEmpleado != "")
+	{
+		filtros.id = idEmpleado;
+	}
+
+	var precioHora = document.getElementById("buscarPrecioHora").value;
+	if (precioHora != "")
+	{
+		filtros.precioHora = precioHora;
+	}
+
+	var horasLaborales = document.getElementById("buscarHorasLaborales").value;
+	if (horasLaborales != "")
+	{
+		filtros.horasLaborales = horasLaborales;
+	}
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify([]));
+
+	var orden = document.getElementById("orden").value;
+	var desc = document.getElementById("ordenDesc").checked;
+	var order = [
+		{ campo: orden, dir: desc ? 'DESC' : 'ASC' }
+	];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -36,22 +121,14 @@ function mostrarCargarEmpleados()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";
 				
@@ -60,7 +137,8 @@ function mostrarCargarEmpleados()
 				contenido +='<th>Nombre</th>';
 				contenido +='<th>Apellidos</th>';
 				contenido +='<th>Precio Hora</th>';
-				contenido +='<th>Horas Laborales</th>';				
+				contenido +='<th>Horas Laborales</th>';
+				contenido +='<th>Activo</th>';
 				contenido +='<th></th>';
 				contenido +='<th></th>';
 				
@@ -99,6 +177,9 @@ function mostrarCargarEmpleados()
 					}
 					
 					contenido +='<td align="center"><input type="time" id="'+datos[contador]["id"]+'_horasLaborales" value="'+horas+'"></td>';
+
+					var activoChecked = (datos[contador]["activo"]==1 || datos[contador]["activo"]==true) ? ' checked' : '';
+					contenido +='<td align="center"><input type="checkbox" id="'+datos[contador]["id"]+'_activo"'+activoChecked+'></td>';
 										
 					contenido +='<td><input type="image" id="'+datos[contador]["id"]+'_modificar" value="" src="imagenes/modificar.png" style="width:15px;" onclick="modificarRegistroEmpleado('+datos[contador]["id"]+')" ></td>';	
 					
@@ -163,13 +244,17 @@ function consultaInsertarRegistroEmpleado()
 	}
 	else
 	{
-		precioHora = document.getElementById("precioHoraNuevo").value;
+		precioHora = document.getElementById("precioHoraNuevo").value.replace(',', '.');
 	}
 	
-	consulta += "&nombre="+document.getElementById("nombreNuevo").value ;
-	consulta += "&apellidos="+document.getElementById("apellidosNuevo").value;
-	consulta += "&precioHora="+precioHora;
-	consulta += "&horasLaborales="+document.getElementById("horasLaboralNuevo").value;
+	var datos = {
+		nombre: document.getElementById("nombreNuevo").value,
+		apellidos: document.getElementById("apellidosNuevo").value,
+		precioHora: precioHora,
+		horasLaborales: document.getElementById("horasLaboralNuevo").value,
+		activo: document.getElementById("activoNuevo").checked ? 1 : 0
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
 	return consulta;	
 }
@@ -180,13 +265,14 @@ function mostrarInsertarRegistroEmpleado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);						
+				alert(res.mensaje);						
 				cargarEmpleados();
 			}
 			peticionUnica1=null;			
@@ -242,14 +328,18 @@ function consultaModificarRegistroEmpleado(idEmpleado)
 	}
 	else
 	{
-		precioHora = document.getElementById(idEmpleado+"_precioHora").value;
+		precioHora = document.getElementById(idEmpleado+"_precioHora").value.replace(',', '.');
 	}
 	
 	consulta +="&idEmpleado="+idEmpleado;
-	consulta += "&nombre="+document.getElementById(idEmpleado+"_nombre").value ;
-	consulta += "&apellidos="+document.getElementById(idEmpleado+"_apellidos").value;
-	consulta += "&precioHora="+precioHora;
-	consulta += "&horasLaborales="+document.getElementById(idEmpleado+"_horasLaborales").value;	
+	var datos = {
+		nombre: document.getElementById(idEmpleado+"_nombre").value,
+		apellidos: document.getElementById(idEmpleado+"_apellidos").value,
+		precioHora: precioHora,
+		horasLaborales: document.getElementById(idEmpleado+"_horasLaborales").value,
+		activo: document.getElementById(idEmpleado+"_activo").checked ? 1 : 0
+	};
+	consulta += "&datos=" + encodeURIComponent(JSON.stringify(datos));
 	
 	return consulta;	
 }
@@ -260,13 +350,14 @@ function mostrarModificarRegistroEmpleado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);						
+				alert(res.mensaje);						
 			}
 			peticionUnica1=null;			
 		}
@@ -295,7 +386,8 @@ function consultaEliminarRegistroEmpleado(idEmpleado)
 {	
 	var consulta = "accion=eliminarRegistroEmpleado";	
 	
-	consulta +="&idEmpleado="+idEmpleado;
+	var filtros = { id: idEmpleado };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -306,13 +398,14 @@ function mostrarEliminarRegistroEmpleado()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.mensaje);
 				cargarEmpleados();
 			}
 			peticionUnica1=null;			

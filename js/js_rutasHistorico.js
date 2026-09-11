@@ -18,7 +18,20 @@ function cargarRutasHistorico() //js_rutas_historico
 
 function consultaCargarRutasHistorico()
 {	
-	var consulta = "accion=cargarRutasHistorico";
+	var consulta = "accion=mostrarRutasHistorico";
+
+	var campos = ['ruta','fecha','hora','horaFirma','idCliente','nombrePersona','dniPersona','firma','subcliente','nombre','apellidos'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = ['tabla2','tabla3'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify({}));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+
+	var order = [{campo: 'fecha', dir: 'DESC'}, {campo: 'hora', dir: 'DESC'}, {campo: 'subcliente', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 
@@ -28,22 +41,14 @@ function mostrarCargarRutasHistorico()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";				
 				

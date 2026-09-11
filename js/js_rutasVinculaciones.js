@@ -1,6 +1,65 @@
 var peticionUnica1 = null;
 var permisosSoloLectura = null;
 
+function cargarListadoEmpleado() //js_rutasVinculaciones (antes cargarListadoEmpleado de js_global, comentada); destino fijo: listadoEmpleado
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
+
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = mostrarCargarListadoEmpleado;
+		peticionUnica1.open("POST","ajax/cargarListadoEmpleado.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarListadoEmpleado();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarListadoEmpleado()
+{	
+	var consulta = "accion=cargarListadoEmpleado";
+
+	var campos = ['id','nombre','apellidos'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify({activo: 1}));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(['tabla_login']));
+
+	var order = [{campo: 'nombre', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	return consulta;	
+}
+
+function mostrarCargarListadoEmpleado()
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{				
+				var datos = res.datos;
+				
+				var contador=0;
+				var contenido="";
+				while  (contador<datos.length)
+				{
+					contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["nombre"]+ ' ' + datos[contador]["apellidos"] + '</option>';
+					contador++;
+				}
+				document.getElementById("listadoEmpleado").innerHTML = contenido;	
+							
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
 
 function insertarRutasConductoresVinculaciones()//para insertar en la tabla de las vinculaciones entre ruta y conductor //js_rutasVinculaciones
 {
@@ -32,14 +91,13 @@ function mostrarInsertarRutasConductoresVinculaciones()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				
-				//alert(peticionUnica.responseText);
 				
 			}
 			peticionUnica1=null;	
@@ -66,7 +124,19 @@ function cargarRutasConductoresVinculaciones()//para mostrar la tabla de las vin
 
 function consultaCargarRutasConductoresVinculaciones()
 {	
-	var consulta = "accion=cargarRutasConductoresVinculaciones";	
+	var consulta = "accion=mostrarRutasVinculaciones";
+
+	var campos = ['id','idConductor','nombreCompleto','ruta'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = ['tabla2'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify({}));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+
+	var order = [{campo: 'nombre', dir: 'ASC'}, {campo: 'apellidos', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -77,33 +147,23 @@ function mostrarCargarRutasConductoresVinculaciones()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
+				var datos = res.datos;
 				document.getElementById("vinculacionesConductoresRutas").innerHTML="";	
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
 				
-				if (datos != "")
-				{
-					
-					if (datos.length<=0)
-					{		
-							
-					}
-					else
-					{													
-						var contenido = "";					
+				if (datos.length<=0)
+				{		
+						
+				}
+				else
+				{													
+					var contenido = "";					
 
 						contenido += '<tr class="centrarTexto  tablaCabeceraColor">';
 							
@@ -150,7 +210,6 @@ function mostrarCargarRutasConductoresVinculaciones()
 						document.getElementById("vinculacionesConductoresRutas").innerHTML = contenido;
 						
 					}
-				}
 				
 			}
 			peticionUnica1=null;	
@@ -190,9 +249,10 @@ function mostrarEliminarVinculacionRutaConductor()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				

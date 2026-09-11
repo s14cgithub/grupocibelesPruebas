@@ -1,9 +1,5 @@
 var peticionUnica1 = null;
 
-var laCondicion="";
-
-
-
 function cargarTarifasPapel()
 {	
 	peticionUnica1=crearComunicacion(peticionUnica1);
@@ -20,7 +16,21 @@ function cargarTarifasPapel()
 
 function consultaCargarTarifasPapel()
 {	
-	var consulta = "accion=cargarTarifasPapel";	
+	var consulta = "accion=mostrarTarifasPapel";
+
+	var campos = ['id','tamano','tipo','acabado','gramaje','precio'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var joins = ['tabla2','tabla3','tabla4','tabla5'];
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify(joins));
+
+	var filtros = { excluirTamanioNinguno: true };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+
+	var order = [{campo: 'tamano', dir: 'ASC'}, {campo: 'tipo', dir: 'ASC'}, {campo: 'acabado', dir: 'ASC'}, {campo: 'gramaje', dir: 'ASC'}, {campo: 'precio', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+
 	return consulta;	
 }
 
@@ -30,14 +40,14 @@ function mostrarCargarTarifasPapel()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;				
-				datos = JSON.parse(peticionUnica1.responseText);				
+				var datos = res.datos;
 				
 				var contenido = "";
 				contenido += '<tr class="centrarTexto  tablaCabeceraColor">';
@@ -141,13 +151,14 @@ function mostrarModificarTarifaPapel()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				alert("Tarifa Modificada");
+				alert(res.mensaje);
 				cargarTarifasPapel();
 			}
 			peticionUnica1=null;			
@@ -201,13 +212,14 @@ function mostrarInsertarTarifasPapel()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				alert("Tarifa Insertada");
+				alert(res.mensaje);
 				cargarTarifasPapel();
 			}
 			peticionUnica1=null;			

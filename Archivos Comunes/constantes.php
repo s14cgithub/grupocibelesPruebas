@@ -10,7 +10,7 @@ $rutaFunciones = $rutaRaiz_ArchivosComunes."/funciones.php";*/
 
 $anchoWeb=100;
 
-define('versionCibeles',"2.02");
+define('versionCibeles',"2.021");
 
 define('fechaCambioVerifactu',"2025-09-27");
 define('urlCodigoQrVerifactu',"https://prewww2.aeat.es/wlpl/TIKE-CONT/ValidarQR?");

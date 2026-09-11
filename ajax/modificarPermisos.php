@@ -1,248 +1,73 @@
-<?php 
+<?php
 
-if(isset($_POST["accion"])&$_POST["accion"]=="modificarPermisos")
+if(isset($_POST["accion"]) && $_POST["accion"]=="modificarPermisos")
 {
+	session_start();
 	$ruta = '../';
-	//require($ruta.$rutaCabecera);
 	require($ruta."Archivos Comunes/constantes.php");
 	require($ruta."Archivos Comunes/codigoInclude.php");
-		
-	session_start(); 
-	
-	
-	$idLogin=$_POST["idLogin"];
-	
-	$pms_pda=$_POST["pms_pda"];
-	$pms_pda_gestion=$_POST["pms_pda_gestion"];
-	$pms_pdaAdjunto=$_POST["pms_pdaAdjunto"];
-	$pms_informesProduccion=$_POST["pms_informesProduccion"];
-	$pms_presupuestos=$_POST["pms_presupuestos"];
-	$pms_nuevoProcesoPresu=$_POST["pms_nuevoProcesoPresu"];
-	$pms_cambiarFechaCompromisoPresu=$_POST["pms_cambiarFechaCompromisoPresu"];
-	$pms_cambiarFechaAceptacionPresu=$_POST["pms_cambiarFechaAceptacionPresu"];
-	$pms_otBajada=$_POST["pms_otBajada"];
-	$pms_otAbierta=$_POST["pms_otAbierta"];
-	$pms_otTerminada=$_POST["pms_otTerminada"];
-	$pms_otBajadaAutomatico=$_POST["pms_otBajadaAutomatico"];
-	$pms_prodOt=$_POST["pms_prodOt"];
-	
-	$pms_administracion=$_POST["pms_administracion"];
-	$pms_admContabilidad=$_POST["pms_admContabilidad"];
-	$pms_admFacturacion=$_POST["pms_admFacturacion"];
-	
-	$pms_prodGrabarFranqueo=$_POST["pms_prodGrabarFranqueo"];
-	$pms_prodFranqueoF12=$_POST["pms_prodFranqueoF12"];
-	$pms_actualizarDatos=$_POST["pms_actualizarDatos"];
-	$pms_presupuestoMensual=$_POST["pms_presupuestoMensual"];
-	$pms_rutas=$_POST["pms_rutas"];
-	$pms_pdaConductor=$_POST["pms_pdaConductor"];
-	
-	
-	if ($pms_administracion=="true")
-	{
-		$pms_administracion=2;
+
+	$idLogin = $_POST["idLogin"];
+
+	// pda y pdaConductor se guardan tal cual llegan (string "true"/"false"), igual que el codigo original;
+	// el resto se convierte a 2 (marcado) / 0 (desmarcado)
+	$camposBooleanos = array(
+		'administracion', 'admContabilidad', 'admFacturacion', 'pdaGestion', 'pdaAdjunto',
+		'informesProduccion', 'presupuestos', 'nuevoProcesoPresu', 'cambiarFechaCompromisoPresu',
+		'cambiarFechaAceptacionPresu', 'presuOtBajada', 'presuOtAbierta', 'presuOtTerminada',
+		'otBajadaAutomatico', 'ot', 'grabarFranqueo', 'franqueoF12', 'actualizarDatos',
+		'presupuestoMensual', 'rutas'
+	);
+
+	$camposPost = array(
+		'administracion' => 'pms_administracion',
+		'admContabilidad' => 'pms_admContabilidad',
+		'admFacturacion' => 'pms_admFacturacion',
+		'pdaGestion' => 'pms_pda_gestion',
+		'pdaAdjunto' => 'pms_pdaAdjunto',
+		'informesProduccion' => 'pms_informesProduccion',
+		'presupuestos' => 'pms_presupuestos',
+		'nuevoProcesoPresu' => 'pms_nuevoProcesoPresu',
+		'cambiarFechaCompromisoPresu' => 'pms_cambiarFechaCompromisoPresu',
+		'cambiarFechaAceptacionPresu' => 'pms_cambiarFechaAceptacionPresu',
+		'presuOtBajada' => 'pms_otBajada',
+		'presuOtAbierta' => 'pms_otAbierta',
+		'presuOtTerminada' => 'pms_otTerminada',
+		'otBajadaAutomatico' => 'pms_otBajadaAutomatico',
+		'ot' => 'pms_prodOt',
+		'grabarFranqueo' => 'pms_prodGrabarFranqueo',
+		'franqueoF12' => 'pms_prodFranqueoF12',
+		'actualizarDatos' => 'pms_actualizarDatos',
+		'presupuestoMensual' => 'pms_presupuestoMensual',
+		'rutas' => 'pms_rutas',
+		'pda' => 'pms_pda',
+		'pdaConductor' => 'pms_pdaConductor'
+	);
+
+	$datos = array();
+	foreach ($camposPost as $campo => $nombrePost) {
+		$valor = isset($_POST[$nombrePost]) ? $_POST[$nombrePost] : 'false';
+		if (in_array($campo, $camposBooleanos)) {
+			$datos[$campo] = ($valor == 'true') ? 2 : 0;
+		} else {
+			// pda / pdaConductor: se guardan tal cual, sin convertir
+			$datos[$campo] = $valor;
+		}
 	}
-	else
-	{
-		$pms_administracion=0;
+
+	$conn1 = conectarSQL($conexion);
+	$conn = $conn1['conn'];
+	$bbddSql = $conn1['bbdd'];
+
+	$resultado = modificarPermisos($conn, $bbddSql, $datos, array('id_usuario' => $idLogin));
+
+	sqlsrv_close($conn);
+
+	if (!$resultado['ok']) {
+		echo json_encode(array('error' => $resultado['error']));
+	} else {
+		echo json_encode(array('error' => '', 'mensaje' => 'Permisos Modificados'));
 	}
-	
-	if ($pms_admContabilidad=="true")
-	{
-		$pms_admContabilidad=2;
-	}
-	else
-	{
-		$pms_admContabilidad=0;
-	}
-	
-	if ($pms_admFacturacion=="true")
-	{
-		$pms_admFacturacion=2;
-	}
-	else
-	{
-		$pms_admFacturacion=0;
-	}
-	
-	/*if ($pms_pda=="true")
-	{
-		$pms_pda=2;
-	}
-	else
-	{
-		$pms_pda=0;
-	}*/
-	
-	if ($pms_pda_gestion=="true")
-	{
-		$pms_pda_gestion=2;
-	}
-	else
-	{
-		$pms_pda_gestion=0;
-	}
-	
-	if ($pms_pdaAdjunto=="true")
-	{
-		$pms_pdaAdjunto=2;
-	}
-	else
-	{
-		$pms_pdaAdjunto=0;
-	}
-	
-	if ($pms_informesProduccion=="true")
-	{
-		$pms_informesProduccion=2;
-	}
-	else
-	{
-		$pms_informesProduccion=0;
-	}
-	
-	if ($pms_presupuestos=="true")
-	{
-		$pms_presupuestos=2;
-	}
-	else
-	{
-		$pms_presupuestos=0;
-	}
-	
-	if ($pms_nuevoProcesoPresu=="true")
-	{
-		$pms_nuevoProcesoPresu=2;
-	}
-	else
-	{
-		$pms_nuevoProcesoPresu=0;
-	}
-	
-	if ($pms_cambiarFechaCompromisoPresu=="true")
-	{
-		$pms_cambiarFechaCompromisoPresu=2;
-	}
-	else
-	{
-		$pms_cambiarFechaCompromisoPresu=0;
-	}
-	
-	if ($pms_cambiarFechaAceptacionPresu=="true")
-	{
-		$pms_cambiarFechaAceptacionPresu=2;
-	}
-	else
-	{
-		$pms_cambiarFechaAceptacionPresu=0;
-	}
-	
-	if ($pms_otBajada=="true")
-	{
-		$pms_otBajada=2;
-	}
-	else
-	{
-		$pms_otBajada=0;
-	}
-	
-	if ($pms_otAbierta=="true")
-	{
-		$pms_otAbierta=2;
-	}
-	else
-	{
-		$pms_otAbierta=0;
-	}
-	
-	if ($pms_otTerminada=="true")
-	{
-		$pms_otTerminada=2;
-	}
-	else
-	{
-		$pms_otTerminada=0;
-	}
-	
-	if ($pms_otBajadaAutomatico=="true")
-	{
-		$pms_otBajadaAutomatico=2;
-	}
-	else
-	{
-		$pms_otBajadaAutomatico=0;
-	}
-	
-	if ($pms_prodOt=="true")
-	{
-		$pms_prodOt=2;
-	}
-	else
-	{
-		$pms_prodOt=0;
-	}
-	
-	
-	
-	if ($pms_prodGrabarFranqueo=="true")
-	{
-		$pms_prodGrabarFranqueo=2;
-	}
-	else
-	{
-		$pms_prodGrabarFranqueo=0;
-	}
-	
-	if ($pms_prodFranqueoF12=="true")
-	{
-		$pms_prodFranqueoF12=2;
-	}
-	else
-	{
-		$pms_prodFranqueoF12=0;
-	}
-	
-	if ($pms_actualizarDatos=="true")
-	{
-		$pms_actualizarDatos=2;
-	}
-	else
-	{
-		$pms_actualizarDatos=0;
-	}
-	
-	if ($pms_presupuestoMensual=="true")
-	{
-		$pms_presupuestoMensual=2;
-	}
-	else
-	{
-		$pms_presupuestoMensual=0;
-	}
-	
-	if ($pms_rutas=="true")
-	{
-		$pms_rutas=2;
-	}
-	else
-	{
-		$pms_rutas=0;
-	}
-	
-	/*if ($pms_pdaConductor=="true")
-	{
-		$pms_pdaConductor=2;
-	}
-	else
-	{
-		$pms_pdaConductor=0;
-	}*/
-	
-	
-	
-	echo modificarPermisos($conexion,$idLogin,$pms_administracion,$pms_pda,$pms_pda_gestion,$pms_pdaAdjunto,$pms_informesProduccion,$pms_presupuestos,$pms_nuevoProcesoPresu,$pms_cambiarFechaCompromisoPresu,$pms_cambiarFechaAceptacionPresu,$pms_otBajada,$pms_otAbierta,$pms_otTerminada,$pms_otBajadaAutomatico,$pms_prodOt,$pms_admContabilidad,$pms_prodGrabarFranqueo,$pms_prodFranqueoF12,$pms_actualizarDatos,$pms_presupuestoMensual,$pms_rutas,$pms_pdaConductor, $pms_admFacturacion);
-	
-		
 }
 
 ?>

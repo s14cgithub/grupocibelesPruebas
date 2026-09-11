@@ -209,6 +209,39 @@ require($ruta."Archivos Comunes/cabecera.php");
 
 	}
 
+	//RUTAS
+	if ($_SESSION["permiso_rutas"]==1||$_SESSION["permiso_rutas"]==2)
+	{	
+		echo ('<br><br>');	
+		echo ('<h4>RUTAS</h4>');		
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'rutas.php\'">RUTAS</button>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'rutasAdicionales.php\'">RUTAS Adicionales</button>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'rutasVinculaciones.php\'">RUTAS Vinculaciones</button>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'rutasHistorico.php\'">RUTAS Historico</button>');
+	}
+
+	if ($_SESSION["permiso_empleados"]==1||$_SESSION["permiso_empleados"]==2)
+	{	
+		echo ('<br><br>');	
+		echo ('<h4>EMPLEADOS</h4>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'empleados.php\'">EMPLEADOS</button>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'loginGestion.php\'">LOGIN</button>');
+		//echo ('<button type="button" class="btn btn-info" onClick="location.href = \'rutasVinculaciones.php\'">PERMISOS</button>');
+		
+	}
+
+
+	if ($_SESSION["permiso_tarifas"]==1||$_SESSION["permiso_tarifas"]==2)
+	{	
+		echo ('<br><br>');	
+		echo ('<h4>TARIFAS</h4>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'tarifasPapel.php\'">Papel</button>');
+		echo ('<button type="button" class="btn btn-info" onClick="location.href = \'tarifasTipoImpresora.php\'">Tipo Impresora</button>');	
+		//echo ('<button type="button" class="btn btn-info" onClick="location.href = \'tarifasGranFormato.php\'">Gran Formato</button>');	
+		
+	}
+
+
 ?>
 
 <!--VISUALIZAR IMAGENES ALMACEN-->

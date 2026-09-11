@@ -1,6 +1,64 @@
 var peticionUnica1 = null;
 
+function cargarListadoEmpleado(destino) //js_login (antes cargarListadoEmpleado de js_global, comentada); destino variable
+{
+	peticionUnica1=crearComunicacion(peticionUnica1);
 
+	if(peticionUnica1)
+	{
+		peticionUnica1.onreadystatechange = function() { mostrarCargarListadoEmpleado(destino); };
+		peticionUnica1.open("POST","ajax/cargarListadoEmpleado.php",false);
+		peticionUnica1.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+		var query_string = consultaCargarListadoEmpleado();
+		peticionUnica1.send(query_string);
+	}
+}
+
+function consultaCargarListadoEmpleado()
+{	
+	var consulta = "accion=cargarListadoEmpleado";
+
+	var campos = ['id','nombre','apellidos'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify({}));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+	consulta += "&joins=" + encodeURIComponent(JSON.stringify([]));
+
+	var order = [{campo: 'nombre', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
+	
+	return consulta;	
+}
+
+function mostrarCargarListadoEmpleado(destino)
+{
+	if (peticionUnica1.readyState == 4)
+	{
+		if(peticionUnica1.status == 200)
+		{
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
+			{
+				alert(res.error);
+			}
+			else
+			{				
+				var datos = res.datos;
+				
+				var contador=0;
+				var contenido="";
+				while  (contador<datos.length)
+				{
+					contenido += '<option value="'+datos[contador]["id"]+'">'+datos[contador]["nombre"]+ ' ' + datos[contador]["apellidos"] + '</option>';
+					contador++;
+				}
+				document.getElementById(destino).innerHTML = contenido;	
+							
+			}
+			peticionUnica1=null;
+		}
+	}						
+}
 
 function cargarLogin() //js_login
 {	
@@ -19,12 +77,31 @@ function cargarLogin() //js_login
 function consultaCargarLogin()
 {	
 	var consulta = "accion=cargarLogin";	
-	
-	consulta += "&idEmpleado="+document.getElementById("listadoEmpleado1").value;
-	consulta += "&usuario="+document.getElementById("buscarUsuario").value;
-	
-	//consulta += "&orden="+document.getElementById("orden").value;
-	//consulta += "&desc="+document.getElementById("ordenDesc").checked;
+
+	var campos = ['id','usuario','idEmpleado'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = {};
+
+	var idEmpleado = document.getElementById("listadoEmpleado1").value;
+	if (idEmpleado != "")
+	{
+		filtros.idEmpleado = idEmpleado;
+	}
+	else
+	{
+		var usuario = document.getElementById("buscarUsuario").value;
+		if (usuario != "")
+		{
+			filtros.usuario = usuario;
+		}
+	}
+
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
+	consulta += "&filtrosOperadores=" + encodeURIComponent(JSON.stringify([]));
+
+	var order = [{campo: 'usuario', dir: 'ASC'}];
+	consulta += "&order=" + encodeURIComponent(JSON.stringify(order));
 	
 	return consulta;	
 }
@@ -35,22 +112,14 @@ function mostrarCargarLogin()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";					
-				}
+				var datos = res.datos;
 				
 				var contenido = "";
 				
@@ -100,8 +169,7 @@ function mostrarCargarLogin()
 				
 				while  (contador<datos.length) 
 				{
-					idInputListado = datos[contador]["id"]+'_empleado';
-					cargarListadoEmpleado();
+					cargarListadoEmpleado(datos[contador]["id"]+'_empleado');
 					document.getElementById(datos[contador]["id"]+'_empleado').value = datos[contador]["idEmpleado"];
 					contador++;
 				}						
@@ -157,17 +225,17 @@ function mostrarInsertarRegistroUsuario()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var resultado = peticionUnica1.responseText.split("|||");				
-				crearPermisosNuevo(resultado[0]);
+				crearPermisosNuevo(res.id);
 				if (campo1="true")
 				{
-					alert(resultado[1]);
+					alert(res.mensaje);
 				}
 				
 				campo1="";				
@@ -209,9 +277,10 @@ function mostrarCrearPermisosNuevo()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
@@ -280,13 +349,14 @@ function mostrarModificarPermisos()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
-				alert(peticionUnica1.responseText);
+				alert(res.mensaje);
 				verPermisosPorIdLogin(document.getElementById("idLoginModal").innerHTML);		
 			}
 			
@@ -311,9 +381,16 @@ function verPermisosPorIdLogin(idLogin) //js_login
 
 function consultaVerPermisosPorIdLogin(idLogin)
 {	
-	var consulta = "accion=verPermisosPorIdLogin";
-	
-	consulta += "&idLogin="+idLogin;	
+	var consulta = "accion=mostrarPermisos";
+
+	var campos = ['administracion','admContabilidad','admFacturacion','pda','pdaGestion','pdaAdjunto',
+		'pdaConductor','informesProduccion','presupuestos','nuevoProcesoPresu','cambiarFechaCompromisoPresu',
+		'cambiarFechaAceptacionPresu','presuOtBajada','presuOtAbierta','presuOtTerminada','otBajadaAutomatico',
+		'ot','grabarFranqueo','franqueoF12','actualizarDatos','presupuestoMensual','rutas'];
+	consulta += "&campos=" + encodeURIComponent(JSON.stringify(campos));
+
+	var filtros = { id_usuario: idLogin };
+	consulta += "&filtros=" + encodeURIComponent(JSON.stringify(filtros));
 	
 	return consulta;	
 }
@@ -324,23 +401,15 @@ function mostrarVerPermisosPorIdLogin()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
 				
-				var datos = new Array;
-				
-				try 
-				{
-					datos = JSON.parse(peticionUnica1.responseText);
-				}
-				catch (error)
-				{
-					datos="";
-				}
+				var datos = res.datos;
 				
 				if (datos.length>0)
 				{
@@ -588,13 +657,14 @@ function mostrarModificarRegistroUsuario()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				alert(peticionUnica1.responseText);	
+				alert(res.mensaje);	
 				cargarLogin();
 			}
 			peticionUnica1=null;			
@@ -636,13 +706,14 @@ function mostrarEliminarRegistroUsuario()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{
-				var mensaje = peticionUnica1.responseText;
+				var mensaje = res.mensaje;
 				
 				borrarPermisosUsuario(valorNumero);
 				
@@ -691,9 +762,10 @@ function mostrarBorrarPermisosUsuario()
 	{
 		if(peticionUnica1.status == 200)
 		{
-			if (peticionUnica1.responseText.substr(0,5)=="Error")
+			var res = JSON.parse(peticionUnica1.responseText);
+			if (res.error!="")
 			{
-				alert(peticionUnica1.responseText);
+				alert(res.error);
 			}
 			else
 			{				
