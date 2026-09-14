@@ -153,6 +153,7 @@ function lanzarFactura($conn, $bbddSql, $numeroFacturaCompleto, $clayma)
 
     $vatLines = array();
     $ivaCalculadoCentimos = 0;
+    $baseCalculadaCentimos = 0;
 
     foreach ($gruposIva as $grupo)
     {
@@ -169,6 +170,7 @@ function lanzarFactura($conn, $bbddSql, $numeroFacturaCompleto, $clayma)
         }
 
         $ivaCalculadoCentimos += $amountCentimos;
+        $baseCalculadaCentimos += $grupo['baseCentimos'];
 
         $vatLines[] = array(
             "base" => $grupo['baseCentimos'] / 100,
@@ -188,6 +190,20 @@ function lanzarFactura($conn, $bbddSql, $numeroFacturaCompleto, $clayma)
     {
         $res = array(
             'error' => 'ERROR: el IVA calculado desde facturacionDetalles ('.($ivaCalculadoCentimos/100).') no coincide con el IVA de la cabecera de la factura '.$numeroFacturaCompleto.' ('.($ivaCabeceraCentimos/100).')'
+        );
+        guardarLogLanzarFactura($numeroFacturaCompleto, $clayma, $res);
+        return $res;
+    }
+
+    // Misma comprobación, pero para el total: base + IVA calculado desde facturacionDetalles debe coincidir
+    // exactamente con precioTotalSinIrpf de la cabecera. El manual de Wörtice valida esto también en su lado
+    // (error 561210); si no cuadrara, mejor bloquear aquí con un mensaje claro que dejar que lo rechace Hacienda.
+    $totalCalculadoCentimos = $baseCalculadaCentimos + $ivaCalculadoCentimos;
+
+    if ($totalCalculadoCentimos !== $precioTotalCentimos)
+    {
+        $res = array(
+            'error' => 'ERROR: el total calculado desde facturacionDetalles ('.($totalCalculadoCentimos/100).') no coincide con el precioTotalSinIrpf de la cabecera de la factura '.$numeroFacturaCompleto.' ('.($precioTotalCentimos/100).')'
         );
         guardarLogLanzarFactura($numeroFacturaCompleto, $clayma, $res);
         return $res;
