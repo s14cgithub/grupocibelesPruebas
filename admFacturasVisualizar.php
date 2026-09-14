@@ -113,7 +113,7 @@ if ($_SESSION["usuario"]<>"")
 	</tr>
 	
 
-	<tr><td colspan=""><hr></td></tr>
+	<tr><td colspan="4"><hr></td></tr>
 </table>
 
 

@@ -29,15 +29,15 @@
 	
 	// Required libs
 	
-	include $QR_BASEDIR."qrconst.php";
-	include $QR_BASEDIR."qrconfig.php";
-	include $QR_BASEDIR."qrtools.php";
-	include $QR_BASEDIR."qrspec.php";
-	include $QR_BASEDIR."qrimage.php";
-	include $QR_BASEDIR."qrinput.php";
-	include $QR_BASEDIR."qrbitstream.php";
-	include $QR_BASEDIR."qrsplit.php";
-	include $QR_BASEDIR."qrrscode.php";
-	include $QR_BASEDIR."qrmask.php";
-	include $QR_BASEDIR."qrencode.php";
+	require_once  $QR_BASEDIR."qrconst.php";
+	require_once  $QR_BASEDIR."qrconfig.php";
+	require_once  $QR_BASEDIR."qrtools.php";
+	require_once  $QR_BASEDIR."qrspec.php";
+	require_once  $QR_BASEDIR."qrimage.php";
+	require_once  $QR_BASEDIR."qrinput.php";
+	require_once  $QR_BASEDIR."qrbitstream.php";
+	require_once  $QR_BASEDIR."qrsplit.php";
+	require_once  $QR_BASEDIR."qrrscode.php";
+	require_once  $QR_BASEDIR."qrmask.php";
+	require_once  $QR_BASEDIR."qrencode.php";
 

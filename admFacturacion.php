@@ -25,8 +25,8 @@ if ($_SESSION["permiso_clientes"]==1 || $_SESSION["permiso_clientes"]==2)
 	<button type="button" class="btn btn-info" onClick="location.href = \'clientes.php\'">NUEVO</button>
 	<!--<button type="button" class="btn btn-info" onClick="location.href = \'clientesClayma.php\'">CLIENTES CLAYMA</button>-->';*/
 	
-	echo '<br><br>
-	<h3>CLIENTES</h3>
+	//echo '<br><br>';
+	echo '<h3 class="menuSeccion"><svg class="menuSeccionIcono" xmlns="http://www.w3.org/2000/svg" height="1em" width="1em" viewBox="0 -960 960 960" fill="currentColor"><path d="M40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v112H40Zm720 0v-120q0-44-24.5-84.5T666-434q51 6 96 20.5t84 35.5q36 20 55 44.5t19 53.5v120H760ZM360-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47Zm400-160q0 66-47 113t-113 47q-11 0-28-2.5t-28-5.5q27-32 41.5-71t14.5-81q0-42-14.5-81T544-792q14-5 28-6.5t28-1.5q66 0 113 47t47 113ZM120-240h480v-32q0-11-5.5-20T580-306q-54-27-109-40.5T360-360q-56 0-111 13.5T140-306q-9 5-14.5 14t-5.5 20v32Zm240-320q33 0 56.5-23.5T440-640q0-33-23.5-56.5T360-720q-33 0-56.5 23.5T280-640q0 33 23.5 56.5T360-560Zm0 320Zm0-400Z"/></svg>CLIENTES</h3>
 	<button type="button" class="btn btn-info" onClick="location.href = \'clientes_listado.php\'">CLIENTES LISTADO</button>';
 	
 	if ($_SESSION["permiso_clientes"]==2)
@@ -52,7 +52,7 @@ if ($_SESSION["permiso_clientes"]==1 || $_SESSION["permiso_clientes"]==2)
 if ($_SESSION["provisionFondos"]==1 || $_SESSION["provisionFondos"]==2)
 {
 	echo '<br><br>
-	<h3>PROVISION DE FONDOS</h3>
+	<h3 class="menuSeccion"><svg class="menuSeccionIcono" xmlns="http://www.w3.org/2000/svg" height="1em" width="1em" viewBox="0 -960 960 960" fill="currentColor"><path d="M200-200v-560 560Zm0 80q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v100h-80v-100H200v560h560v-100h80v100q0 33-23.5 56.5T760-120H200Zm320-160q-33 0-56.5-23.5T440-360v-240q0-33 23.5-56.5T520-680h280q33 0 56.5 23.5T880-600v240q0 33-23.5 56.5T800-280H520Zm280-80v-240H520v240h280Zm-160-60q25 0 42.5-17.5T700-480q0-25-17.5-42.5T640-540q-25 0-42.5 17.5T580-480q0 25 17.5 42.5T640-420Z"/></svg>PROVISION DE FONDOS</h3>
 	<button type="button" class="btn btn-info" onClick="location.href = \'admProvisionFondos.php\'">PROVISION DE FONDOS</button>';
 	
 	if ($_SESSION["provisionFondos"]==2)
@@ -66,7 +66,7 @@ if ($_SESSION["provisionFondos"]==1 || $_SESSION["provisionFondos"]==2)
 if ($_SESSION["facturasManipulacion"]==1 || $_SESSION["facturasManipulacion"]==2)
 {
 	echo '<br><br>
-<h3>FACTURAS DE MANIPULACION</h3>
+<h3 class="menuSeccion"><svg class="menuSeccionIcono" xmlns="http://www.w3.org/2000/svg" height="1em" width="1em" viewBox="0 -960 960 960" fill="currentColor"><path d="M240-80q-50 0-85-35t-35-85v-120h120v-560l60 60 60-60 60 60 60-60 60 60 60-60 60 60 60-60 60 60 60-60v680q0 50-35 85t-85 35H240Zm480-80q17 0 28.5-11.5T760-200v-560H320v440h360v120q0 17 11.5 28.5T720-160ZM360-600v-80h240v80H360Zm0 120v-80h240v80H360Zm320-120q-17 0-28.5-11.5T640-640q0-17 11.5-28.5T680-680q17 0 28.5 11.5T720-640q0 17-11.5 28.5T680-600Zm0 120q-17 0-28.5-11.5T640-520q0-17 11.5-28.5T680-560q17 0 28.5 11.5T720-520q0 17-11.5 28.5T680-480ZM240-160h360v-80H200v40q0 17 11.5 28.5T240-160Zm-40 0v-80 80Z"/></svg>FACTURAS DE MANIPULACION</h3>
 <button type="button" class="btn btn-info" onClick="location.href = \'admEmisionFacturasPendientes.php\'">PREFACTURA</button>
 <!--<button type="button" class="btn btn-info" onClick="location.href = \'admEmisionFacturasPendientesMensuales.php\'">PREFACTURA - MENSUAL</button>-->
 <!--<button type="button" class="btn btn-info" data-toggle="modal" data-target="#crearFacturaMensualModal" data-whatever="@mdo"">CREAR FAC. MENSUAL</button>-->
@@ -95,7 +95,7 @@ if ($_SESSION["facturasManipulacion"]==1 || $_SESSION["facturasManipulacion"]==2
 if ($_SESSION["permiso_soloNoFacturable"]==1 || $_SESSION["permiso_soloNoFacturable"]==2)
 {
 	echo '<br><br>
-<h3>FACTURAS DE MANIPULACION</h3>
+<h3 class="menuSeccion"><svg class="menuSeccionIcono" xmlns="http://www.w3.org/2000/svg" height="1em" width="1em" viewBox="0 -960 960 960" fill="currentColor"><path d="M240-80q-50 0-85-35t-35-85v-120h120v-560l60 60 60-60 60 60 60-60 60 60 60-60 60 60 60-60 60 60 60-60v680q0 50-35 85t-85 35H240Zm480-80q17 0 28.5-11.5T760-200v-560H320v440h360v120q0 17 11.5 28.5T720-160ZM360-600v-80h240v80H360Zm0 120v-80h240v80H360Zm320-120q-17 0-28.5-11.5T640-640q0-17 11.5-28.5T680-680q17 0 28.5 11.5T720-640q0 17-11.5 28.5T680-600Zm0 120q-17 0-28.5-11.5T640-520q0-17 11.5-28.5T680-560q17 0 28.5 11.5T720-520q0 17-11.5 28.5T680-480ZM240-160h360v-80H200v40q0 17 11.5 28.5T240-160Zm-40 0v-80 80Z"/></svg>FACTURAS DE MANIPULACION</h3>
 
 <button type="button" class="btn btn-info" onClick="location.href = \'noFacturables.php\'">NO FACTURABLES</button>';
 	
@@ -106,7 +106,7 @@ if ($_SESSION["permiso_soloNoFacturable"]==1 || $_SESSION["permiso_soloNoFactura
 if ($_SESSION["facturasCorreos"]==1 || $_SESSION["facturasCorreos"]==2)
 {
 	echo '<br><br>
-	<h3>FACTURAS DE CORREOS</h3>
+	<h3 class="menuSeccion"><svg class="menuSeccionIcono" xmlns="http://www.w3.org/2000/svg" height="1em" width="1em" viewBox="0 -960 960 960" fill="currentColor"><path d="M640-200v80q0 17-11.5 28.5T600-80H120q-17 0-28.5-11.5T80-120v-320q0-17 11.5-28.5T120-480h120v-160q0-100 70-170t170-70h160q100 0 170 70t70 170v560h-80v-120H640Zm0-80h160v-360q0-66-47-113t-113-47H480q-66 0-113 47t-47 113v160h280q17 0 28.5 11.5T640-440v160ZM400-560v-80h320v80H400Zm-40 274 200-114H160l200 114Zm0 70L160-330v170h400v-170L360-216ZM160-400v240-240Z"/></svg>FACTURAS DE CORREOS</h3>
 	<button type="button" class="btn btn-info" onClick="location.href = \'traspasoCorreosAcibeles.php\'">CORREOS A CIBELES</button>
 	<button type="button" class="btn btn-info" onClick="location.href = \'admFacturasCorreos.php\'">FAC. CORREOS</button>
 	<!--<button type="button" class="btn btn-info" onClick="location.href = \'admFacturasCorreosPendientes.php\'">FAC. CORREOS SIN COBRAR</button>-->
@@ -118,7 +118,7 @@ if ($_SESSION["facturasCorreos"]==1 || $_SESSION["facturasCorreos"]==2)
 if ($_SESSION["facturas"]==1 || $_SESSION["facturas"]==2)
 {
 	echo '<br><br>
-<h3>FACTURAS</h3>
+<h3 class="menuSeccion"><svg class="menuSeccionIcono" xmlns="http://www.w3.org/2000/svg" height="1em" width="1em" viewBox="0 -960 960 960" fill="currentColor"><path d="M440-200h80v-40h40q17 0 28.5-11.5T600-280v-120q0-17-11.5-28.5T560-440H440v-40h160v-80h-80v-40h-80v40h-40q-17 0-28.5 11.5T360-520v120q0 17 11.5 28.5T400-360h120v40H360v80h80v40ZM240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-560v-160H240v640h480v-480H520ZM240-800v160-160 640-640Z"/></svg>FACTURAS</h3>
 <button type="button" class="btn btn-info" onClick="location.href = \'admFacturasSinCobrarTotal.php\'">FAC. TOTAL SIN COBRAR</button>
 <!--<button type="button" class="btn btn-info" onClick="location.href = \'admFacturasSinCobrarAnteriores.php\'">SIN COBRAR AÑOS ANTERIORES</button>-->
 <button type="button" class="btn btn-info" onClick="cargarListadoClientesExcelFacturaTotal()">EXCEL</button>
@@ -139,7 +139,7 @@ if ($_SESSION["facturas"]==1 || $_SESSION["facturas"]==2)
 if ($_SESSION["certAlbGastAdicional"]==1 || $_SESSION["certAlbGastAdicional"]==2)
 {
 	echo '<br><br>
-<h3>CERTIFICADOS - ALBARANES - GASTOS ADICIONALES </h3>
+<h3 class="menuSeccion"><svg class="menuSeccionIcono" xmlns="http://www.w3.org/2000/svg" height="1em" width="1em" viewBox="0 -960 960 960" fill="currentColor"><path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h168q13-36 43.5-58t68.5-22q38 0 68.5 22t43.5 58h168q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Zm0-80h560v-560H200v560Zm80-80h280v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80Zm200-190q13 0 21.5-8.5T510-820q0-13-8.5-21.5T480-850q-13 0-21.5 8.5T450-820q0 13 8.5 21.5T480-790ZM200-200v-560 560Z"/></svg>CERTIFICADOS - ALBARANES - GASTOS ADICIONALES </h3>
 <button type="button" class="btn btn-info" onClick="location.href = \'certGrabar.php\'">GRABAR CERTIFICADOS</button>
 <button type="button" class="btn btn-info" onClick="location.href = \'recibosGrabar.php\'">GRABAR RECOGIDAS Y ENTREGAS</button>
 <button type="button" class="btn btn-info" onClick="location.href = \'facturasEspeciales.php\'">GASTOS ADICIONALES</button>
@@ -150,7 +150,7 @@ if ($_SESSION["certAlbGastAdicional"]==1 || $_SESSION["certAlbGastAdicional"]==2
 if ($_SESSION["soloGrabarRecogidasEntregas"]==1 || $_SESSION["soloGrabarRecogidasEntregas"]==2)
 {
 	echo '<br><br>
-	<h3>RECOGIDAS Y ENTREGAS</h3>
+	<h3 class="menuSeccion"><svg class="menuSeccionIcono" xmlns="http://www.w3.org/2000/svg" height="1em" width="1em" viewBox="0 -960 960 960" fill="currentColor"><path d="M240-160q-50 0-85-35t-35-85H40v-440q0-33 23.5-56.5T120-800h560v160h120l120 160v200h-80q0 50-35 85t-85 35q-50 0-85-35t-35-85H360q0 50-35 85t-85 35Zm0-80q17 0 28.5-11.5T280-280q0-17-11.5-28.5T240-320q-17 0-28.5 11.5T200-280q0 17 11.5 28.5T240-240ZM120-360h32q17-18 39-29t49-11q27 0 49 11t39 29h272v-360H120v360Zm600 120q17 0 28.5-11.5T760-280q0-17-11.5-28.5T720-320q-17 0-28.5 11.5T680-280q0 17 11.5 28.5T720-240Zm-40-200h170l-90-120h-80v120ZM360-540Z"/></svg>RECOGIDAS Y ENTREGAS</h3>
 
 	<button type="button" class="btn btn-info" onClick="location.href = \'recibosGrabar.php\'">GRABAR RECOGIDAS Y ENTREGAS</button>';
 
@@ -159,7 +159,7 @@ if ($_SESSION["soloGrabarRecogidasEntregas"]==1 || $_SESSION["soloGrabarRecogida
 if ($_SESSION["admInformes"]==1 || $_SESSION["admInformes"]==2)
 {
 	echo '<br><br>
-<h3>INFORMES FRANQUEO</h3>
+<h3 class="menuSeccion"><svg class="menuSeccionIcono" xmlns="http://www.w3.org/2000/svg" height="1em" width="1em" viewBox="0 -960 960 960" fill="currentColor"><path d="M640-160v-280h160v280H640Zm-240 0v-640h160v640H400Zm-240 0v-440h160v440H160Z"/></svg>INFORMES FRANQUEO</h3>
 <!--<button type="button" class="btn btn-info" data-toggle="modal" data-target="#imprimirInformeCibelesCorreosDiferencias" data-whatever="@mdo">Cibeles VS Correos</button>-->
 <button type="button" class="btn btn-info" onClick="cargarListadoClientesInformeFranqueo()">Cliente</button>
 <button type="button" class="btn btn-info" onClick="cargarListadoSubClientesInformeFranqueo()">SubCliente</button>

@@ -24,7 +24,7 @@ require($ruta."Archivos Comunes/cabecera.php");
 ?>
 
 
-<table class="table sinBorde">
+<table class="table sinBorde" style="color:white">
 	<tr>
 		<td align="right" >Usuario:</td>
 		<td><input type="text" id="usuario" name="usuario" onKeyPress="verSiEsIntro_Login_usuario(event)"></input></td>
